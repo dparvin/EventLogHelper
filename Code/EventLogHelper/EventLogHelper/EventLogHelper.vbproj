@@ -1,0 +1,66 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <Import Project="..\SharedFrameworks.props" Condition="Exists('..\SharedFrameworks.props')" />
+
+  <PropertyGroup>
+    <RootNamespace>EventLogHelper</RootNamespace>
+    <ImportedNamespaces>Microsoft.VisualBasic=True,System=True,System.Collections=True,System.Collections.Generic=True,System.Data=True,System.Diagnostics=True,System.Linq=True,System.Xml.Linq=True,EventLogHelper=True</ImportedNamespaces>
+    <GenerateDocumentationFile>True</GenerateDocumentationFile>
+    <OptionStrict>On</OptionStrict>
+    <OptionInfer>Off</OptionInfer>
+    <NeutralLanguage>en-US</NeutralLanguage>
+    <EnforceCodeStyleInBuild>True</EnforceCodeStyleInBuild>
+    <EnableNETAnalyzers>True</EnableNETAnalyzers>
+    <AnalysisLevel>latest-minimum</AnalysisLevel>
+  </PropertyGroup>
+
+  <PropertyGroup>
+    <SignAssembly>true</SignAssembly>
+    <AssemblyOriginatorKeyFile>EventLogHelper.snk</AssemblyOriginatorKeyFile>
+  </PropertyGroup>
+
+  <PropertyGroup Condition="'$(TargetFramework)'=='net35'">
+    <WarningsAsErrors>42024,42030,42099,42104,42108,42109</WarningsAsErrors>
+  </PropertyGroup>
+
+  <PropertyGroup Condition="'$(TargetFramework)'=='net452'">
+    <WarningsAsErrors>42024,42030,42099,42104,42108,42109</WarningsAsErrors>
+  </PropertyGroup>
+
+  <PropertyGroup Condition="'$(TargetFramework)'=='net462'">
+    <WarningsAsErrors>42024,42030,42099,42104,42108,42109</WarningsAsErrors>
+  </PropertyGroup>
+
+  <PropertyGroup Condition="'$(TargetFramework)'=='net472'">
+    <WarningsAsErrors>42024,42030,42099,42104,42108,42109</WarningsAsErrors>
+  </PropertyGroup>
+
+  <PropertyGroup Condition="'$(TargetFramework)'=='net481'">
+    <WarningsAsErrors>42024,42030,42099,42104,42108,42109</WarningsAsErrors>
+  </PropertyGroup>
+
+  <PropertyGroup Condition="'$(TargetFramework)'=='net8.0-windows10.0.17763.0'">
+    <WarningsAsErrors>42024,42030,42099,42104,42108</WarningsAsErrors>
+  </PropertyGroup>
+
+  <PropertyGroup Condition="'$(TargetFramework)'=='net9.0-windows10.0.17763.0'">
+    <WarningsAsErrors>42024,42030,42099,42104,42108</WarningsAsErrors>
+  </PropertyGroup>
+
+  <PropertyGroup Condition="'$(Configuration)'=='Release'">
+    <DefineDebug>True</DefineDebug>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Versioning.Common" Version="1.0.15" />
+  </ItemGroup>
+
+  <ItemGroup Condition="'$(TargetFramework)' == 'net8.0-windows10.0.17763.0'">
+    <PackageReference Include="System.Diagnostics.EventLog" Version="9.0.7" />
+  </ItemGroup>
+
+  <ItemGroup Condition="'$(TargetFramework)' == 'net9.0-windows10.0.17763.0'">
+    <PackageReference Include="System.Diagnostics.EventLog" Version="9.0.7" />
+  </ItemGroup>
+
+</Project>
