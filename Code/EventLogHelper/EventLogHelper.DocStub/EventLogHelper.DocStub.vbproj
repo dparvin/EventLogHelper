@@ -1,0 +1,50 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <UseReducedFrameworks>true</UseReducedFrameworks>
+  </PropertyGroup>
+
+  <Import Project="..\SharedFrameworks.props" Condition="Exists('..\SharedFrameworks.props')" />
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <RootNamespace>EventLogHelper.DocStub</RootNamespace>
+    <ImportedNamespaces>EventLogHelper=False,Microsoft.VisualBasic=True,System=True,System.Collections=True,System.Collections.Generic=True,System.Diagnostics=True,System.Linq=True,System.Xml.Linq=True,System.Threading.Tasks=True,EventLogHelper.DocStub=True</ImportedNamespaces>
+    <GenerateDocumentationFile>True</GenerateDocumentationFile>
+    <GenerateAssemblyInfo>false</GenerateAssemblyInfo>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Versioning.Common" Version="1.0.15" />
+    <PackageReference Include="XmlDocMarkdown" Version="2.9.0" />
+  </ItemGroup>
+
+  <ItemGroup Condition="'$(TargetFramework)' == 'net462'">
+    <PackageReference Include="XmlDocMarkdown.Core" Version="2.9.0" />
+  </ItemGroup>
+
+  <ItemGroup Condition="'$(TargetFramework)' == 'net472'">
+    <PackageReference Include="XmlDocMarkdown.Core" Version="2.9.0" />
+  </ItemGroup>
+
+  <ItemGroup Condition="'$(TargetFramework)' == 'net481'">
+    <PackageReference Include="XmlDocMarkdown.Core" Version="2.9.0" />
+  </ItemGroup>
+
+  <ItemGroup Condition="'$(TargetFramework)' == 'net8.0-windows10.0.17763.0'">
+    <PackageReference Include="XmlDocMarkdown.Core" Version="2.9.0" />
+  </ItemGroup>
+
+  <ItemGroup Condition="'$(TargetFramework)' == 'net9.0-windows10.0.17763.0'">
+    <PackageReference Include="XmlDocMarkdown.Core" Version="2.9.0" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Import Include="EventLogHelper" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\EventLogHelper\EventLogHelper.vbproj" />
+  </ItemGroup>
+
+</Project>

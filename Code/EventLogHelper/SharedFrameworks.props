@@ -30,6 +30,50 @@
     <LogVersionInfo Condition="'$(LogVersionInfo)' == ''">true</LogVersionInfo>
   </PropertyGroup>
 
+  <PropertyGroup Condition="'$(TargetFramework)' == 'net35'">
+    <DefineConstants>NET35</DefineConstants>
+  </PropertyGroup>
+
+  <PropertyGroup Condition="'$(TargetFramework)'=='net452'">
+    <DefineConstants>NET452</DefineConstants>
+  </PropertyGroup>
+
+  <PropertyGroup Condition="'$(TargetFramework)'=='net452'">
+    <DefineConstants>NET452</DefineConstants>
+  </PropertyGroup>
+
+  <PropertyGroup Condition="'$(TargetFramework)'=='net462'">
+    <DefineConstants>NET462</DefineConstants>
+  </PropertyGroup>
+
+  <PropertyGroup Condition="'$(TargetFramework)'=='net462'">
+    <DefineConstants>NET462</DefineConstants>
+  </PropertyGroup>
+
+  <PropertyGroup Condition="'$(TargetFramework)'=='net472'">
+    <DefineConstants>NET472</DefineConstants>
+  </PropertyGroup>
+
+  <PropertyGroup Condition="'$(TargetFramework)'=='net472'">
+    <DefineConstants>NET472</DefineConstants>
+  </PropertyGroup>
+
+  <PropertyGroup Condition="'$(TargetFramework)'=='net481'">
+    <DefineConstants>NET481</DefineConstants>
+  </PropertyGroup>
+
+  <PropertyGroup Condition="'$(TargetFramework)'=='net481'">
+    <DefineConstants>NET481</DefineConstants>
+  </PropertyGroup>
+
+  <PropertyGroup Condition="'$(TargetFramework)'=='net8.0-windows10.0.17763.0'">
+    <DefineConstants>NET8_0</DefineConstants>
+  </PropertyGroup>
+
+  <PropertyGroup Condition="'$(TargetFramework)'=='net9.0-windows10.0.17763.0'">
+    <DefineConstants>NET9_0</DefineConstants>
+  </PropertyGroup>
+
   <!-- Define a custom target that logs from the SharedFrameworks.props file -->
   <Target Name="SharedFrameworks-LogFromSharedFrameworks" BeforeTargets="PrepareForBuild" Condition="'$(LogVersionInfo)' == 'true'">
     <Message Importance="High" Text="📦 SharedFrameworks.props has been imported and evaluated." />
