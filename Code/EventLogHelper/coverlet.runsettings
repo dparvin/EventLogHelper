@@ -1,0 +1,34 @@
+﻿<RunSettings>
+  <DataCollectionRunSettings>
+    <DataCollectors>
+      <DataCollector friendlyName="XPlat Code Coverage">
+        <Configuration>
+          <Exclude>
+            <!-- Exclude assemblies or modules -->
+            <ModulePaths>
+              <ModulePath>.*WinRT.SourceGenerator.*</ModulePath>
+              <ModulePath>.*Generator.WinRTAotSourceGenerator.*</ModulePath>
+            </ModulePaths>
+
+            <!-- Exclude specific source files -->
+            <SourceFiles>
+              <!-- General exclusion of generated files in 'obj' -->
+              <SourceFile>.*\\obj\\.*</SourceFile>
+              <!-- Specific exclusion for the problematic file -->
+              <SourceFile>.*\\WinRTCCWVtable\.g\.cs$</SourceFile>
+            </SourceFiles>
+
+            <!-- Exclude files with generated code attributes -->
+            <Attributes>
+              <Attribute>System.CodeDom.Compiler.GeneratedCodeAttribute</Attribute>
+              <Attribute>GeneratedCodeAttribute</Attribute>
+            </Attributes>
+          </Exclude>
+          <Include>
+            <ModulePath>.*PropertyGridHelpers.*</ModulePath>
+          </Include>
+        </Configuration>
+      </DataCollector>
+    </DataCollectors>
+  </DataCollectionRunSettings>
+</RunSettings>
