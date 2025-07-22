@@ -33,6 +33,11 @@
     <TreatWarningsAsErrors>True</TreatWarningsAsErrors>
   </PropertyGroup>
 
+  <PropertyGroup>
+    <SignAssembly>true</SignAssembly>
+    <AssemblyOriginatorKeyFile>EventLogHelper.Tests.snk</AssemblyOriginatorKeyFile>
+  </PropertyGroup>
+
   <ItemGroup>
     <PackageReference Include="ReportGenerator" Version="5.4.9" />
     <PackageReference Include="Versioning.Common" Version="1.0.15" />
