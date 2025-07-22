@@ -25,7 +25,7 @@
             </Attributes>
           </Exclude>
           <Include>
-            <ModulePath>.*PropertyGridHelpers.*</ModulePath>
+            <ModulePath>.*EventLogHelper.*</ModulePath>
           </Include>
         </Configuration>
       </DataCollector>

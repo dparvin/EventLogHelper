@@ -9,7 +9,7 @@
           <Format>cobertura</Format>
           <LogLevel>Verbose</LogLevel>
           <Include>
-            <ModulePath>.*PropertyGridHelpers.*</ModulePath>
+            <ModulePath>.*EventLogHelper.*</ModulePath>
           </Include>
         </Configuration>
       </DataCollector>
