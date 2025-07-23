@@ -90,12 +90,12 @@ Contributions are welcome! Please file issues or open pull requests to suggest i
 
 ## 📄 License
 
-MIT License. See (LICENSE)[LICENSE] for details.
+MIT License. See [LICENSE](LICENSE) for details.
 
 ---
 
 ## ✨ Credits
 
-Created and maintained by (https://github.com/dparvin)[@dparvin].
+Created and maintained by [@dparvin](https://github.com/dparvin).
 
 ---
