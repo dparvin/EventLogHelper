@@ -1,4 +1,8 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <UseReducedFrameworks>true</UseReducedFrameworks>
+    <UseLatestFramework>true</UseLatestFramework>
+  </PropertyGroup>
 
   <Import Project="..\SharedFrameworks.props" Condition="Exists('..\SharedFrameworks.props')" />
 
@@ -13,15 +17,14 @@
     <EnforceCodeStyleInBuild>True</EnforceCodeStyleInBuild>
     <AnalysisLevel>latest-minimum</AnalysisLevel>
     <GenerateAssemblyInfo>false</GenerateAssemblyInfo>
-  </PropertyGroup>
-
-  <PropertyGroup>
     <SignAssembly>true</SignAssembly>
     <AssemblyOriginatorKeyFile>EventLogHelper.Sample.snk</AssemblyOriginatorKeyFile>
+    <ImportedNamespaces>System.Drawing=False,System.Windows.Forms=False,Microsoft.VisualBasic=True,System=True,System.Collections=True,System.Collections.Generic=True,System.Data=True,System.Diagnostics=True,System.Linq=True,System.Xml.Linq=True,EventLogHelper.Sample=True</ImportedNamespaces>
+    <PlatformTarget>AnyCPU</PlatformTarget>
   </PropertyGroup>
 
   <ItemGroup>
-    <Import Include="System.Data" />
+    <Import Include="EventLogHelper" />
     <Import Include="System.Drawing" />
     <Import Include="System.Windows.Forms" />
   </ItemGroup>

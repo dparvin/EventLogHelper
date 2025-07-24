@@ -1,6 +1,3 @@
-﻿''' <summary>
-''' 
-''' </summary>
-Public Class EventLogTester
+﻿Public Class EventLogTester
 
 End Class
