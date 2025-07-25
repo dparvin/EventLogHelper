@@ -1,4 +1,4 @@
-# ![PropertyGridHelpers Icon](https://raw.githubusercontent.com/dparvin/EventLogHelper/master/Code/NuGet.Pack/Images/EventLogHelper-icon-64x64.png) EventLogHelper
+﻿# ![PropertyGridHelpers Icon](https://raw.githubusercontent.com/dparvin/EventLogHelper/master/Code/NuGet.Pack/Images/EventLogHelper-icon-64x64.png) EventLogHelper
 
 **EventLogHelper** is a lightweight .NET library designed to make logging to the Windows Event Log simple, safe, and flexible — without requiring repetitive boilerplate or administrative headaches.
 
@@ -7,7 +7,7 @@
 ## 🚀 Features
 
 - ✅ One-line logging to the Windows Event Log
-- ✅ Automatically creates event sources (with safe fallbacks)
+- ✅ Automatically creates event sources (with safe fall back)
 - ✅ Works in non-elevated environments
 - ✅ Configurable defaults via `App.config` or `Web.config`
 - ✅ Gracefully handles permission issues and registry conflicts
@@ -88,11 +88,3 @@ Contributions are welcome! Please file issues or open pull requests to suggest i
 ## 📄 License
 
 MIT License. See [LICENSE](LICENSE) for details.
-
----
-
-## ✨ Credits
-
-Created and maintained by [@dparvin](https://github.com/dparvin).
-
----

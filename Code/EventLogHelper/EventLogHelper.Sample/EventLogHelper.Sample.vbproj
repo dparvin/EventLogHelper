@@ -21,7 +21,12 @@
     <AssemblyOriginatorKeyFile>EventLogHelper.Sample.snk</AssemblyOriginatorKeyFile>
     <ImportedNamespaces>System.Drawing=False,System.Windows.Forms=False,Microsoft.VisualBasic=True,System=True,System.Collections=True,System.Collections.Generic=True,System.Data=True,System.Diagnostics=True,System.Linq=True,System.Xml.Linq=True,EventLogHelper.Sample=True</ImportedNamespaces>
     <PlatformTarget>AnyCPU</PlatformTarget>
+    <ApplicationIcon>EventLogHelper-icon-32x32.ico</ApplicationIcon>
   </PropertyGroup>
+
+  <ItemGroup>
+    <Content Include="EventLogHelper-icon-32x32.ico" />
+  </ItemGroup>
 
   <ItemGroup>
     <Import Include="EventLogHelper" />

@@ -22,9 +22,17 @@ Partial Class EventLogTester
     'Do not modify it using the code editor.
     <System.Diagnostics.DebuggerStepThrough()> _
     Private Sub InitializeComponent()
-        components = New System.ComponentModel.Container
-        Me.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font
-        Me.ClientSize = New System.Drawing.Size(800, 450)
-        Me.Text = "EventLogTester"
+        Dim resources As System.ComponentModel.ComponentResourceManager = New System.ComponentModel.ComponentResourceManager(GetType(EventLogTester))
+        SuspendLayout()
+        ' 
+        ' EventLogTester
+        ' 
+        AutoScaleDimensions = New SizeF(7F, 15F)
+        AutoScaleMode = AutoScaleMode.Font
+        ClientSize = New Size(800, 450)
+        Icon = CType(resources.GetObject("$this.Icon"), Icon)
+        Name = "EventLogTester"
+        Text = "EventLogTester"
+        ResumeLayout(False)
     End Sub
 End Class
