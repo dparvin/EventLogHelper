@@ -1,4 +1,4 @@
-﻿# ![PropertyGridHelpers Icon](https://raw.githubusercontent.com/dparvin/EventLogHelper/master/Code/NuGet.Pack/Images/EventLogHelper-icon-64x64.png) EventLogHelper
+﻿# ![PropertyGridHelpers Icon](https://raw.githubusercontent.com/dparvin/EventLogHelper/main/Code/EventLogHelper/NuGet.Pack/Images/EventLogHelper-icon-64x64.png) EventLogHelper
 
 **EventLogHelper** is a lightweight .NET library designed to make logging to the Windows Event Log simple, safe, and flexible — without requiring repetitive boilerplate or administrative headaches.
 
