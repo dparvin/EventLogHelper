@@ -2,6 +2,11 @@
 
 **EventLogHelper** is a lightweight .NET library designed to make logging to the Windows Event Log simple, safe, and flexible — without requiring repetitive boilerplate or administrative headaches.
 
+## Status
+[![Coverage](https://raw.githubusercontent.com/dparvin/EventLogHelper.CodeCoverage/main/Badges/badge_combined.svg)](https://dparvin.github.io/EventLogHelper/)
+
+[![Build status](https://addtracker.visualstudio.com/Projects/_apis/build/status/EventLogHelper%20Build)](https://addtracker.visualstudio.com/Projects/_build/latest?definitionId=9)
+
 ---
 
 ## 🚀 Features
@@ -96,3 +101,7 @@ MIT License. See [LICENSE](LICENSE) for details.
 Created and maintained by [@dparvin](https://github.com/dparvin).
 
 ---
+
+### Related Locations
+* [Code Coverage Report](https://dparvin.github.io/EventLogHelper/)
+* [Published Package](https://www.nuget.org/packages/EventLogHelper)
