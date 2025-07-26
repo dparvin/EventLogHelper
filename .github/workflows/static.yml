@@ -12,37 +12,32 @@ on:
   workflow_dispatch:
 
 jobs:
-  update-pages:
+  deploy:
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
     runs-on: ubuntu-latest
 
     steps:
     - name: Checkout the main repository
-      uses: actions/checkout@v3
+      uses: actions/checkout@v4
+      with:
+        repository: dparvin/EventLogHelper.CodeCoverage
+        token: ${{ secrets.PAT_TOKEN }}
 
-    - name: Clone the CodeCoverage repository
+    - name: Prepare Pages content
       run: |
-        git clone --depth 1 https://${{ secrets.PAT_TOKEN }}@github.com/dparvin/EventLogHelper.CodeCoverage.git codecoverage-repo
+        mkdir -p coverage
+        cp -a Pages/* coverage/
 
-    - name: Check current commit of code coverage repository
-      run: |
-        cd codecoverage-repo
-        git log -1
-        cd ..
+    - name: Setup Pages
+      uses: actions/configure-pages@v5
 
-    - name: List files in codecoverage-repo
-      run: ls -R codecoverage-repo
-
-    - name: Copy coverage files to gh-pages
-      run: |
-        mkdir -p gh-pages
-        cp -a codecoverage-repo/Pages/* gh-pages/
-
-    - name: List files in gh-pages
-      run: ls -al gh-pages
+    - name: Upload Artifact
+      uses: actions/upload-pages-artifact@v3
+      with:
+        path: coverage
 
     - name: Deploy to GitHub Pages
-      uses: peaceiris/actions-gh-pages@v3
-      with:
-        personal_token: ${{ secrets.PAT_TOKEN }}
-        publish_dir: gh-pages
-        force_orphan: true  # Ensures a clean gh-pages branch
+      id: deployment
+      uses: actions/deploy-pages@v4
