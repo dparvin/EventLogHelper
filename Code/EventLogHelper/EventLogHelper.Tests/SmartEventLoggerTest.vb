@@ -60,11 +60,10 @@ Namespace net90
         Public Sub Log_Message()
 
             ' Arrange
-            Dim testWriter As TestEventLogWriter
 #If NET35 Then
-            testWriter = New TestEventLogWriter(logExists:=False, sourceExists:=False)
+            Dim testWriter As New TestEventLogWriter(logExists:=False, sourceExists:=False)
 #Else
-            testWriter = New TestEventLogWriter(OutputHelper, logExists:=False, sourceExists:=False)
+            Dim testWriter As New TestEventLogWriter(OutputHelper, logExists:=False, sourceExists:=False)
 #End If
             SetWriter(testWriter)
 
@@ -482,6 +481,65 @@ Namespace net90
         End Sub
 
         ''' <summary>
+        ''' Logs the message event type event identifier category raw data.
+        ''' </summary>
+        <Fact>
+        Public Sub Log_Message_maxKilobytes_retentionDays()
+
+            ' Arrange
+            Dim testWriter As TestEventLogWriter
+#If NET35 Then
+            testWriter = New TestEventLogWriter(logExists:=False, sourceExists:=False)
+#Else
+            testWriter = New TestEventLogWriter(OutputHelper, logExists:=False, sourceExists:=False)
+#End If
+            SetWriter(testWriter)
+
+            Dim message As String = "Test message"
+            Dim maxKilobytes As Integer = 1024 * 1024 ' 1 MB
+            Dim retentionDays As Integer = 7
+
+            ' Act
+            Log(message, maxKilobytes, retentionDays)
+
+            ' Assert
+            Assert.True(testWriter.CreateEventSourceCalled)
+            Assert.True(testWriter.WriteEntryCalled)
+
+        End Sub
+
+        ''' <summary>
+        ''' Logs the message event type event identifier category raw data.
+        ''' </summary>
+        <Fact>
+        Public Sub Log_Message_maxKilobytes_retentionDays_writeInitEntry()
+
+            ' Arrange
+            Dim testWriter As TestEventLogWriter
+#If NET35 Then
+            testWriter = New TestEventLogWriter(logExists:=False, sourceExists:=False)
+#Else
+            testWriter = New TestEventLogWriter(OutputHelper, logExists:=False, sourceExists:=False)
+#End If
+            SetWriter(testWriter)
+            MachineName = ""
+            TruncationMarker = ""
+
+            Dim message As String = "Test message"
+            Dim maxKilobytes As Integer = 1024 * 1024 ' 1 MB
+            Dim retentionDays As Integer = 7
+            Dim writeInitEntry As Boolean = True
+
+            ' Act
+            Log(message, maxKilobytes, retentionDays, writeInitEntry)
+
+            ' Assert
+            Assert.True(testWriter.CreateEventSourceCalled)
+            Assert.True(testWriter.WriteEntryCalled)
+
+        End Sub
+
+        ''' <summary>
         ''' Logs the source name message event type event identifier category raw data.
         ''' </summary>
         <Fact>
@@ -495,7 +553,7 @@ Namespace net90
             testWriter = New TestEventLogWriter(OutputHelper, logExists:=False, sourceExists:=False)
 #End If
             SetWriter(testWriter)
-
+            MachineName = "SomeMachineName"
             Dim sourceName As String = "CustomSource"
             Dim message As String = "Test message"
             Dim eventType As EventLogEntryType = EventLogEntryType.Warning
@@ -635,6 +693,14 @@ Namespace net90
 #End If
             SetWriter(testWriter)
 
+            Dim testReader As TestRegistryReader
+#If NET35 Then
+            testReader = New TestRegistryReader()
+#Else
+            testReader = New TestRegistryReader(OutputHelper)
+#End If
+            SetRegistryReader(testReader)
+
             Dim logName As String = ""
             Dim sourceName As New String("s"c, 300) ' 300 characters long
             Dim message As New String("X"c, 40000) ' 40,000 characters long
@@ -650,10 +716,206 @@ Namespace net90
             Assert.False(testWriter.CreateEventSourceCalled)
             Assert.True(testWriter.WriteEntryCalled)
             Assert.Equal(32766, testWriter.MessageLength) ' Maximum length for event log message
-            Assert.Equal(254, testWriter.SourceLength) ' Source is truncated to 254 max characters
+            Assert.Equal(211, testWriter.SourceLength) ' Source is truncated to 254 max characters
 
         End Sub
 
+        ''' <summary>
+        ''' Defaults the source returns expected result when source exists.
+        ''' </summary>
+        <Fact>
+        Public Sub DefaultSource_ReturnsExpectedResult_WhenSourceExists()
+
+            ' Arrange
+            Dim OldMachine As String = MachineName
+            Dim expectedSource As String = "ExpectedSource"
+
+#If NET35 Then
+            Dim mockReader As New TestRegistryReader()
+#Else
+            Dim mockReader As New TestRegistryReader(OutputHelper)
+#End If
+            mockReader.DefaultEventLogSourceResult = expectedSource
+
+            SetRegistryReader(mockReader)
+            MachineName = "SomeOtherMachine"
+
+            ' Act
+            Dim result As String = DefaultSource("CustomLog")
+
+            ' Assert
+            Assert.Equal(expectedSource, result)
+            MachineName = OldMachine
+
+        End Sub
+
+        ''' <summary>
+        ''' Maximums the source returns proper source when given blank source.
+        ''' </summary>
+        <Fact>
+        Public Sub MaxSource_ReturnsProperSource_WhenGivenBlank_Source()
+
+            ' Arrange
+
+            ' Act
+            Dim result As String = MaxSource(String.Empty)
+
+            ' Assert
+            Output($"result = {result}")
+#If NET35 Then
+            Assert.true(result.StartsWith( "EventLogHelper.Tests.net"))
+            Assert.true(result.EndsWith(".SmartEventLoggerTest.MaxSource_ReturnsProperSource_WhenGivenBlank_Source"))
+#Else
+            Assert.StartsWith("EventLogHelper.Tests.net", result)
+            Assert.EndsWith(".SmartEventLoggerTest.MaxSource_ReturnsProperSource_WhenGivenBlank_Source", result)
+#End If
+
+        End Sub
+
+        ''' <summary>
+        ''' Maximums the source returns given source when given blank source.
+        ''' </summary>
+        <Fact>
+        Public Sub MaxSource_ReturnsGivenSource_WhenGivenBlank_Source()
+
+            ' Arrange
+            Dim OldSource As String = SourceName
+            SourceName = "CustomSource"
+            ' Act
+            Dim result As String = MaxSource(String.Empty)
+
+            ' Assert
+            Output($"result = {result}")
+#If NET35 Then
+            Assert.true(result.Equals( "CustomSource"))
+#Else
+            Assert.Equal("CustomSource", result)
+#End If
+            SourceName = OldSource
+
+        End Sub
+
+        ''' <summary>
+        ''' Determines whether is source register to log.
+        ''' </summary>
+        <Fact>
+        Public Sub IsSourceRegisterToLog()
+
+            ' Arrange
+#If NET35 Then
+            Dim mockReader As New TestRegistryReader()
+#Else
+            Dim mockReader As New TestRegistryReader(OutputHelper)
+#End If
+            SmartEventLogger.SetRegistryReader(mockReader)
+
+            Dim CurrentSource As String = "CustomSource"
+            Dim CurrentLog As String = "CustomLog"
+            Dim CurrentMachine As String = "SomeMachineSomeplace"
+
+            Dim registryPath As String = $"LocalMachine\SYSTEM\CurrentControlSet\Services\EventLog\{CurrentLog}\{CurrentSource}"
+
+            mockReader.SetValue(registryPath, CurrentSource)
+
+            ' Act
+            Dim result As Boolean = IsSourceRegisteredToLog(CurrentSource, CurrentLog, CurrentMachine)
+
+            ' Assert
+            Output($"result = {result}")
+            Assert.True(result)
+
+        End Sub
+
+        ''' <summary>
+        ''' Determines whether this instance can read registry for log and source test.
+        ''' </summary>
+        <Fact>
+        Public Sub CanReadRegistryForLogAndSourceTest()
+
+            ' Arrange
+#If NET35 Then
+            Dim mockReader As New TestRegistryReader()
+#Else
+            Dim mockReader As New TestRegistryReader(OutputHelper)
+#End If
+            SmartEventLogger.SetRegistryReader(mockReader)
+
+            Dim CurrentSource As String = "CustomSource"
+            Dim CurrentLog As String = "CustomLog"
+            Dim CurrentMachine As String = "SomeMachineSomeplace"
+
+            Dim registryPath As String = $"LocalMachine\SYSTEM\CurrentControlSet\Services\EventLog\{CurrentLog}\{CurrentSource}"
+
+            mockReader.SetValue(registryPath, CurrentSource)
+
+            ' Act
+            Dim result As Boolean = CanReadRegistryForLogAndSource(CurrentSource, CurrentLog, CurrentMachine)
+
+            ' Assert
+            Output($"result = {result}")
+            Assert.True(result)
+
+        End Sub
+
+        ''' <summary>
+        ''' Determines whether this instance can read registry for log test.
+        ''' </summary>
+        <Fact>
+        Public Sub CanReadRegistryForLogTest()
+
+            ' Arrange
+#If NET35 Then
+            Dim mockReader As New TestRegistryReader()
+#Else
+            Dim mockReader As New TestRegistryReader(OutputHelper)
+#End If
+            SetRegistryReader(mockReader)
+
+            Dim CurrentLog As String = "CustomLog"
+            Dim CurrentMachine As String = "SomeMachineSomeplace"
+
+            Dim registryPath As String = $"LocalMachine\SYSTEM\CurrentControlSet\Services\EventLog\{CurrentLog}"
+
+            mockReader.SetValue(registryPath, CurrentLog)
+
+            ' Act
+            Dim result As Boolean = CanReadRegistryForLog(CurrentLog, CurrentMachine)
+
+            ' Assert
+            Output($"result = {result}")
+            Assert.True(result)
+
+        End Sub
+
+        ''' <summary>
+        ''' test of GetLog.
+        ''' </summary>
+        <Fact>
+        Public Sub GetLogTest()
+
+            ' Arrange
+#If NET35 Then
+            Dim testWriter As New TestEventLogWriter(logExists:=False, sourceExists:=False)
+#Else
+            Dim testWriter As New TestEventLogWriter(OutputHelper, logExists:=False, sourceExists:=False)
+#End If
+            SetWriter(testWriter)
+
+            MachineName = "SomeMachineSomeplace"
+            Dim CurrentLog As String = "CustomLog"
+            Dim CurrentSource As String = "CustomSource"
+            MaxKilobytes = 1024 * 1024 ' 1 MB
+            RetentionDays = 7
+            WriteInitEntry = True
+
+            ' Act
+            Dim result As EventLog = GetLog(CurrentLog, CurrentSource)
+
+            ' Assert
+            Output($"result = {(result.GetType())}")
+            Assert.NotNull(result)
+
+        End Sub
 
 #End Region
 

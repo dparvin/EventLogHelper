@@ -9,7 +9,6 @@ Imports Xunit.Abstractions
 ''' It can be used to verify that the code interacts with the event log correctly without needing
 ''' access to the actual Windows Event Log.
 ''' </summary>
-''' <seealso cref="EventLogHelper.IEventLogWriter" />
 ''' <seealso cref="IEventLogWriter" />
 #If NET35 Then
 <Diagnostics.ExcludeFromCodeCoverage>
@@ -124,7 +123,10 @@ Public Class TestEventLogWriter
     ''' This method wraps <see cref="M:System.Diagnostics.EventLog.CreateEventSource(System.String,System.String)" /> to 
     ''' facilitate testable logging behavior. If the source already exists, no action is taken.
     ''' </remarks>
-    Public Sub CreateEventSource(source As String, logName As String) Implements IEventLogWriter.CreateEventSource
+    Public Sub CreateEventSource(
+            ByVal source As String,
+            ByVal logName As String,
+            ByVal MachineName As String) Implements IEventLogWriter.CreateEventSource
 
         ' Simulate creating an event source
         Output($"Creating event source: {source} for log: {logName}")
@@ -140,8 +142,8 @@ Public Class TestEventLogWriter
     ''' <summary>
     ''' Writes an entry to the specified event log using the given parameters.
     ''' </summary>
-    ''' <param name="log">The name of the event log to write to (e.g., "Application" or "CustomLog").</param>
-    ''' <param name="source">The source of the log entry. This must be registered with the specified log.</param>
+    ''' <param name="logName">The name of the event log to write to (e.g., "Application" or "CustomLog").</param>
+    ''' <param name="sourceName">The source of the log entry. This must be registered with the specified log.</param>
     ''' <param name="message">
     ''' The message text to log. If too long, it will be truncated to the maximum allowed length.
     ''' </param>
@@ -160,28 +162,36 @@ Public Class TestEventLogWriter
     ''' the log prior to calling this method.
     ''' </remarks>
     Public Sub WriteEntry(
-            log As String,
-            source As String,
-            message As String,
-            eventType As EventLogEntryType,
-            eventId As Integer,
-            category As Short,
-            rawData() As Byte) Implements IEventLogWriter.WriteEntry
+            ByVal machineName As String,
+            ByVal logName As String,
+            ByVal sourceName As String,
+            ByVal message As String,
+            ByVal eventType As EventLogEntryType,
+            ByVal eventId As Integer,
+            ByVal category As Short,
+            ByVal rawData() As Byte,
+            ByVal maxKilobytes As Integer,
+            ByVal retentionDays As Integer,
+            ByVal writeInitEntry As Boolean) Implements IEventLogWriter.WriteEntry
 
         ' Simulate writing an entry to the event log
         Output(String.Join(Environment.NewLine, {
-            $"Log: {log}",
-            $"Source: {source}",
+            $"Machine Name: {machineName}",
+            $"Log Name: {logName}",
+            $"Source Name: {sourceName}",
             $"Message: {message}",
             $"EventType: {eventType}",
             $"EventID: {eventId}",
             $"Category: {category}",
-            $"RawData Length: {If(rawData IsNot Nothing, rawData.Length, 0)}"
+            $"RawData Length: {If(rawData IsNot Nothing, rawData.Length, 0)}",
+            $"MaxKilobytes: {maxKilobytes}",
+            $"RetentionDays: {retentionDays}",
+            $"WriteInitEntry: {writeInitEntry}"
         }))
 
         LastMessage = message
         MessageLength = message.Length
-        SourceLength = source.Length
+        SourceLength = sourceName.Length
         WriteEntryCalled = True
 
     End Sub
@@ -198,9 +208,11 @@ Public Class TestEventLogWriter
     ''' This method wraps <see cref="M:System.Diagnostics.EventLog.Exists(System.String)" /> to allow the check 
     ''' to be abstracted and testable via <see cref="T:EventLogHelper.IEventLogWriter" />.
     ''' </remarks>
-    Public Function Exists(logName As String) As Boolean Implements IEventLogWriter.Exists
+    Public Function Exists(
+            ByVal logName As String,
+            ByVal machineName As String) As Boolean Implements IEventLogWriter.Exists
 
-        Output($"Checking if log exists: {logName}, Returning {ReturnLogExists}")
+        Output($"Checking if log exists: {logName} on machine {machineName}, Returning {ReturnLogExists}")
         Return ReturnLogExists
 
     End Function
@@ -209,7 +221,7 @@ Public Class TestEventLogWriter
     ''' Determines whether the specified event source is registered with the given event log on the local computer.
     ''' </summary>
     ''' <param name="source">The name of the event source to check.</param>
-    ''' <param name="logName">The name of the event log in which to look for the source (e.g., "Application").</param>
+    ''' <param name="machineName">The name of the event log in which to look for the source (e.g., "Application").</param>
     ''' <returns>
     ''' <c>True</c> if the specified event source exists and is registered with the given log; otherwise, <c>False</c>.
     ''' </returns><remarks>
@@ -218,10 +230,31 @@ Public Class TestEventLogWriter
     ''' </remarks>
     Public Function SourceExists(
             source As String,
-            logName As String) As Boolean Implements IEventLogWriter.SourceExists
+            machineName As String) As Boolean Implements IEventLogWriter.SourceExists
 
-        Output($"Checking if source exists: {source} in log: {logName}, Returning {ReturnSourceExists}")
+        Output($"Checking if source exists: {source} on machine: {machineName}, Returning {ReturnSourceExists}")
         Return ReturnSourceExists
+
+    End Function
+
+    Public Function GetLog(
+            machineName As String,
+            logName As String,
+            sourceName As String,
+            maxKilobytes As Integer,
+            retentionDays As Integer,
+            writeInitEntry As Boolean) As EventLog Implements IEventLogWriter.GetLog
+
+        Output(String.Join(Environment.NewLine, {
+            $"Machine Name: {machineName}",
+            $"Log Name: {logName}",
+            $"Source Name: {sourceName}",
+            $"MaxKilobytes: {maxKilobytes}",
+            $"RetentionDays: {retentionDays}",
+            $"WriteInitEntry: {writeInitEntry}"
+        }))
+
+        Return New EventLog()
 
     End Function
 

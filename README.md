@@ -33,40 +33,63 @@ The built-in `.NET` `System.Diagnostics.EventLog` API requires:
 
 ## 🛠️ Installation
 
-You can add EventLogHelper to your project by cloning or adding the source file directly (NuGet package coming soon).
+Install the NuGet package:
+
+```bash
+dotnet add package EventLogHelper
+```
+
+Or via the NuGet Package Manager Console:
+
+```powershell
+Install-Package EventLogHelper
+```
+
+See the NuGet Gallery page for more details.
 
 ---
 
 ## 🧾 Example Usage
 
-```csharp
-using EventLogHelper;
+Basic logging with default source and log name:
 
-SmartEventLogger.Log("App started.");
-SmartEventLogger.Log("Invalid user input", EventLogEntryType.Warning);
-SmartEventLogger.Log("Fatal error", EventLogEntryType.Error);
+```vbnet
+SmartEventLogger.Log("Application started.")
+SmartEventLogger.Log("A warning occurred.", EventLogEntryType.Warning)
+SmartEventLogger.Log("An error occurred.", EventLogEntryType.Error)
 ```
 
-You can optionally specify the source and log:
+Custom source and log name:
 
-```csharp
-SmartEventLogger.Log("Service initialized.", EventLogEntryType.Information, source: "MyService", logName: "MyCompanyLog");
+```vbnet
+
+SmartEventLogger.MachineName = "."
+SmartEventLogger.LogName = "MyCompanyLog"
+SmartEventLogger.SourceName = "MyServiceSource"
+
+SmartEventLogger.Log("Service initialized.",
+                     EventLogEntryType.Information)
 ```
 
----
+Advanced usage with full customization:
 
-## ⚙️ Configuration (App.config)
-
-```xml
-<configuration>
-  <appSettings>
-    <add key="EventLog.DefaultLogName" value="Application" />
-    <add key="EventLog.DefaultSource" value="MyApp" />
-    <add key="EventLog.FallbackToLogNameOnError" value="true" />
-    <add key="EventLog.LogLevel" value="Information" />
-  </appSettings>
-</configuration>
+```vbnet
+SmartEventLogger.Log(
+    _machineName: ".",
+    _logName: "CustomLog",
+    sourceName: "CustomSource",
+    message: "This is a custom log entry.",
+    eventType: EventLogEntryType.Information,
+    eventID: 1001,
+    category: 0,
+    rawData: Nothing,
+    maxKilobytes: 1024 * 1024,    ' 1 MB
+    retentionDays: 7,
+    writeInitEntry: True)
 ```
+
+You can also configure default values and plug in a custom writer for unit testing or specialized behavior.
+
 
 ---
 

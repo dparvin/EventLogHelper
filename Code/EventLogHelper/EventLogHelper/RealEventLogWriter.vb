@@ -15,10 +15,10 @@
 ''' </remarks>
 #If NET35 Then
 <Diagnostics.ExcludeFromCodeCoverage>
-Public Class RealEventLogWriter
+Friend Class RealEventLogWriter
 #Else
 <CodeAnalysis.ExcludeFromCodeCoverage>
-Public Class RealEventLogWriter
+Friend Class RealEventLogWriter
 #End If
 
     Implements IEventLogWriter
@@ -26,8 +26,8 @@ Public Class RealEventLogWriter
     ''' <summary>
     ''' Writes an entry to the specified event log using the given parameters.
     ''' </summary>
-    ''' <param name="log">The name of the event log to write to (e.g., "Application" or "CustomLog").</param>
-    ''' <param name="source">The source of the log entry. This must be registered with the specified log.</param>
+    ''' <param name="logName">The name of the event log to write to (e.g., "Application" or "CustomLog").</param>
+    ''' <param name="sourceName">The source of the log entry. This must be registered with the specified log.</param>
     ''' <param name="message">The message text to log. If too long, it will be truncated to the maximum allowed length.</param>
     ''' <param name="eventType">The type of event to log (e.g., <see cref="EventLogEntryType.Information"/>, <see cref="EventLogEntryType.Error"/>).</param>
     ''' <param name="eventId">The application-defined identifier for the event.</param>
@@ -37,17 +37,26 @@ Public Class RealEventLogWriter
     ''' This method creates a new <see cref="EventLog"/> instance targeting the specified log and writes the entry
     ''' with the given parameters. The source must be associated with the log prior to calling this method.
     ''' </remarks>
-    Public Sub WriteEntry(
-            ByVal log As String,
-            ByVal source As String,
+    Friend Sub WriteEntry(
+            ByVal machineName As String,
+            ByVal logName As String,
+            ByVal sourceName As String,
             ByVal message As String,
             ByVal eventType As EventLogEntryType,
             ByVal eventId As Integer,
             ByVal category As Short,
-            ByVal rawData As Byte()) Implements IEventLogWriter.WriteEntry
+            ByVal rawData As Byte(),
+            ByVal maxKilobytes As Integer,
+            ByVal retentionDays As Integer,
+            ByVal writeInitEntry As Boolean) Implements IEventLogWriter.WriteEntry
 
-        Using logInstance As New EventLog(log)
-            logInstance.Source = source
+        Using logInstance As EventLog = GetLog(
+                machineName,
+                logName,
+                sourceName,
+                maxKilobytes,
+                retentionDays,
+                writeInitEntry)
             logInstance.WriteEntry(
                 message,
                 eventType,
@@ -61,17 +70,21 @@ Public Class RealEventLogWriter
     ''' <summary>
     ''' Creates a new event source and associates it with the specified event log, if it does not already exist.
     ''' </summary>
-    ''' <param name="source">The name of the event source to create.</param>
+    ''' <param name="sourceName">The name of the event source to create.</param>
     ''' <param name="logName">The name of the event log to associate the source with (e.g., "Application").</param><remarks>
-    ''' This method wraps <see cref="EventLog.CreateEventSource(String, String)" /> to facilitate testable logging behavior.
+    ''' This method wraps <see cref="EventLog.CreateEventSource(String, String, String)" /> to facilitate testable logging behavior.
     ''' If the source already exists, no action is taken.
     ''' </remarks>
-    Public Sub CreateEventSource(
-            ByVal source As String,
-            ByVal logName As String) Implements IEventLogWriter.CreateEventSource
+    Friend Sub CreateEventSource(
+            ByVal sourceName As String,
+            ByVal logName As String,
+            ByVal machineName As String) Implements IEventLogWriter.CreateEventSource
 
-        If Not SourceExists(source, logName) Then
-            EventLog.CreateEventSource(source, logName)
+        If Not SourceExists(sourceName, machineName) Then
+            Dim obj As New EventSourceCreationData(sourceName, logName) With {
+                .MachineName = machineName
+            }
+            EventLog.CreateEventSource(obj)
         End If
 
     End Sub
@@ -88,10 +101,11 @@ Public Class RealEventLogWriter
     ''' This method wraps <see cref="EventLog.Exists(String)" /> to allow the check to be abstracted
     ''' and testable via <see cref="IEventLogWriter" />.
     ''' </remarks>
-    Public Function Exists(
-            ByVal logName As String) As Boolean Implements IEventLogWriter.Exists
+    Friend Function Exists(
+            ByVal logName As String,
+            ByVal machineName As String) As Boolean Implements IEventLogWriter.Exists
 
-        Return EventLog.Exists(logName)
+        Return EventLog.Exists(logName, machineName)
 
     End Function
 
@@ -99,18 +113,57 @@ Public Class RealEventLogWriter
     ''' Determines whether the specified event source is registered with the given event log on the local computer.
     ''' </summary>
     ''' <param name="source">The name of the event source to check.</param>
-    ''' <param name="logName">The name of the event log in which to look for the source (e.g., "Application").</param>
     ''' <returns>
     ''' <c>True</c> if the specified event source exists and is registered with the given log; otherwise, <c>False</c>.
     ''' </returns><remarks>
     ''' This method wraps <see cref="EventLog.SourceExists(String, String)" /> and is used to allow
     ''' testable verification of the event source.
     ''' </remarks>
-    Public Function SourceExists(
+    Friend Function SourceExists(
             ByVal source As String,
-            ByVal logName As String) As Boolean Implements IEventLogWriter.SourceExists
+            ByVal machineName As String) As Boolean Implements IEventLogWriter.SourceExists
 
-        Return EventLog.SourceExists(source, logName)
+        Return EventLog.SourceExists(source, machineName)
+
+    End Function
+
+    Friend Function GetLog(
+            machineName As String,
+            logName As String,
+            sourceName As String,
+            maxKilobytes As Integer,
+            retentionDays As Integer,
+            writeInitEntry As Boolean) As EventLog Implements IEventLogWriter.GetLog
+
+        If String.IsNullOrEmpty(logName) Then Throw New ArgumentNullException(NameOf(logName))
+        If String.IsNullOrEmpty(sourceName) Then Throw New ArgumentNullException(NameOf(sourceName))
+        If String.IsNullOrEmpty(machineName) Then machineName = "."
+
+        Try
+            ' Source registration can only be done on the local machine
+            If machineName = "." OrElse String.Equals(machineName, Environment.MachineName, StringComparison.OrdinalIgnoreCase) Then
+                If Not EventLog.SourceExists(sourceName) Then
+                    Dim sourceData As New EventSourceCreationData(sourceName, logName)
+                    EventLog.CreateEventSource(sourceData)
+                    ' Optionally wait here or notify user that restart might be needed
+                End If
+            End If
+
+            Dim el As New EventLog(logName, machineName, sourceName)
+
+            If writeInitEntry Then
+                el.WriteEntry($"Initialized log '{logName}' with source '{sourceName}' on machine '{machineName}'.", EventLogEntryType.Information)
+            End If
+
+            ' Only applies to local machine logs
+            el.MaximumKilobytes = maxKilobytes
+            el.ModifyOverflowPolicy(OverflowAction.OverwriteOlder, retentionDays)
+
+            Return el
+
+        Catch ex As Exception
+            Throw New ApplicationException($"Failed to initialize event log '{logName}' with source '{sourceName}' on machine '{machineName}'.", ex)
+        End Try
 
     End Function
 
