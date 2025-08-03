@@ -24,6 +24,8 @@ Imports System.Reflection
 ''' </remarks>
 Public Module SmartEventLogger
 
+#Region " Process Support Objects ^^^^^^^^^^^^^^^^^^^^^^^^^ "
+
     ''' <summary>
     ''' The current event log writer instance used by the logger.
     ''' </summary>
@@ -50,74 +52,93 @@ Public Module SmartEventLogger
     ''' or suppressed. For example, a test implementation may capture and inspect log data without writing to the real event log.
     ''' </remarks>
     Public Sub SetWriter(writer As IEventLogWriter)
+
         _writer = writer
+
     End Sub
 
     ''' <summary>
-    ''' Sets the registry reader.
+    ''' Specifies the <see cref="IRegistryReader"/> implementation to use when accessing 
+    ''' the Windows Registry for log-related operations (e.g., determining default event log sources).
     ''' </summary>
-    ''' <param name="reader">The reader.</param>
+    ''' <param name="reader">
+    ''' The custom <see cref="IRegistryReader"/> instance to use. This is typically used for unit testing
+    ''' or customizing how registry access is performed. If not set, the default implementation will be used.
+    ''' </param>
+    ''' <remarks>
+    ''' This method allows injection of a mock or testable registry reader. In production,
+    ''' a default <c>RealRegistryReader</c> is used, but in unit tests, you may inject a fake
+    ''' reader to simulate different registry states without accessing the actual system registry.
+    ''' </remarks>
     Public Sub SetRegistryReader(reader As IRegistryReader)
 
         _registryReader = reader
 
     End Sub
 
+#End Region
+
 #Region " Default Value Properties ^^^^^^^^^^^^^^^^^^^^^^^^ "
 
     ''' <summary>
-    ''' Gets or sets the name of the machine.
+    ''' Gets or sets the name of the machine where log entries will be written.
     ''' </summary>
     ''' <value>
-    ''' The name of the machine.
+    ''' A string representing the machine name. Use <c>"."</c> for the local machine.
     ''' </value>
     Public Property MachineName As String = "."
 
     ''' <summary>
-    ''' Gets or sets the name of the log.
+    ''' Gets or sets the name of the Windows Event Log to write to (e.g., "Application", "System").
     ''' </summary>
     ''' <value>
-    ''' The name of the log.
+    ''' A string specifying the log name. Defaults to <c>"Application"</c>.
     ''' </value>
     Public Property LogName As String = "Application"
 
     ''' <summary>
-    ''' Gets or sets the name of the source.
+    ''' Gets or sets the name of the event source associated with log entries.
     ''' </summary>
     ''' <value>
-    ''' The name of the source.
+    ''' A string representing the source name. If not set, a source is inferred automatically using the calling method's context.
     ''' </value>
     Public Property SourceName As String = ""
 
     ''' <summary>
-    ''' Gets or sets the maximum kilobytes.
+    ''' Gets or sets the maximum allowed size of the event log in kilobytes.
     ''' </summary>
     ''' <value>
-    ''' The maximum kilobytes.
+    ''' An integer representing the size in kilobytes. Defaults to <c>1,048,576</c> (1 GB).
     ''' </value>
+    ''' <remarks>
+    ''' Applies only when creating or configuring new custom logs. May require administrative privileges.
+    ''' </remarks>
     Public Property MaxKilobytes As Integer = 1024 * 1024
 
     ''' <summary>
-    ''' Gets or sets the retention days.
+    ''' Gets or sets the number of days event entries are retained before being overwritten.
     ''' </summary>
     ''' <value>
-    ''' The retention days.
+    ''' An integer representing the retention duration in days. Defaults to <c>7</c>.
     ''' </value>
+    ''' <remarks>
+    ''' Used when initializing a new event log. May be ignored depending on overflow policy or system restrictions.
+    ''' </remarks>
     Public Property RetentionDays As Integer = 7
 
     ''' <summary>
-    ''' Gets or sets a value indicating whether to write initialize entry when creating a new log file.
+    ''' Gets or sets a value indicating whether an informational entry should be written when a new log is created.
     ''' </summary>
     ''' <value>
-    '''   <c>true</c> if while creating a log, write initialize entry; otherwise, <c>false</c>.
+    ''' <c>True</c> to log an initialization message; otherwise, <c>False</c>. Defaults to <c>False</c>.
     ''' </value>
     Public Property WriteInitEntry As Boolean = False
 
     ''' <summary>
-    ''' Gets or sets the truncation marker.
+    ''' Gets or sets the marker text used when a message is too long and must be truncated.
     ''' </summary>
     ''' <value>
-    ''' The truncation marker.
+    ''' A string appended to truncated log entries. Defaults to <c>"... [TRUNCATED]"</c>.
     ''' </value>
     Public Property TruncationMarker As String = "... [TRUNCATED]"
 
