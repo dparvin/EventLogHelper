@@ -239,24 +239,64 @@ Public Class TestEventLogWriter
 
     Public Function GetLog(
             machineName As String,
-            logName As String,
+            eventLogName As String,
             sourceName As String,
             maxKilobytes As Integer,
             retentionDays As Integer,
             writeInitEntry As Boolean) As EventLog Implements IEventLogWriter.GetLog
 
+        Dim ln As String = If(String.IsNullOrEmpty(eventLogName), If(String.IsNullOrEmpty(LogName), "Application", LogName), eventLogName)
+
         Output(String.Join(Environment.NewLine, {
             $"Machine Name: {machineName}",
-            $"Log Name: {logName}",
+            $"Log Name: {ln}",
             $"Source Name: {sourceName}",
             $"MaxKilobytes: {maxKilobytes}",
             $"RetentionDays: {retentionDays}",
             $"WriteInitEntry: {writeInitEntry}"
         }))
 
-        Return New EventLog()
+        Dim result As New EventLog() With {
+            .Log = ln,
+            .MachineName = If(String.IsNullOrEmpty(machineName), ".", machineName),
+            .Source = MaxSource(sourceName)}
+
+        SourceLength = result.Source.Length
+
+        Return result
 
     End Function
+
+    ''' <summary>
+    ''' Writes the entry.
+    ''' </summary>
+    ''' <param name="eventLog">The log.</param>
+    ''' <param name="message">The message.</param>
+    ''' <param name="eventType">Type of the event.</param>
+    ''' <param name="eventID">The event identifier.</param>
+    ''' <param name="category">The category.</param>
+    ''' <param name="rawData">The raw data.</param>
+    Friend Sub WriteEntry(
+            ByRef eventLog As EventLog,
+            ByVal message As String,
+            ByVal eventType As EventLogEntryType,
+            ByVal eventID As Integer,
+            ByVal category As Short,
+            ByRef rawData() As Byte) Implements IEventLogWriter.WriteEntry
+
+        Output(String.Join(Environment.NewLine, {
+            $"Message: {message}",
+            $"EventType: {eventType}",
+            $"EventID: {eventID}",
+            $"Category: {category}",
+            $"RawData Length: {If(rawData IsNot Nothing, rawData.Length, 0)}"
+        }))
+
+        LastMessage = message
+        MessageLength = message.Length
+        WriteEntryCalled = True
+
+    End Sub
 
     ''' <summary>
     ''' Outputs the specified message.

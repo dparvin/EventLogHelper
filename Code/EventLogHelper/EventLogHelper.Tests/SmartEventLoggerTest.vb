@@ -721,6 +721,158 @@ Namespace net90
         End Sub
 
         ''' <summary>
+        ''' Logs the creates event source when log and source does not provided.
+        ''' </summary>
+        <Fact>
+        Public Sub Fluent_Log_Message_Length_Is_Shortened_WhenToLong()
+
+            ' Arrange
+            Dim testWriter As TestEventLogWriter
+#If NET35 Then
+            testWriter = New TestEventLogWriter()
+#Else
+            testWriter = New TestEventLogWriter(OutputHelper)
+#End If
+            SetWriter(testWriter)
+
+            Dim logName As String = ""
+            Dim sourceName As New String("s"c, 300) ' 300 characters long
+            Dim message As New String("X"c, 40000) ' 40,000 characters long
+            Dim eventType As EventLogEntryType = EventLogEntryType.FailureAudit
+            Dim eventId As Integer = 27
+            Dim category As Short = 3
+            Dim rawData As Byte() = Nothing
+
+            ' Act
+            GetLog(logName, sourceName).LogEntry(message, eventType, eventId, category, rawData)
+
+            ' Assert
+            Assert.False(testWriter.CreateEventSourceCalled)
+            Assert.True(testWriter.WriteEntryCalled)
+            Assert.Equal(32766, testWriter.MessageLength) ' Maximum length for event log message
+            Assert.Equal(211, testWriter.SourceLength) ' Source is truncated to 254 max characters
+
+        End Sub
+
+        <Fact>
+        Public Sub Fluent_Log_Message()
+
+            ' Arrange
+            Dim testWriter As TestEventLogWriter
+#If NET35 Then
+            testWriter = New TestEventLogWriter()
+#Else
+            testWriter = New TestEventLogWriter(OutputHelper)
+#End If
+            SetWriter(testWriter)
+
+            Dim logName As String = ""
+            Dim sourceName As New String("s"c, 300) ' 300 characters long
+            Dim message As New String("X"c, 40000) ' 40,000 characters long
+            logName = "TestLog"
+
+            ' Act
+            GetLog(logName, sourceName).LogEntry(message)
+
+            ' Assert
+            Assert.False(testWriter.CreateEventSourceCalled)
+            Assert.True(testWriter.WriteEntryCalled)
+            Assert.Equal(32766, testWriter.MessageLength) ' Maximum length for event log message
+            Assert.Equal(211, testWriter.SourceLength) ' Source is truncated to 254 max characters
+
+        End Sub
+
+        ''' <summary>
+        ''' Fluents the log message event identifier.
+        ''' </summary>
+        <Fact>
+        Public Sub Fluent_Log_Message_EventId()
+
+            ' Arrange
+            Dim testWriter As TestEventLogWriter
+#If NET35 Then
+            testWriter = New TestEventLogWriter()
+#Else
+            testWriter = New TestEventLogWriter(OutputHelper)
+#End If
+            SetWriter(testWriter)
+
+            Dim logName As String = ""
+            Dim sourceName As New String("s"c, 300) ' 300 characters long
+            Dim message As New String("X"c, 40000) ' 40,000 characters long
+            Dim eventId As Integer = 42
+            logName = "TestLog"
+
+            ' Act
+            GetLog(logName, sourceName).LogEntry(message, eventId)
+
+            ' Assert
+            Assert.False(testWriter.CreateEventSourceCalled)
+            Assert.True(testWriter.WriteEntryCalled)
+            Assert.Equal(32766, testWriter.MessageLength) ' Maximum length for event log message
+            Assert.Equal(211, testWriter.SourceLength) ' Source is truncated to 254 max characters
+
+        End Sub
+
+        <Fact>
+        Public Sub Fluent_Log_Message_Category()
+
+            ' Arrange
+            Dim testWriter As TestEventLogWriter
+#If NET35 Then
+            testWriter = New TestEventLogWriter()
+#Else
+            testWriter = New TestEventLogWriter(OutputHelper)
+#End If
+            SetWriter(testWriter)
+
+            Dim logName As String = ""
+            Dim sourceName As New String("s"c, 300) ' 300 characters long
+            Dim message As New String("X"c, 40000) ' 40,000 characters long
+            Dim category As Short = 3
+            logName = "TestLog"
+
+            ' Act
+            GetLog(logName, sourceName).LogEntry(message, category)
+
+            ' Assert
+            Assert.False(testWriter.CreateEventSourceCalled)
+            Assert.True(testWriter.WriteEntryCalled)
+            Assert.Equal(32766, testWriter.MessageLength) ' Maximum length for event log message
+            Assert.Equal(211, testWriter.SourceLength) ' Source is truncated to 254 max characters
+
+        End Sub
+
+        <Fact>
+        Public Sub Fluent_Log_Message_RawData()
+
+            ' Arrange
+            Dim testWriter As TestEventLogWriter
+#If NET35 Then
+            testWriter = New TestEventLogWriter()
+#Else
+            testWriter = New TestEventLogWriter(OutputHelper)
+#End If
+            SetWriter(testWriter)
+
+            Dim logName As String = ""
+            Dim sourceName As New String("s"c, 300) ' 300 characters long
+            Dim message As New String("X"c, 40000) ' 40,000 characters long
+            Dim rawData As Byte() = Nothing
+            logName = "TestLog"
+
+            ' Act
+            GetLog(logName, sourceName).LogEntry(message, rawData)
+
+            ' Assert
+            Assert.False(testWriter.CreateEventSourceCalled)
+            Assert.True(testWriter.WriteEntryCalled)
+            Assert.Equal(32766, testWriter.MessageLength) ' Maximum length for event log message
+            Assert.Equal(211, testWriter.SourceLength) ' Source is truncated to 254 max characters
+
+        End Sub
+
+        ''' <summary>
         ''' Defaults the source returns expected result when source exists.
         ''' </summary>
         <Fact>

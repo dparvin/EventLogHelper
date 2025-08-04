@@ -1,5 +1,6 @@
 ﻿Imports Microsoft.Win32
 Imports System.Reflection
+Imports System.Runtime.CompilerServices
 
 ''' <summary>
 ''' Provides high-level utilities for logging to the Windows Event Log in a simplified and customizable way.
@@ -1708,41 +1709,479 @@ Public Module SmartEventLogger
 
         Dim defaultLog As String = If(String.IsNullOrEmpty(_logName), LogName, _logName.Trim())
         Dim defaultSource As String = Source(sourceName)
-        Dim defaultMachine As String = If(String.IsNullOrEmpty(_machineName), If(String.IsNullOrEmpty(MachineName), ".", MachineName), _machineName)
+        Dim defaultMachine As String = NormalizeMachineName(_machineName)
 
         If Not _writer.Exists(defaultLog, defaultMachine) OrElse Not _writer.SourceExists(defaultSource, defaultMachine) Then
             _writer.CreateEventSource(defaultSource, defaultLog, _machineName)
         End If
-        Dim finalMessage As String = If(String.IsNullOrEmpty(message), "No message provided.", message.Trim())
-        If Not finalMessage.EndsWith("."c) Then finalMessage &= "."
-        If Not finalMessage.StartsWith("["c) Then finalMessage = $"[{defaultSource}] {finalMessage}"
 
-        Const maxLength As Integer = 32766
-        Const _truncationMarker As String = "... [TRUNCATED]"
-        If String.IsNullOrEmpty(TruncationMarker) Then TruncationMarker = _truncationMarker
-
-        If finalMessage.Length > maxLength Then
-            ' Leave room for the truncation marker
-            Dim maxWithoutMarker As Integer = maxLength - TruncationMarker.Length
-            finalMessage = $"{finalMessage.Substring(0, maxWithoutMarker)}{TruncationMarker}"
-        End If
-        Select Case eventType
-            Case EventLogEntryType.Error, EventLogEntryType.Warning, EventLogEntryType.Information
-                ' Valid
-            Case Else
-                eventType = EventLogEntryType.Information
-        End Select
-        _writer.WriteEntry(_machineName,
+        _writer.WriteEntry(defaultMachine,
                            defaultLog,
                            defaultSource,
-                           finalMessage,
-                           eventType,
+                           NormalizeMessage(defaultSource, message),
+                           NormalizeEventType(eventType),
                            eventID,
                            category,
                            rawData,
                            maxKilobytes,
                            retentionDays,
                            writeInitEntry)
+
+    End Sub
+
+#End Region
+
+#Region " Log Extension Methods ^^^^^^^^^^^^^^^^^^^^^^^^^^^ "
+
+    ''' <summary>
+    ''' Writes a log entry to the specified <see cref="EventLog"/> with the given parameters.
+    ''' </summary>
+    ''' <param name="eventLog">
+    ''' The <see cref="EventLog"/> instance to which the entry will be written. This must be properly initialized
+    ''' with a valid log name and source.
+    ''' </param>
+    ''' <param name="message">
+    ''' The message to write to the event log. If <c>null</c> or empty, a default message is used.
+    ''' Messages longer than 32,766 characters are truncated and suffixed with <c>"... [TRUNCATED]"</c>
+    ''' unless a custom truncation marker is configured.
+    ''' If the message does not start with a square bracket, it is automatically prefixed with the source name in
+    ''' brackets (e.g., <c>[MySource]</c>).
+    ''' </param>
+    ''' <remarks>
+    ''' This method uses configured or default values for formatting and fallbacks. The message is normalized
+    ''' and validated prior to writing. If you are using a test environment, an alternate writer can be configured
+    ''' to intercept and test log output without writing to the system Event Log.
+    ''' </remarks>
+    <Extension>
+    Public Sub LogEntry(
+            ByVal eventLog As EventLog,
+            ByVal message As String)
+
+        LogEntry(eventLog,
+                 message,
+                 EventLogEntryType.Information)
+
+    End Sub
+
+    ''' <summary>
+    ''' Writes a log entry to the specified <see cref="EventLog"/> with the given parameters.
+    ''' </summary>
+    ''' <param name="eventLog">
+    ''' The <see cref="EventLog"/> instance to which the entry will be written. This must be properly initialized
+    ''' with a valid log name and source.
+    ''' </param>
+    ''' <param name="message">
+    ''' The message to write to the event log. If <c>null</c> or empty, a default message is used.
+    ''' Messages longer than 32,766 characters are truncated and suffixed with <c>"... [TRUNCATED]"</c>
+    ''' unless a custom truncation marker is configured.
+    ''' If the message does not start with a square bracket, it is automatically prefixed with the source name in
+    ''' brackets (e.g., <c>[MySource]</c>).
+    ''' </param>
+    ''' <param name="eventType">
+    ''' The type of event to log. Acceptable values include <see cref="EventLogEntryType.Error"/>,
+    ''' <see cref="EventLogEntryType.Warning"/>, and <see cref="EventLogEntryType.Information"/>.
+    ''' If an unrecognized value is provided, the event is logged as <see cref="EventLogEntryType.Information"/>.
+    ''' </param>
+    ''' <remarks>
+    ''' This method uses configured or default values for formatting and fallbacks. The message is normalized
+    ''' and validated prior to writing. If you are using a test environment, an alternate writer can be configured
+    ''' to intercept and test log output without writing to the system Event Log.
+    ''' </remarks>
+    <Extension>
+    Public Sub LogEntry(
+            ByVal eventLog As EventLog,
+            ByVal message As String,
+            ByVal eventType As EventLogEntryType)
+
+        LogEntry(eventLog,
+                 message,
+                 eventType,
+                 0)
+
+    End Sub
+
+    ''' <summary>
+    ''' Writes a log entry to the specified <see cref="EventLog"/> with the given parameters.
+    ''' </summary>
+    ''' <param name="eventLog">
+    ''' The <see cref="EventLog"/> instance to which the entry will be written. This must be properly initialized
+    ''' with a valid log name and source.
+    ''' </param>
+    ''' <param name="message">
+    ''' The message to write to the event log. If <c>null</c> or empty, a default message is used.
+    ''' Messages longer than 32,766 characters are truncated and suffixed with <c>"... [TRUNCATED]"</c>
+    ''' unless a custom truncation marker is configured.
+    ''' If the message does not start with a square bracket, it is automatically prefixed with the source name in
+    ''' brackets (e.g., <c>[MySource]</c>).
+    ''' </param>
+    ''' <param name="eventID">
+    ''' A numeric identifier for the event. This value is application-defined and can be used for categorizing
+    ''' or filtering related log entries.
+    ''' </param>
+    ''' <remarks>
+    ''' This method uses configured or default values for formatting and fallbacks. The message is normalized
+    ''' and validated prior to writing. If you are using a test environment, an alternate writer can be configured
+    ''' to intercept and test log output without writing to the system Event Log.
+    ''' </remarks>
+    <Extension>
+    Public Sub LogEntry(
+            ByVal eventLog As EventLog,
+            ByVal message As String,
+            ByVal eventID As Integer)
+
+        LogEntry(eventLog,
+                 message,
+                 EventLogEntryType.Information,
+                 eventID)
+
+    End Sub
+
+    ''' <summary>
+    ''' Writes a log entry to the specified <see cref="EventLog"/> with the given parameters.
+    ''' </summary>
+    ''' <param name="eventLog">
+    ''' The <see cref="EventLog"/> instance to which the entry will be written. This must be properly initialized
+    ''' with a valid log name and source.
+    ''' </param>
+    ''' <param name="message">
+    ''' The message to write to the event log. If <c>null</c> or empty, a default message is used.
+    ''' Messages longer than 32,766 characters are truncated and suffixed with <c>"... [TRUNCATED]"</c>
+    ''' unless a custom truncation marker is configured.
+    ''' If the message does not start with a square bracket, it is automatically prefixed with the source name in
+    ''' brackets (e.g., <c>[MySource]</c>).
+    ''' </param>
+    ''' <param name="category">
+    ''' A numeric category for the event. This is typically used in categorized views of the Event Log.
+    ''' Use 0 if no category is needed.
+    ''' </param>
+    ''' <remarks>
+    ''' This method uses configured or default values for formatting and fallbacks. The message is normalized
+    ''' and validated prior to writing. If you are using a test environment, an alternate writer can be configured
+    ''' to intercept and test log output without writing to the system Event Log.
+    ''' </remarks>
+    <Extension>
+    Public Sub LogEntry(
+            ByVal eventLog As EventLog,
+            ByVal message As String,
+            ByVal category As Short)
+
+        LogEntry(eventLog,
+                 message,
+                 EventLogEntryType.Information,
+                 category)
+
+    End Sub
+
+    ''' <summary>
+    ''' Writes a log entry to the specified <see cref="EventLog"/> with the given parameters.
+    ''' </summary>
+    ''' <param name="eventLog">
+    ''' The <see cref="EventLog"/> instance to which the entry will be written. This must be properly initialized
+    ''' with a valid log name and source.
+    ''' </param>
+    ''' <param name="message">
+    ''' The message to write to the event log. If <c>null</c> or empty, a default message is used.
+    ''' Messages longer than 32,766 characters are truncated and suffixed with <c>"... [TRUNCATED]"</c>
+    ''' unless a custom truncation marker is configured.
+    ''' If the message does not start with a square bracket, it is automatically prefixed with the source name in
+    ''' brackets (e.g., <c>[MySource]</c>).
+    ''' </param>
+    ''' <param name="eventType">
+    ''' The type of event to log. Acceptable values include <see cref="EventLogEntryType.Error"/>,
+    ''' <see cref="EventLogEntryType.Warning"/>, and <see cref="EventLogEntryType.Information"/>.
+    ''' If an unrecognized value is provided, the event is logged as <see cref="EventLogEntryType.Information"/>.
+    ''' </param>
+    ''' <param name="eventID">
+    ''' A numeric identifier for the event. This value is application-defined and can be used for categorizing
+    ''' or filtering related log entries.
+    ''' </param>
+    ''' <remarks>
+    ''' This method uses configured or default values for formatting and fallbacks. The message is normalized
+    ''' and validated prior to writing. If you are using a test environment, an alternate writer can be configured
+    ''' to intercept and test log output without writing to the system Event Log.
+    ''' </remarks>
+    <Extension>
+    Public Sub LogEntry(
+            ByVal eventLog As EventLog,
+            ByVal message As String,
+            ByVal eventType As EventLogEntryType,
+            ByVal eventID As Integer)
+
+        LogEntry(eventLog,
+                 message,
+                 eventType,
+                 eventID,
+                 0)
+
+    End Sub
+
+    ''' <summary>
+    ''' Writes a log entry to the specified <see cref="EventLog"/> with the given parameters.
+    ''' </summary>
+    ''' <param name="eventLog">
+    ''' The <see cref="EventLog"/> instance to which the entry will be written. This must be properly initialized
+    ''' with a valid log name and source.
+    ''' </param>
+    ''' <param name="message">
+    ''' The message to write to the event log. If <c>null</c> or empty, a default message is used.
+    ''' Messages longer than 32,766 characters are truncated and suffixed with <c>"... [TRUNCATED]"</c>
+    ''' unless a custom truncation marker is configured.
+    ''' If the message does not start with a square bracket, it is automatically prefixed with the source name in
+    ''' brackets (e.g., <c>[MySource]</c>).
+    ''' </param>
+    ''' <param name="eventType">
+    ''' The type of event to log. Acceptable values include <see cref="EventLogEntryType.Error"/>,
+    ''' <see cref="EventLogEntryType.Warning"/>, and <see cref="EventLogEntryType.Information"/>.
+    ''' If an unrecognized value is provided, the event is logged as <see cref="EventLogEntryType.Information"/>.
+    ''' </param>
+    ''' <param name="category">
+    ''' A numeric category for the event. This is typically used in categorized views of the Event Log.
+    ''' Use 0 if no category is needed.
+    ''' </param>
+    ''' <remarks>
+    ''' This method uses configured or default values for formatting and fallbacks. The message is normalized
+    ''' and validated prior to writing. If you are using a test environment, an alternate writer can be configured
+    ''' to intercept and test log output without writing to the system Event Log.
+    ''' </remarks>
+    <Extension>
+    Public Sub LogEntry(
+            ByVal eventLog As EventLog,
+            ByVal message As String,
+            ByVal eventType As EventLogEntryType,
+            ByVal category As Short)
+
+        LogEntry(eventLog,
+                 message,
+                 eventType,
+                 0,
+                 category)
+
+    End Sub
+
+    ''' <summary>
+    ''' Writes a log entry to the specified <see cref="EventLog"/> with the given parameters.
+    ''' </summary>
+    ''' <param name="eventLog">
+    ''' The <see cref="EventLog"/> instance to which the entry will be written. This must be properly initialized
+    ''' with a valid log name and source.
+    ''' </param>
+    ''' <param name="message">
+    ''' The message to write to the event log. If <c>null</c> or empty, a default message is used.
+    ''' Messages longer than 32,766 characters are truncated and suffixed with <c>"... [TRUNCATED]"</c>
+    ''' unless a custom truncation marker is configured.
+    ''' If the message does not start with a square bracket, it is automatically prefixed with the source name in
+    ''' brackets (e.g., <c>[MySource]</c>).
+    ''' </param>
+    ''' <param name="eventType">
+    ''' The type of event to log. Acceptable values include <see cref="EventLogEntryType.Error"/>,
+    ''' <see cref="EventLogEntryType.Warning"/>, and <see cref="EventLogEntryType.Information"/>.
+    ''' If an unrecognized value is provided, the event is logged as <see cref="EventLogEntryType.Information"/>.
+    ''' </param>
+    ''' <param name="eventID">
+    ''' A numeric identifier for the event. This value is application-defined and can be used for categorizing
+    ''' or filtering related log entries.
+    ''' </param>
+    ''' <param name="category">
+    ''' A numeric category for the event. This is typically used in categorized views of the Event Log.
+    ''' Use 0 if no category is needed.
+    ''' </param>
+    ''' <remarks>
+    ''' This method uses configured or default values for formatting and fallbacks. The message is normalized
+    ''' and validated prior to writing. If you are using a test environment, an alternate writer can be configured
+    ''' to intercept and test log output without writing to the system Event Log.
+    ''' </remarks>
+    <Extension>
+    Public Sub LogEntry(
+            ByVal eventLog As EventLog,
+            ByVal message As String,
+            ByVal eventType As EventLogEntryType,
+            ByVal eventID As Integer,
+            ByVal category As Short)
+
+        LogEntry(eventLog,
+                 message,
+                 eventType,
+                 eventID,
+                 category,
+                 Nothing)
+
+    End Sub
+
+    ''' <summary>
+    ''' Writes a log entry to the specified <see cref="EventLog"/> with the given parameters.
+    ''' </summary>
+    ''' <param name="eventLog">
+    ''' The <see cref="EventLog"/> instance to which the entry will be written. This must be properly initialized
+    ''' with a valid log name and source.
+    ''' </param>
+    ''' <param name="message">
+    ''' The message to write to the event log. If <c>null</c> or empty, a default message is used.
+    ''' Messages longer than 32,766 characters are truncated and suffixed with <c>"... [TRUNCATED]"</c>
+    ''' unless a custom truncation marker is configured.
+    ''' If the message does not start with a square bracket, it is automatically prefixed with the source name in
+    ''' brackets (e.g., <c>[MySource]</c>).
+    ''' </param>
+    ''' <param name="rawData">
+    ''' Optional binary data to associate with the log entry. This can be <c>null</c> if unused.
+    ''' </param>
+    ''' <remarks>
+    ''' This method uses configured or default values for formatting and fallbacks. The message is normalized
+    ''' and validated prior to writing. If you are using a test environment, an alternate writer can be configured
+    ''' to intercept and test log output without writing to the system Event Log.
+    ''' </remarks>
+    <Extension>
+    Public Sub LogEntry(
+            ByVal eventLog As EventLog,
+            ByVal message As String,
+            ByVal rawData As Byte())
+
+        LogEntry(eventLog,
+                 message,
+                 EventLogEntryType.Information,
+                 rawData)
+
+    End Sub
+
+    ''' <summary>
+    ''' Writes a log entry to the specified <see cref="EventLog"/> with the given parameters.
+    ''' </summary>
+    ''' <param name="eventLog">
+    ''' The <see cref="EventLog"/> instance to which the entry will be written. This must be properly initialized
+    ''' with a valid log name and source.
+    ''' </param>
+    ''' <param name="message">
+    ''' The message to write to the event log. If <c>null</c> or empty, a default message is used.
+    ''' Messages longer than 32,766 characters are truncated and suffixed with <c>"... [TRUNCATED]"</c>
+    ''' unless a custom truncation marker is configured.
+    ''' If the message does not start with a square bracket, it is automatically prefixed with the source name in
+    ''' brackets (e.g., <c>[MySource]</c>).
+    ''' </param>
+    ''' <param name="eventType">
+    ''' The type of event to log. Acceptable values include <see cref="EventLogEntryType.Error"/>,
+    ''' <see cref="EventLogEntryType.Warning"/>, and <see cref="EventLogEntryType.Information"/>.
+    ''' If an unrecognized value is provided, the event is logged as <see cref="EventLogEntryType.Information"/>.
+    ''' </param>
+    ''' <param name="rawData">
+    ''' Optional binary data to associate with the log entry. This can be <c>null</c> if unused.
+    ''' </param>
+    ''' <remarks>
+    ''' This method uses configured or default values for formatting and fallbacks. The message is normalized
+    ''' and validated prior to writing. If you are using a test environment, an alternate writer can be configured
+    ''' to intercept and test log output without writing to the system Event Log.
+    ''' </remarks>
+    <Extension>
+    Public Sub LogEntry(
+            ByVal eventLog As EventLog,
+            ByVal message As String,
+            ByVal eventType As EventLogEntryType,
+            ByVal rawData As Byte())
+
+        LogEntry(eventLog,
+                 message,
+                 eventType,
+                 0,
+                 rawData)
+
+    End Sub
+
+    ''' <summary>
+    ''' Writes a log entry to the specified <see cref="EventLog"/> with the given parameters.
+    ''' </summary>
+    ''' <param name="eventLog">
+    ''' The <see cref="EventLog"/> instance to which the entry will be written. This must be properly initialized
+    ''' with a valid log name and source.
+    ''' </param>
+    ''' <param name="message">
+    ''' The message to write to the event log. If <c>null</c> or empty, a default message is used.
+    ''' Messages longer than 32,766 characters are truncated and suffixed with <c>"... [TRUNCATED]"</c>
+    ''' unless a custom truncation marker is configured.
+    ''' If the message does not start with a square bracket, it is automatically prefixed with the source name in
+    ''' brackets (e.g., <c>[MySource]</c>).
+    ''' </param>
+    ''' <param name="eventType">
+    ''' The type of event to log. Acceptable values include <see cref="EventLogEntryType.Error"/>,
+    ''' <see cref="EventLogEntryType.Warning"/>, and <see cref="EventLogEntryType.Information"/>.
+    ''' If an unrecognized value is provided, the event is logged as <see cref="EventLogEntryType.Information"/>.
+    ''' </param>
+    ''' <param name="eventID">
+    ''' A numeric identifier for the event. This value is application-defined and can be used for categorizing
+    ''' or filtering related log entries.
+    ''' </param>
+    ''' <param name="rawData">
+    ''' Optional binary data to associate with the log entry. This can be <c>null</c> if unused.
+    ''' </param>
+    ''' <remarks>
+    ''' This method uses configured or default values for formatting and fallbacks. The message is normalized
+    ''' and validated prior to writing. If you are using a test environment, an alternate writer can be configured
+    ''' to intercept and test log output without writing to the system Event Log.
+    ''' </remarks>
+    <Extension>
+    Public Sub LogEntry(
+            ByVal eventLog As EventLog,
+            ByVal message As String,
+            ByVal eventType As EventLogEntryType,
+            ByVal eventID As Integer,
+            ByVal rawData As Byte())
+
+        LogEntry(eventLog,
+                 message,
+                 eventType,
+                 eventID,
+                 0,
+                 rawData)
+
+    End Sub
+
+    ''' <summary>
+    ''' Writes a log entry to the specified <see cref="EventLog"/> with the given parameters.
+    ''' </summary>
+    ''' <param name="eventLog">
+    ''' The <see cref="EventLog"/> instance to which the entry will be written. This must be properly initialized
+    ''' with a valid log name and source.
+    ''' </param>
+    ''' <param name="message">
+    ''' The message to write to the event log. If <c>null</c> or empty, a default message is used.
+    ''' Messages longer than 32,766 characters are truncated and suffixed with <c>"... [TRUNCATED]"</c>
+    ''' unless a custom truncation marker is configured.
+    ''' If the message does not start with a square bracket, it is automatically prefixed with the source name in
+    ''' brackets (e.g., <c>[MySource]</c>).
+    ''' </param>
+    ''' <param name="eventType">
+    ''' The type of event to log. Acceptable values include <see cref="EventLogEntryType.Error"/>,
+    ''' <see cref="EventLogEntryType.Warning"/>, and <see cref="EventLogEntryType.Information"/>.
+    ''' If an unrecognized value is provided, the event is logged as <see cref="EventLogEntryType.Information"/>.
+    ''' </param>
+    ''' <param name="eventID">
+    ''' A numeric identifier for the event. This value is application-defined and can be used for categorizing
+    ''' or filtering related log entries.
+    ''' </param>
+    ''' <param name="category">
+    ''' A numeric category for the event. This is typically used in categorized views of the Event Log.
+    ''' Use 0 if no category is needed.
+    ''' </param>
+    ''' <param name="rawData">
+    ''' Optional binary data to associate with the log entry. This can be <c>null</c> if unused.
+    ''' </param>
+    ''' <remarks>
+    ''' This method uses configured or default values for formatting and fallbacks. The message is normalized
+    ''' and validated prior to writing. If you are using a test environment, an alternate writer can be configured
+    ''' to intercept and test log output without writing to the system Event Log.
+    ''' </remarks>
+    <Extension>
+    Public Sub LogEntry(
+            ByVal eventLog As EventLog,
+            ByVal message As String,
+            ByVal eventType As EventLogEntryType,
+            ByVal eventID As Integer,
+            ByVal category As Short,
+            ByVal rawData As Byte())
+
+        _writer.WriteEntry(eventLog,
+                           NormalizeMessage(eventLog.Source, message),
+                           NormalizeEventType(eventType),
+                           eventID,
+                           category,
+                           rawData)
 
     End Sub
 
@@ -1885,6 +2324,64 @@ Public Module SmartEventLogger
         Dim registryPath As String = $"SYSTEM\CurrentControlSet\Services\EventLog\{logName}"
 
         Return _registryReader.HasRegistryAccess(RegistryHive.LocalMachine, machineName, registryPath, writeAccess)
+
+    End Function
+
+    ''' <summary>
+    ''' Normalizes the message.
+    ''' </summary>
+    ''' <param name="sourceName">Name of the source.</param>
+    ''' <param name="message">The message.</param>
+    ''' <returns></returns>
+    Private Function NormalizeMessage(
+            ByVal sourceName As String,
+            ByVal message As String) As String
+
+        Dim defaultSource As String = Source(sourceName)
+        Dim finalMessage As String = If(String.IsNullOrEmpty(message), "No message provided.", message.Trim())
+        If Not finalMessage.EndsWith("."c) Then finalMessage &= "."
+        If Not finalMessage.StartsWith("["c) Then finalMessage = $"[{defaultSource}] {finalMessage}"
+
+        Const maxLength As Integer = 32766
+        Const _truncationMarker As String = "... [TRUNCATED]"
+        Dim marker As String = If(String.IsNullOrEmpty(TruncationMarker), _truncationMarker, TruncationMarker)
+
+        If finalMessage.Length > maxLength Then
+            ' Leave room for the truncation marker
+            Dim maxWithoutMarker As Integer = maxLength - marker.Length
+            finalMessage = $"{finalMessage.Substring(0, maxWithoutMarker)}{marker}"
+        End If
+
+        Return finalMessage
+
+    End Function
+
+    ''' <summary>
+    ''' Normalizes the type of the event.
+    ''' </summary>
+    ''' <param name="eventType">Type of the event.</param>
+    ''' <returns></returns>
+    Private Function NormalizeEventType(
+            ByVal eventType As EventLogEntryType) As EventLogEntryType
+
+        Select Case eventType
+            Case EventLogEntryType.Error, EventLogEntryType.Warning, EventLogEntryType.Information
+                Return eventType
+            Case Else
+                Return EventLogEntryType.Information
+        End Select
+
+    End Function
+
+    ''' <summary>
+    ''' Normalizes the name of the machine.
+    ''' </summary>
+    ''' <param name="_machineName">Name of the machine.</param>
+    ''' <returns></returns>
+    Private Function NormalizeMachineName(
+            ByVal _machineName As String) As String
+
+        Return If(String.IsNullOrEmpty(_machineName), If(String.IsNullOrEmpty(MachineName), ".", MachineName), _machineName.Trim())
 
     End Function
 
@@ -2031,7 +2528,7 @@ Public Module SmartEventLogger
             ByVal writeInitEntry As Boolean) As EventLog
 
         Return _writer.GetLog(
-            machineName,
+            NormalizeMachineName(machineName),
             logName,
             sourceName,
             maxKilobytes,

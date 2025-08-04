@@ -93,4 +93,21 @@ Public Interface IEventLogWriter
             retentionDays As Integer,
             writeInitEntry As Boolean)
 
+    ''' <summary>
+    ''' Writes the entry.
+    ''' </summary>
+    ''' <param name="log">The log.</param>
+    ''' <param name="message">The message.</param>
+    ''' <param name="eventType">The type.</param>
+    ''' <param name="eventID">The event identifier.</param>
+    ''' <param name="category">The category.</param>
+    ''' <param name="rawData">The raw data.</param>
+    Sub WriteEntry(
+        ByRef log As EventLog,
+        ByVal message As String,
+        ByVal eventType As EventLogEntryType,
+        ByVal eventID As Integer,
+        ByVal category As Short,
+        ByRef rawData As Byte())
+
 End Interface
