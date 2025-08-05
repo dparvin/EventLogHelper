@@ -1,4 +1,4 @@
-﻿# ![PropertyGridHelpers Icon](https://raw.githubusercontent.com/dparvin/EventLogHelper/main/Code/EventLogHelper/NuGet.Pack/Images/EventLogHelper-icon-64x64.png) EventLogHelper
+﻿# ![EventLogHelper Icon](https://raw.githubusercontent.com/dparvin/EventLogHelper/main/Code/EventLogHelper/NuGet.Pack/Images/EventLogHelper-icon-64x64.png) EventLogHelper
 
 **EventLogHelper** is a lightweight .NET library designed to make logging to the Windows Event Log simple, safe, and flexible — without requiring repetitive boilerplate or administrative headaches.
 
@@ -7,7 +7,7 @@
 ## 🚀 Features
 
 - ✅ One-line logging to the Windows Event Log
-- ✅ Automatically creates event sources (with safe fall back)
+- ✅ Automatically creates event sources (with safe fallbacks)
 - ✅ Works in non-elevated environments
 - ✅ Configurable defaults via `App.config` or `Web.config`
 - ✅ Gracefully handles permission issues and registry conflicts
@@ -26,42 +26,54 @@ The built-in `.NET` `System.Diagnostics.EventLog` API requires:
 
 ---
 
-## 🛠️ Installation
-
-You can add EventLogHelper to your project by cloning or adding the source file directly (NuGet package coming soon).
-
----
-
 ## 🧾 Example Usage
 
-```csharp
-using EventLogHelper;
+Basic logging with default source and log name:
 
-SmartEventLogger.Log("App started.");
-SmartEventLogger.Log("Invalid user input", EventLogEntryType.Warning);
-SmartEventLogger.Log("Fatal error", EventLogEntryType.Error);
+```vbnet
+SmartEventLogger.Log("Application started.")
+SmartEventLogger.Log("A warning occurred.", EventLogEntryType.Warning)
+SmartEventLogger.Log("An error occurred.", EventLogEntryType.Error)
 ```
 
-You can optionally specify the source and log:
+Custom source and log name:
 
-```csharp
-SmartEventLogger.Log("Service initialized.", EventLogEntryType.Information, source: "MyService", logName: "MyCompanyLog");
+```vbnet
+
+SmartEventLogger.MachineName = "."
+SmartEventLogger.LogName = "MyCompanyLog"
+SmartEventLogger.SourceName = "MyServiceSource"
+
+SmartEventLogger.Log("Service initialized.",
+                     EventLogEntryType.Information)
 ```
 
----
+Or with a fluent interface using `GetLog`:
+```vbnet
 
-## ⚙️ Configuration (App.config)
+SmartEventLogger.GetLog("MyCompanyLog", "MyServiceSource").
+    LogEntry("Service initialized.", EventLogEntryType.Information)
 
-```xml
-<configuration>
-  <appSettings>
-    <add key="EventLog.DefaultLogName" value="Application" />
-    <add key="EventLog.DefaultSource" value="MyApp" />
-    <add key="EventLog.FallbackToLogNameOnError" value="true" />
-    <add key="EventLog.LogLevel" value="Information" />
-  </appSettings>
-</configuration>
 ```
+
+Advanced usage with full customization:
+
+```vbnet
+SmartEventLogger.Log(
+    _machineName: ".",
+    _logName: "CustomLog",
+    sourceName: "CustomSource",
+    message: "This is a custom log entry.",
+    eventType: EventLogEntryType.Information,
+    eventID: 1001,
+    category: 0,
+    rawData: Nothing,
+    maxKilobytes: 1024 * 1024,    ' 1 GB
+    retentionDays: 7,
+    writeInitEntry: True)
+```
+
+You can also configure default values and plug in a custom writer for unit testing or specialized behavior.
 
 ---
 
@@ -69,19 +81,6 @@ SmartEventLogger.Log("Service initialized.", EventLogEntryType.Information, sour
 
 - Creating new sources requires admin privileges.
 - In non-elevated environments, EventLogHelper will automatically fall back to an existing source (e.g., the log name or "Application").
-
----
-
-## 📦 Roadmap
-
-- Structured logging support
-- Optional fallback to file or ETW
-
----
-
-## 🙌 Contributions
-
-Contributions are welcome! Please file issues or open pull requests to suggest improvements, report bugs, or extend functionality.
 
 ---
 
