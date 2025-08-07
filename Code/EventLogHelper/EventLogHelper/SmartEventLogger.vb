@@ -143,6 +143,43 @@ Public Module SmartEventLogger
     ''' </value>
     Public Property TruncationMarker As String = "... [TRUNCATED]"
 
+    ''' <summary>
+    ''' Gets or sets the continuation marker used when splitting long messages 
+    ''' across multiple event log entries.
+    ''' </summary>
+    ''' <value>
+    ''' The string appended to each intermediate log entry when 
+    ''' <see cref="AllowMultiEntryMessages"/> is <c>true</c>.
+    ''' Defaults to <c>" ..."</c>.
+    ''' This value is ignored if message splitting is disabled.
+    ''' </value>
+    ''' <remarks>
+    ''' The marker is added to all chunks except the final one to indicate the 
+    ''' message continues in the next log entry. Make sure the marker is short 
+    ''' enough to allow meaningful message content within the 32,766-character 
+    ''' limit of the Event Log.
+    ''' </remarks>
+    Public Property ContinuationMarker As String = " ..."
+
+    ''' <summary>
+    ''' Gets or sets a value indicating whether messages that exceed the Event Log 
+    ''' length limit should be split across multiple entries.
+    ''' </summary>
+    ''' <value>
+    ''' <c>true</c> to split long messages into multiple event log entries;
+    ''' <c>false</c> to truncate long messages and append a truncation notice.
+    ''' Default is <c>false</c>.
+    ''' </value>
+    ''' <remarks>
+    ''' When enabled, messages exceeding 32,766 characters are split into sequential entries,
+    ''' each prefixed with a part number and optionally suffixed with a continuation marker
+    ''' (see <see cref="ContinuationMarker"/>). This preserves the full message without truncation.
+    ''' 
+    ''' When disabled, long messages are truncated to fit within the Event Log limit,
+    ''' and the truncation marker (e.g., <c>"... [TRUNCATED]"</c>) is appended.
+    ''' </remarks>
+    Public Property AllowMultiEntryMessages As Boolean = False
+
 #End Region
 
 #Region " Log Methods ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ "
@@ -151,12 +188,22 @@ Public Module SmartEventLogger
     ''' Writes an entry to the Windows Event Log using the provided parameters.
     ''' </summary>
     ''' <param name="message">
-    ''' The message to log. If <c>null</c> or empty, a default message is used. Messages longer than 32,766 characters
-    ''' are truncated and suffixed with "… &lt;truncated&gt;" unless multi-entry logging is enabled.
+    ''' The message to log. If <c>null</c> or empty, a default message is used.
+    ''' 
+    ''' If <see cref="AllowMultiEntryMessages"/> is <c>false</c> (default), messages longer than 32,766 characters are truncated
+    ''' and suffixed with the <see cref="TruncationMarker"/> (e.g., <c>"... [TRUNCATED]"</c>).
+    ''' 
+    ''' If <see cref="AllowMultiEntryMessages"/> is <c>true</c>, long messages are split into multiple event entries,
+    ''' each prefixed with part information (e.g., <c>[Part 1/3]</c>) and intermediate entries are suffixed with
+    ''' the <see cref="ContinuationMarker"/> (e.g., <c>" ..."</c>) to indicate continuation.
     ''' </param>
     ''' <remarks>
-    ''' If the specified log or source does not exist, they are created automatically. The message is automatically wrapped
-    ''' in square brackets with the source name if it does not already include them, and ends with a period.
+    ''' <para>
+    ''' If the specified event log or source does not exist, they are created automatically using the provided parameters.
+    ''' </para>
+    ''' <para>
+    ''' This method handles safe formatting, validation, and optional message splitting to avoid truncation of diagnostic content.
+    ''' </para>
     ''' </remarks>
     Public Sub Log(
             ByVal message As String)
@@ -173,12 +220,22 @@ Public Module SmartEventLogger
     ''' namespace, class, and method name. If the source exceeds 254 characters, it is automatically truncated.
     ''' </param>
     ''' <param name="message">
-    ''' The message to log. If <c>null</c> or empty, a default message is used. Messages longer than 32,766 characters
-    ''' are truncated and suffixed with "… &lt;truncated&gt;" unless multi-entry logging is enabled.
+    ''' The message to log. If <c>null</c> or empty, a default message is used.
+    ''' 
+    ''' If <see cref="AllowMultiEntryMessages"/> is <c>false</c> (default), messages longer than 32,766 characters are truncated
+    ''' and suffixed with the <see cref="TruncationMarker"/> (e.g., <c>"... [TRUNCATED]"</c>).
+    ''' 
+    ''' If <see cref="AllowMultiEntryMessages"/> is <c>true</c>, long messages are split into multiple event entries,
+    ''' each prefixed with part information (e.g., <c>[Part 1/3]</c>) and intermediate entries are suffixed with
+    ''' the <see cref="ContinuationMarker"/> (e.g., <c>" ..."</c>) to indicate continuation.
     ''' </param>
     ''' <remarks>
-    ''' If the specified log or source does not exist, they are created automatically. The message is automatically wrapped
-    ''' in square brackets with the source name if it does not already include them, and ends with a period.
+    ''' <para>
+    ''' If the specified event log or source does not exist, they are created automatically using the provided parameters.
+    ''' </para>
+    ''' <para>
+    ''' This method handles safe formatting, validation, and optional message splitting to avoid truncation of diagnostic content.
+    ''' </para>
     ''' </remarks>
     Public Sub Log(
             ByVal source As String,
@@ -192,17 +249,26 @@ Public Module SmartEventLogger
     ''' Writes an entry to the Windows Event Log using the provided parameters.
     ''' </summary>
     ''' <param name="message">
-    ''' The message to log. If <c>null</c> or empty, a default message is used. Messages longer than 32,766 characters
-    ''' are truncated and suffixed with "… &lt;truncated&gt;" unless multi-entry logging is enabled.
+    ''' The message to log. If <c>null</c> or empty, a default message is used.
+    ''' 
+    ''' If <see cref="AllowMultiEntryMessages"/> is <c>false</c> (default), messages longer than 32,766 characters are truncated
+    ''' and suffixed with the <see cref="TruncationMarker"/> (e.g., <c>"... [TRUNCATED]"</c>).
+    ''' 
+    ''' If <see cref="AllowMultiEntryMessages"/> is <c>true</c>, long messages are split into multiple event entries,
+    ''' each prefixed with part information (e.g., <c>[Part 1/3]</c>) and intermediate entries are suffixed with
+    ''' the <see cref="ContinuationMarker"/> (e.g., <c>" ..."</c>) to indicate continuation.
     ''' </param>
     ''' <param name="eventType">
-    ''' The type of event to log. Valid values are <see cref="EventLogEntryType.Error" />,
-    ''' <see cref="EventLogEntryType.Warning" />, and <see cref="EventLogEntryType.Information" />.
-    ''' If an invalid value is passed, the event is logged as <c>Information</c>.
+    ''' The type of event. Valid values are <see cref="EventLogEntryType.Error"/>, <see cref="EventLogEntryType.Warning"/>, and
+    ''' <see cref="EventLogEntryType.Information"/>. If invalid, <c>Information</c> is used.
     ''' </param>
     ''' <remarks>
-    ''' If the specified log or source does not exist, they are created automatically. The message is automatically wrapped
-    ''' in square brackets with the source name if it does not already include them, and ends with a period.
+    ''' <para>
+    ''' If the specified event log or source does not exist, they are created automatically using the provided parameters.
+    ''' </para>
+    ''' <para>
+    ''' This method handles safe formatting, validation, and optional message splitting to avoid truncation of diagnostic content.
+    ''' </para>
     ''' </remarks>
     Public Sub Log(
             ByVal message As String,
@@ -224,12 +290,22 @@ Public Module SmartEventLogger
     ''' namespace, class, and method name. If the source exceeds 254 characters, it is automatically truncated.
     ''' </param>
     ''' <param name="message">
-    ''' The message to log. If <c>null</c> or empty, a default message is used. Messages longer than 32,766 characters
-    ''' are truncated and suffixed with "… &lt;truncated&gt;" unless multi-entry logging is enabled.
+    ''' The message to log. If <c>null</c> or empty, a default message is used.
+    ''' 
+    ''' If <see cref="AllowMultiEntryMessages"/> is <c>false</c> (default), messages longer than 32,766 characters are truncated
+    ''' and suffixed with the <see cref="TruncationMarker"/> (e.g., <c>"... [TRUNCATED]"</c>).
+    ''' 
+    ''' If <see cref="AllowMultiEntryMessages"/> is <c>true</c>, long messages are split into multiple event entries,
+    ''' each prefixed with part information (e.g., <c>[Part 1/3]</c>) and intermediate entries are suffixed with
+    ''' the <see cref="ContinuationMarker"/> (e.g., <c>" ..."</c>) to indicate continuation.
     ''' </param>
     ''' <remarks>
-    ''' If the specified log or source does not exist, they are created automatically. The message is automatically wrapped
-    ''' in square brackets with the source name if it does not already include them, and ends with a period.
+    ''' <para>
+    ''' If the specified event log or source does not exist, they are created automatically using the provided parameters.
+    ''' </para>
+    ''' <para>
+    ''' This method handles safe formatting, validation, and optional message splitting to avoid truncation of diagnostic content.
+    ''' </para>
     ''' </remarks>
     Public Sub Log(
             ByVal logName As String,
@@ -248,17 +324,26 @@ Public Module SmartEventLogger
     ''' namespace, class, and method name. If the source exceeds 254 characters, it is automatically truncated.
     ''' </param>
     ''' <param name="message">
-    ''' The message to log. If <c>null</c> or empty, a default message is used. Messages longer than 32,766 characters
-    ''' are truncated and suffixed with "… &lt;truncated&gt;" unless multi-entry logging is enabled.
+    ''' The message to log. If <c>null</c> or empty, a default message is used.
+    ''' 
+    ''' If <see cref="AllowMultiEntryMessages"/> is <c>false</c> (default), messages longer than 32,766 characters are truncated
+    ''' and suffixed with the <see cref="TruncationMarker"/> (e.g., <c>"... [TRUNCATED]"</c>).
+    ''' 
+    ''' If <see cref="AllowMultiEntryMessages"/> is <c>true</c>, long messages are split into multiple event entries,
+    ''' each prefixed with part information (e.g., <c>[Part 1/3]</c>) and intermediate entries are suffixed with
+    ''' the <see cref="ContinuationMarker"/> (e.g., <c>" ..."</c>) to indicate continuation.
     ''' </param>
     ''' <param name="eventType">
-    ''' The type of event to log. Valid values are <see cref="EventLogEntryType.Error" />,
-    ''' <see cref="EventLogEntryType.Warning" />, and <see cref="EventLogEntryType.Information" />.
-    ''' If an invalid value is passed, the event is logged as <c>Information</c>.
+    ''' The type of event. Valid values are <see cref="EventLogEntryType.Error"/>, <see cref="EventLogEntryType.Warning"/>, and
+    ''' <see cref="EventLogEntryType.Information"/>. If invalid, <c>Information</c> is used.
     ''' </param>
     ''' <remarks>
-    ''' If the specified log or source does not exist, they are created automatically. The message is automatically wrapped
-    ''' in square brackets with the source name if it does not already include them, and ends with a period.
+    ''' <para>
+    ''' If the specified event log or source does not exist, they are created automatically using the provided parameters.
+    ''' </para>
+    ''' <para>
+    ''' This method handles safe formatting, validation, and optional message splitting to avoid truncation of diagnostic content.
+    ''' </para>
     ''' </remarks>
     Public Sub Log(
             ByVal sourceName As String,
@@ -281,17 +366,26 @@ Public Module SmartEventLogger
     ''' namespace, class, and method name. If the source exceeds 254 characters, it is automatically truncated.
     ''' </param>
     ''' <param name="message">
-    ''' The message to log. If <c>null</c> or empty, a default message is used. Messages longer than 32,766 characters
-    ''' are truncated and suffixed with "… &lt;truncated&gt;" unless multi-entry logging is enabled.
+    ''' The message to log. If <c>null</c> or empty, a default message is used.
+    ''' 
+    ''' If <see cref="AllowMultiEntryMessages"/> is <c>false</c> (default), messages longer than 32,766 characters are truncated
+    ''' and suffixed with the <see cref="TruncationMarker"/> (e.g., <c>"... [TRUNCATED]"</c>).
+    ''' 
+    ''' If <see cref="AllowMultiEntryMessages"/> is <c>true</c>, long messages are split into multiple event entries,
+    ''' each prefixed with part information (e.g., <c>[Part 1/3]</c>) and intermediate entries are suffixed with
+    ''' the <see cref="ContinuationMarker"/> (e.g., <c>" ..."</c>) to indicate continuation.
     ''' </param>
     ''' <param name="eventType">
-    ''' The type of event to log. Valid values are <see cref="EventLogEntryType.Error" />,
-    ''' <see cref="EventLogEntryType.Warning" />, and <see cref="EventLogEntryType.Information" />.
-    ''' If an invalid value is passed, the event is logged as <c>Information</c>.
+    ''' The type of event. Valid values are <see cref="EventLogEntryType.Error"/>, <see cref="EventLogEntryType.Warning"/>, and
+    ''' <see cref="EventLogEntryType.Information"/>. If invalid, <c>Information</c> is used.
     ''' </param>
     ''' <remarks>
-    ''' If the specified log or source does not exist, they are created automatically. The message is automatically wrapped
-    ''' in square brackets with the source name if it does not already include them, and ends with a period.
+    ''' <para>
+    ''' If the specified event log or source does not exist, they are created automatically using the provided parameters.
+    ''' </para>
+    ''' <para>
+    ''' This method handles safe formatting, validation, and optional message splitting to avoid truncation of diagnostic content.
+    ''' </para>
     ''' </remarks>
     Public Sub Log(
             ByVal logName As String,
@@ -307,20 +401,29 @@ Public Module SmartEventLogger
     ''' Writes an entry to the Windows Event Log using the provided parameters.
     ''' </summary>
     ''' <param name="message">
-    ''' The message to log. If <c>null</c> or empty, a default message is used. Messages longer than 32,766 characters
-    ''' are truncated and suffixed with "… &lt;truncated&gt;" unless multi-entry logging is enabled.
+    ''' The message to log. If <c>null</c> or empty, a default message is used.
+    ''' 
+    ''' If <see cref="AllowMultiEntryMessages"/> is <c>false</c> (default), messages longer than 32,766 characters are truncated
+    ''' and suffixed with the <see cref="TruncationMarker"/> (e.g., <c>"... [TRUNCATED]"</c>).
+    ''' 
+    ''' If <see cref="AllowMultiEntryMessages"/> is <c>true</c>, long messages are split into multiple event entries,
+    ''' each prefixed with part information (e.g., <c>[Part 1/3]</c>) and intermediate entries are suffixed with
+    ''' the <see cref="ContinuationMarker"/> (e.g., <c>" ..."</c>) to indicate continuation.
     ''' </param>
     ''' <param name="eventType">
-    ''' The type of event to log. Valid values are <see cref="EventLogEntryType.Error" />,
-    ''' <see cref="EventLogEntryType.Warning" />, and <see cref="EventLogEntryType.Information" />.
-    ''' If an invalid value is passed, the event is logged as <c>Information</c>.
+    ''' The type of event. Valid values are <see cref="EventLogEntryType.Error"/>, <see cref="EventLogEntryType.Warning"/>, and
+    ''' <see cref="EventLogEntryType.Information"/>. If invalid, <c>Information</c> is used.
     ''' </param>
     ''' <param name="eventID">
     ''' The numeric event identifier for the log entry. This is application-defined and may be used to group similar events.
     ''' </param>
     ''' <remarks>
-    ''' If the specified log or source does not exist, they are created automatically. The message is automatically wrapped
-    ''' in square brackets with the source name if it does not already include them, and ends with a period.
+    ''' <para>
+    ''' If the specified event log or source does not exist, they are created automatically using the provided parameters.
+    ''' </para>
+    ''' <para>
+    ''' This method handles safe formatting, validation, and optional message splitting to avoid truncation of diagnostic content.
+    ''' </para>
     ''' </remarks>
     Public Sub Log(
             ByVal message As String,
@@ -339,20 +442,29 @@ Public Module SmartEventLogger
     ''' namespace, class, and method name. If the source exceeds 254 characters, it is automatically truncated.
     ''' </param>
     ''' <param name="message">
-    ''' The message to log. If <c>null</c> or empty, a default message is used. Messages longer than 32,766 characters
-    ''' are truncated and suffixed with "… &lt;truncated&gt;" unless multi-entry logging is enabled.
+    ''' The message to log. If <c>null</c> or empty, a default message is used.
+    ''' 
+    ''' If <see cref="AllowMultiEntryMessages"/> is <c>false</c> (default), messages longer than 32,766 characters are truncated
+    ''' and suffixed with the <see cref="TruncationMarker"/> (e.g., <c>"... [TRUNCATED]"</c>).
+    ''' 
+    ''' If <see cref="AllowMultiEntryMessages"/> is <c>true</c>, long messages are split into multiple event entries,
+    ''' each prefixed with part information (e.g., <c>[Part 1/3]</c>) and intermediate entries are suffixed with
+    ''' the <see cref="ContinuationMarker"/> (e.g., <c>" ..."</c>) to indicate continuation.
     ''' </param>
     ''' <param name="eventType">
-    ''' The type of event to log. Valid values are <see cref="EventLogEntryType.Error" />,
-    ''' <see cref="EventLogEntryType.Warning" />, and <see cref="EventLogEntryType.Information" />.
-    ''' If an invalid value is passed, the event is logged as <c>Information</c>.
+    ''' The type of event. Valid values are <see cref="EventLogEntryType.Error"/>, <see cref="EventLogEntryType.Warning"/>, and
+    ''' <see cref="EventLogEntryType.Information"/>. If invalid, <c>Information</c> is used.
     ''' </param>
     ''' <param name="eventID">
     ''' The numeric event identifier for the log entry. This is application-defined and may be used to group similar events.
     ''' </param>
     ''' <remarks>
-    ''' If the specified log or source does not exist, they are created automatically. The message is automatically wrapped
-    ''' in square brackets with the source name if it does not already include them, and ends with a period.
+    ''' <para>
+    ''' If the specified event log or source does not exist, they are created automatically using the provided parameters.
+    ''' </para>
+    ''' <para>
+    ''' This method handles safe formatting, validation, and optional message splitting to avoid truncation of diagnostic content.
+    ''' </para>
     ''' </remarks>
     Public Sub Log(
             ByVal sourceName As String,
@@ -376,20 +488,29 @@ Public Module SmartEventLogger
     ''' namespace, class, and method name. If the source exceeds 254 characters, it is automatically truncated.
     ''' </param>
     ''' <param name="message">
-    ''' The message to log. If <c>null</c> or empty, a default message is used. Messages longer than 32,766 characters
-    ''' are truncated and suffixed with "… &lt;truncated&gt;" unless multi-entry logging is enabled.
+    ''' The message to log. If <c>null</c> or empty, a default message is used.
+    ''' 
+    ''' If <see cref="AllowMultiEntryMessages"/> is <c>false</c> (default), messages longer than 32,766 characters are truncated
+    ''' and suffixed with the <see cref="TruncationMarker"/> (e.g., <c>"... [TRUNCATED]"</c>).
+    ''' 
+    ''' If <see cref="AllowMultiEntryMessages"/> is <c>true</c>, long messages are split into multiple event entries,
+    ''' each prefixed with part information (e.g., <c>[Part 1/3]</c>) and intermediate entries are suffixed with
+    ''' the <see cref="ContinuationMarker"/> (e.g., <c>" ..."</c>) to indicate continuation.
     ''' </param>
     ''' <param name="eventType">
-    ''' The type of event to log. Valid values are <see cref="EventLogEntryType.Error" />,
-    ''' <see cref="EventLogEntryType.Warning" />, and <see cref="EventLogEntryType.Information" />.
-    ''' If an invalid value is passed, the event is logged as <c>Information</c>.
+    ''' The type of event. Valid values are <see cref="EventLogEntryType.Error"/>, <see cref="EventLogEntryType.Warning"/>, and
+    ''' <see cref="EventLogEntryType.Information"/>. If invalid, <c>Information</c> is used.
     ''' </param>
     ''' <param name="eventID">
     ''' The numeric event identifier for the log entry. This is application-defined and may be used to group similar events.
     ''' </param>
     ''' <remarks>
-    ''' If the specified log or source does not exist, they are created automatically. The message is automatically wrapped
-    ''' in square brackets with the source name if it does not already include them, and ends with a period.
+    ''' <para>
+    ''' If the specified event log or source does not exist, they are created automatically using the provided parameters.
+    ''' </para>
+    ''' <para>
+    ''' This method handles safe formatting, validation, and optional message splitting to avoid truncation of diagnostic content.
+    ''' </para>
     ''' </remarks>
     Public Sub Log(
             ByVal logName As String,
@@ -406,13 +527,18 @@ Public Module SmartEventLogger
     ''' Writes an entry to the Windows Event Log using the provided parameters.
     ''' </summary>
     ''' <param name="message">
-    ''' The message to log. If <c>null</c> or empty, a default message is used. Messages longer than 32,766 characters
-    ''' are truncated and suffixed with "… &lt;truncated&gt;" unless multi-entry logging is enabled.
+    ''' The message to log. If <c>null</c> or empty, a default message is used.
+    ''' 
+    ''' If <see cref="AllowMultiEntryMessages"/> is <c>false</c> (default), messages longer than 32,766 characters are truncated
+    ''' and suffixed with the <see cref="TruncationMarker"/> (e.g., <c>"... [TRUNCATED]"</c>).
+    ''' 
+    ''' If <see cref="AllowMultiEntryMessages"/> is <c>true</c>, long messages are split into multiple event entries,
+    ''' each prefixed with part information (e.g., <c>[Part 1/3]</c>) and intermediate entries are suffixed with
+    ''' the <see cref="ContinuationMarker"/> (e.g., <c>" ..."</c>) to indicate continuation.
     ''' </param>
     ''' <param name="eventType">
-    ''' The type of event to log. Valid values are <see cref="EventLogEntryType.Error" />,
-    ''' <see cref="EventLogEntryType.Warning" />, and <see cref="EventLogEntryType.Information" />.
-    ''' If an invalid value is passed, the event is logged as <c>Information</c>.
+    ''' The type of event. Valid values are <see cref="EventLogEntryType.Error"/>, <see cref="EventLogEntryType.Warning"/>, and
+    ''' <see cref="EventLogEntryType.Information"/>. If invalid, <c>Information</c> is used.
     ''' </param>
     ''' <param name="eventID">
     ''' The numeric event identifier for the log entry. This is application-defined and may be used to group similar events.
@@ -421,8 +547,12 @@ Public Module SmartEventLogger
     ''' The category for the event, if applicable. This is typically used in categorized event views.
     ''' </param>
     ''' <remarks>
-    ''' If the specified log or source does not exist, they are created automatically. The message is automatically wrapped
-    ''' in square brackets with the source name if it does not already include them, and ends with a period.
+    ''' <para>
+    ''' If the specified event log or source does not exist, they are created automatically using the provided parameters.
+    ''' </para>
+    ''' <para>
+    ''' This method handles safe formatting, validation, and optional message splitting to avoid truncation of diagnostic content.
+    ''' </para>
     ''' </remarks>
     Public Sub Log(
             ByVal message As String,
@@ -442,13 +572,18 @@ Public Module SmartEventLogger
     ''' namespace, class, and method name. If the source exceeds 254 characters, it is automatically truncated.
     ''' </param>
     ''' <param name="message">
-    ''' The message to log. If <c>null</c> or empty, a default message is used. Messages longer than 32,766 characters
-    ''' are truncated and suffixed with "… &lt;truncated&gt;" unless multi-entry logging is enabled.
+    ''' The message to log. If <c>null</c> or empty, a default message is used.
+    ''' 
+    ''' If <see cref="AllowMultiEntryMessages"/> is <c>false</c> (default), messages longer than 32,766 characters are truncated
+    ''' and suffixed with the <see cref="TruncationMarker"/> (e.g., <c>"... [TRUNCATED]"</c>).
+    ''' 
+    ''' If <see cref="AllowMultiEntryMessages"/> is <c>true</c>, long messages are split into multiple event entries,
+    ''' each prefixed with part information (e.g., <c>[Part 1/3]</c>) and intermediate entries are suffixed with
+    ''' the <see cref="ContinuationMarker"/> (e.g., <c>" ..."</c>) to indicate continuation.
     ''' </param>
     ''' <param name="eventType">
-    ''' The type of event to log. Valid values are <see cref="EventLogEntryType.Error" />,
-    ''' <see cref="EventLogEntryType.Warning" />, and <see cref="EventLogEntryType.Information" />.
-    ''' If an invalid value is passed, the event is logged as <c>Information</c>.
+    ''' The type of event. Valid values are <see cref="EventLogEntryType.Error"/>, <see cref="EventLogEntryType.Warning"/>, and
+    ''' <see cref="EventLogEntryType.Information"/>. If invalid, <c>Information</c> is used.
     ''' </param>
     ''' <param name="eventID">
     ''' The numeric event identifier for the log entry. This is application-defined and may be used to group similar events.
@@ -457,8 +592,12 @@ Public Module SmartEventLogger
     ''' The category for the event, if applicable. This is typically used in categorized event views.
     ''' </param>
     ''' <remarks>
-    ''' If the specified log or source does not exist, they are created automatically. The message is automatically wrapped
-    ''' in square brackets with the source name if it does not already include them, and ends with a period.
+    ''' <para>
+    ''' If the specified event log or source does not exist, they are created automatically using the provided parameters.
+    ''' </para>
+    ''' <para>
+    ''' This method handles safe formatting, validation, and optional message splitting to avoid truncation of diagnostic content.
+    ''' </para>
     ''' </remarks>
     Public Sub Log(
             ByVal sourceName As String,
@@ -483,13 +622,18 @@ Public Module SmartEventLogger
     ''' namespace, class, and method name. If the source exceeds 254 characters, it is automatically truncated.
     ''' </param>
     ''' <param name="message">
-    ''' The message to log. If <c>null</c> or empty, a default message is used. Messages longer than 32,766 characters
-    ''' are truncated and suffixed with "… &lt;truncated&gt;" unless multi-entry logging is enabled.
+    ''' The message to log. If <c>null</c> or empty, a default message is used.
+    ''' 
+    ''' If <see cref="AllowMultiEntryMessages"/> is <c>false</c> (default), messages longer than 32,766 characters are truncated
+    ''' and suffixed with the <see cref="TruncationMarker"/> (e.g., <c>"... [TRUNCATED]"</c>).
+    ''' 
+    ''' If <see cref="AllowMultiEntryMessages"/> is <c>true</c>, long messages are split into multiple event entries,
+    ''' each prefixed with part information (e.g., <c>[Part 1/3]</c>) and intermediate entries are suffixed with
+    ''' the <see cref="ContinuationMarker"/> (e.g., <c>" ..."</c>) to indicate continuation.
     ''' </param>
     ''' <param name="eventType">
-    ''' The type of event to log. Valid values are <see cref="EventLogEntryType.Error" />,
-    ''' <see cref="EventLogEntryType.Warning" />, and <see cref="EventLogEntryType.Information" />.
-    ''' If an invalid value is passed, the event is logged as <c>Information</c>.
+    ''' The type of event. Valid values are <see cref="EventLogEntryType.Error"/>, <see cref="EventLogEntryType.Warning"/>, and
+    ''' <see cref="EventLogEntryType.Information"/>. If invalid, <c>Information</c> is used.
     ''' </param>
     ''' <param name="eventID">
     ''' The numeric event identifier for the log entry. This is application-defined and may be used to group similar events.
@@ -498,8 +642,12 @@ Public Module SmartEventLogger
     ''' The category for the event, if applicable. This is typically used in categorized event views.
     ''' </param>
     ''' <remarks>
-    ''' If the specified log or source does not exist, they are created automatically. The message is automatically wrapped
-    ''' in square brackets with the source name if it does not already include them, and ends with a period.
+    ''' <para>
+    ''' If the specified event log or source does not exist, they are created automatically using the provided parameters.
+    ''' </para>
+    ''' <para>
+    ''' This method handles safe formatting, validation, and optional message splitting to avoid truncation of diagnostic content.
+    ''' </para>
     ''' </remarks>
     Public Sub Log(
             ByVal logName As String,
@@ -517,15 +665,25 @@ Public Module SmartEventLogger
     ''' Writes an entry to the Windows Event Log using the provided parameters.
     ''' </summary>
     ''' <param name="message">
-    ''' The message to log. If <c>null</c> or empty, a default message is used. Messages longer than 32,766 characters
-    ''' are truncated and suffixed with "… &lt;truncated&gt;" unless multi-entry logging is enabled.
+    ''' The message to log. If <c>null</c> or empty, a default message is used.
+    ''' 
+    ''' If <see cref="AllowMultiEntryMessages"/> is <c>false</c> (default), messages longer than 32,766 characters are truncated
+    ''' and suffixed with the <see cref="TruncationMarker"/> (e.g., <c>"... [TRUNCATED]"</c>).
+    ''' 
+    ''' If <see cref="AllowMultiEntryMessages"/> is <c>true</c>, long messages are split into multiple event entries,
+    ''' each prefixed with part information (e.g., <c>[Part 1/3]</c>) and intermediate entries are suffixed with
+    ''' the <see cref="ContinuationMarker"/> (e.g., <c>" ..."</c>) to indicate continuation.
     ''' </param>
     ''' <param name="rawData">
     ''' Optional binary data to include with the log entry. Can be <c>null</c> if not used.
     ''' </param>
     ''' <remarks>
-    ''' If the specified log or source does not exist, they are created automatically. The message is automatically wrapped
-    ''' in square brackets with the source name if it does not already include them, and ends with a period.
+    ''' <para>
+    ''' If the specified event log or source does not exist, they are created automatically using the provided parameters.
+    ''' </para>
+    ''' <para>
+    ''' This method handles safe formatting, validation, and optional message splitting to avoid truncation of diagnostic content.
+    ''' </para>
     ''' </remarks>
     Public Sub Log(
             ByVal message As String,
@@ -539,20 +697,29 @@ Public Module SmartEventLogger
     ''' Writes an entry to the Windows Event Log using the provided parameters.
     ''' </summary>
     ''' <param name="message">
-    ''' The message to log. If <c>null</c> or empty, a default message is used. Messages longer than 32,766 characters
-    ''' are truncated and suffixed with "… &lt;truncated&gt;" unless multi-entry logging is enabled.
+    ''' The message to log. If <c>null</c> or empty, a default message is used.
+    ''' 
+    ''' If <see cref="AllowMultiEntryMessages"/> is <c>false</c> (default), messages longer than 32,766 characters are truncated
+    ''' and suffixed with the <see cref="TruncationMarker"/> (e.g., <c>"... [TRUNCATED]"</c>).
+    ''' 
+    ''' If <see cref="AllowMultiEntryMessages"/> is <c>true</c>, long messages are split into multiple event entries,
+    ''' each prefixed with part information (e.g., <c>[Part 1/3]</c>) and intermediate entries are suffixed with
+    ''' the <see cref="ContinuationMarker"/> (e.g., <c>" ..."</c>) to indicate continuation.
     ''' </param>
     ''' <param name="eventType">
-    ''' The type of event to log. Valid values are <see cref="EventLogEntryType.Error" />,
-    ''' <see cref="EventLogEntryType.Warning" />, and <see cref="EventLogEntryType.Information" />.
-    ''' If an invalid value is passed, the event is logged as <c>Information</c>.
+    ''' The type of event. Valid values are <see cref="EventLogEntryType.Error"/>, <see cref="EventLogEntryType.Warning"/>, and
+    ''' <see cref="EventLogEntryType.Information"/>. If invalid, <c>Information</c> is used.
     ''' </param>
     ''' <param name="rawData">
     ''' Optional binary data to include with the log entry. Can be <c>null</c> if not used.
     ''' </param>
     ''' <remarks>
-    ''' If the specified log or source does not exist, they are created automatically. The message is automatically wrapped
-    ''' in square brackets with the source name if it does not already include them, and ends with a period.
+    ''' <para>
+    ''' If the specified event log or source does not exist, they are created automatically using the provided parameters.
+    ''' </para>
+    ''' <para>
+    ''' This method handles safe formatting, validation, and optional message splitting to avoid truncation of diagnostic content.
+    ''' </para>
     ''' </remarks>
     Public Sub Log(
             ByVal message As String,
@@ -567,13 +734,18 @@ Public Module SmartEventLogger
     ''' Writes an entry to the Windows Event Log using the provided parameters.
     ''' </summary>
     ''' <param name="message">
-    ''' The message to log. If <c>null</c> or empty, a default message is used. Messages longer than 32,766 characters
-    ''' are truncated and suffixed with "… &lt;truncated&gt;" unless multi-entry logging is enabled.
+    ''' The message to log. If <c>null</c> or empty, a default message is used.
+    ''' 
+    ''' If <see cref="AllowMultiEntryMessages"/> is <c>false</c> (default), messages longer than 32,766 characters are truncated
+    ''' and suffixed with the <see cref="TruncationMarker"/> (e.g., <c>"... [TRUNCATED]"</c>).
+    ''' 
+    ''' If <see cref="AllowMultiEntryMessages"/> is <c>true</c>, long messages are split into multiple event entries,
+    ''' each prefixed with part information (e.g., <c>[Part 1/3]</c>) and intermediate entries are suffixed with
+    ''' the <see cref="ContinuationMarker"/> (e.g., <c>" ..."</c>) to indicate continuation.
     ''' </param>
     ''' <param name="eventType">
-    ''' The type of event to log. Valid values are <see cref="EventLogEntryType.Error" />,
-    ''' <see cref="EventLogEntryType.Warning" />, and <see cref="EventLogEntryType.Information" />.
-    ''' If an invalid value is passed, the event is logged as <c>Information</c>.
+    ''' The type of event. Valid values are <see cref="EventLogEntryType.Error"/>, <see cref="EventLogEntryType.Warning"/>, and
+    ''' <see cref="EventLogEntryType.Information"/>. If invalid, <c>Information</c> is used.
     ''' </param>
     ''' <param name="eventID">
     ''' The numeric event identifier for the log entry. This is application-defined and may be used to group similar events.
@@ -582,8 +754,12 @@ Public Module SmartEventLogger
     ''' Optional binary data to include with the log entry. Can be <c>null</c> if not used.
     ''' </param>
     ''' <remarks>
-    ''' If the specified log or source does not exist, they are created automatically. The message is automatically wrapped
-    ''' in square brackets with the source name if it does not already include them, and ends with a period.
+    ''' <para>
+    ''' If the specified event log or source does not exist, they are created automatically using the provided parameters.
+    ''' </para>
+    ''' <para>
+    ''' This method handles safe formatting, validation, and optional message splitting to avoid truncation of diagnostic content.
+    ''' </para>
     ''' </remarks>
     Public Sub Log(
             ByVal message As String,
@@ -599,13 +775,18 @@ Public Module SmartEventLogger
     ''' Writes an entry to the Windows Event Log using the provided parameters.
     ''' </summary>
     ''' <param name="message">
-    ''' The message to log. If <c>null</c> or empty, a default message is used. Messages longer than 32,766 characters
-    ''' are truncated and suffixed with "… &lt;truncated&gt;" unless multi-entry logging is enabled.
+    ''' The message to log. If <c>null</c> or empty, a default message is used.
+    ''' 
+    ''' If <see cref="AllowMultiEntryMessages"/> is <c>false</c> (default), messages longer than 32,766 characters are truncated
+    ''' and suffixed with the <see cref="TruncationMarker"/> (e.g., <c>"... [TRUNCATED]"</c>).
+    ''' 
+    ''' If <see cref="AllowMultiEntryMessages"/> is <c>true</c>, long messages are split into multiple event entries,
+    ''' each prefixed with part information (e.g., <c>[Part 1/3]</c>) and intermediate entries are suffixed with
+    ''' the <see cref="ContinuationMarker"/> (e.g., <c>" ..."</c>) to indicate continuation.
     ''' </param>
     ''' <param name="eventType">
-    ''' The type of event to log. Valid values are <see cref="EventLogEntryType.Error" />,
-    ''' <see cref="EventLogEntryType.Warning" />, and <see cref="EventLogEntryType.Information" />.
-    ''' If an invalid value is passed, the event is logged as <c>Information</c>.
+    ''' The type of event. Valid values are <see cref="EventLogEntryType.Error"/>, <see cref="EventLogEntryType.Warning"/>, and
+    ''' <see cref="EventLogEntryType.Information"/>. If invalid, <c>Information</c> is used.
     ''' </param>
     ''' <param name="eventID">
     ''' The numeric event identifier for the log entry. This is application-defined and may be used to group similar events.
@@ -617,8 +798,12 @@ Public Module SmartEventLogger
     ''' Optional binary data to include with the log entry. Can be <c>null</c> if not used.
     ''' </param>
     ''' <remarks>
-    ''' If the specified log or source does not exist, they are created automatically. The message is automatically wrapped
-    ''' in square brackets with the source name if it does not already include them, and ends with a period.
+    ''' <para>
+    ''' If the specified event log or source does not exist, they are created automatically using the provided parameters.
+    ''' </para>
+    ''' <para>
+    ''' This method handles safe formatting, validation, and optional message splitting to avoid truncation of diagnostic content.
+    ''' </para>
     ''' </remarks>
     Public Sub Log(
             ByVal message As String,
@@ -639,13 +824,18 @@ Public Module SmartEventLogger
     ''' namespace, class, and method name. If the source exceeds 254 characters, it is automatically truncated.
     ''' </param>
     ''' <param name="message">
-    ''' The message to log. If <c>null</c> or empty, a default message is used. Messages longer than 32,766 characters
-    ''' are truncated and suffixed with "… &lt;truncated&gt;" unless multi-entry logging is enabled.
+    ''' The message to log. If <c>null</c> or empty, a default message is used.
+    ''' 
+    ''' If <see cref="AllowMultiEntryMessages"/> is <c>false</c> (default), messages longer than 32,766 characters are truncated
+    ''' and suffixed with the <see cref="TruncationMarker"/> (e.g., <c>"... [TRUNCATED]"</c>).
+    ''' 
+    ''' If <see cref="AllowMultiEntryMessages"/> is <c>true</c>, long messages are split into multiple event entries,
+    ''' each prefixed with part information (e.g., <c>[Part 1/3]</c>) and intermediate entries are suffixed with
+    ''' the <see cref="ContinuationMarker"/> (e.g., <c>" ..."</c>) to indicate continuation.
     ''' </param>
     ''' <param name="eventType">
-    ''' The type of event to log. Valid values are <see cref="EventLogEntryType.Error" />,
-    ''' <see cref="EventLogEntryType.Warning" />, and <see cref="EventLogEntryType.Information" />.
-    ''' If an invalid value is passed, the event is logged as <c>Information</c>.
+    ''' The type of event. Valid values are <see cref="EventLogEntryType.Error"/>, <see cref="EventLogEntryType.Warning"/>, and
+    ''' <see cref="EventLogEntryType.Information"/>. If invalid, <c>Information</c> is used.
     ''' </param>
     ''' <param name="eventID">
     ''' The numeric event identifier for the log entry. This is application-defined and may be used to group similar events.
@@ -657,8 +847,12 @@ Public Module SmartEventLogger
     ''' Optional binary data to include with the log entry. Can be <c>null</c> if not used.
     ''' </param>
     ''' <remarks>
-    ''' If the specified log or source does not exist, they are created automatically. The message is automatically wrapped
-    ''' in square brackets with the source name if it does not already include them, and ends with a period.
+    ''' <para>
+    ''' If the specified event log or source does not exist, they are created automatically using the provided parameters.
+    ''' </para>
+    ''' <para>
+    ''' This method handles safe formatting, validation, and optional message splitting to avoid truncation of diagnostic content.
+    ''' </para>
     ''' </remarks>
     Public Sub Log(
             ByVal sourceName As String,
@@ -684,13 +878,18 @@ Public Module SmartEventLogger
     ''' namespace, class, and method name. If the source exceeds 254 characters, it is automatically truncated.
     ''' </param>
     ''' <param name="message">
-    ''' The message to log. If <c>null</c> or empty, a default message is used. Messages longer than 32,766 characters
-    ''' are truncated and suffixed with "… &lt;truncated&gt;" unless multi-entry logging is enabled.
+    ''' The message to log. If <c>null</c> or empty, a default message is used.
+    ''' 
+    ''' If <see cref="AllowMultiEntryMessages"/> is <c>false</c> (default), messages longer than 32,766 characters are truncated
+    ''' and suffixed with the <see cref="TruncationMarker"/> (e.g., <c>"... [TRUNCATED]"</c>).
+    ''' 
+    ''' If <see cref="AllowMultiEntryMessages"/> is <c>true</c>, long messages are split into multiple event entries,
+    ''' each prefixed with part information (e.g., <c>[Part 1/3]</c>) and intermediate entries are suffixed with
+    ''' the <see cref="ContinuationMarker"/> (e.g., <c>" ..."</c>) to indicate continuation.
     ''' </param>
     ''' <param name="eventType">
-    ''' The type of event to log. Valid values are <see cref="EventLogEntryType.Error" />,
-    ''' <see cref="EventLogEntryType.Warning" />, and <see cref="EventLogEntryType.Information" />.
-    ''' If an invalid value is passed, the event is logged as <c>Information</c>.
+    ''' The type of event. Valid values are <see cref="EventLogEntryType.Error"/>, <see cref="EventLogEntryType.Warning"/>, and
+    ''' <see cref="EventLogEntryType.Information"/>. If invalid, <c>Information</c> is used.
     ''' </param>
     ''' <param name="eventID">
     ''' The numeric event identifier for the log entry. This is application-defined and may be used to group similar events.
@@ -702,8 +901,12 @@ Public Module SmartEventLogger
     ''' Optional binary data to include with the log entry. Can be <c>null</c> if not used.
     ''' </param>
     ''' <remarks>
-    ''' If the specified log or source does not exist, they are created automatically. The message is automatically wrapped
-    ''' in square brackets with the source name if it does not already include them, and ends with a period.
+    ''' <para>
+    ''' If the specified event log or source does not exist, they are created automatically using the provided parameters.
+    ''' </para>
+    ''' <para>
+    ''' This method handles safe formatting, validation, and optional message splitting to avoid truncation of diagnostic content.
+    ''' </para>
     ''' </remarks>
     Public Sub Log(
             ByVal logName As String,
@@ -738,13 +941,18 @@ Public Module SmartEventLogger
     ''' namespace, class, and method name. If the source exceeds 254 characters, it is automatically truncated.
     ''' </param>
     ''' <param name="message">
-    ''' The message to log. If <c>null</c> or empty, a default message is used. Messages longer than 32,766 characters
-    ''' are truncated and suffixed with "… &lt;truncated&gt;" unless multi-entry logging is enabled.
+    ''' The message to log. If <c>null</c> or empty, a default message is used.
+    ''' 
+    ''' If <see cref="AllowMultiEntryMessages"/> is <c>false</c> (default), messages longer than 32,766 characters are truncated
+    ''' and suffixed with the <see cref="TruncationMarker"/> (e.g., <c>"... [TRUNCATED]"</c>).
+    ''' 
+    ''' If <see cref="AllowMultiEntryMessages"/> is <c>true</c>, long messages are split into multiple event entries,
+    ''' each prefixed with part information (e.g., <c>[Part 1/3]</c>) and intermediate entries are suffixed with
+    ''' the <see cref="ContinuationMarker"/> (e.g., <c>" ..."</c>) to indicate continuation.
     ''' </param>
     ''' <param name="eventType">
-    ''' The type of event to log. Valid values are <see cref="EventLogEntryType.Error" />,
-    ''' <see cref="EventLogEntryType.Warning" />, and <see cref="EventLogEntryType.Information" />.
-    ''' If an invalid value is passed, the event is logged as <c>Information</c>.
+    ''' The type of event. Valid values are <see cref="EventLogEntryType.Error"/>, <see cref="EventLogEntryType.Warning"/>, and
+    ''' <see cref="EventLogEntryType.Information"/>. If invalid, <c>Information</c> is used.
     ''' </param>
     ''' <param name="eventID">
     ''' The numeric event identifier for the log entry. This is application-defined and may be used to group similar events.
@@ -756,8 +964,12 @@ Public Module SmartEventLogger
     ''' Optional binary data to include with the log entry. Can be <c>null</c> if not used.
     ''' </param>
     ''' <remarks>
-    ''' If the specified log or source does not exist, they are created automatically. The message is automatically wrapped
-    ''' in square brackets with the source name if it does not already include them, and ends with a period.
+    ''' <para>
+    ''' If the specified event log or source does not exist, they are created automatically using the provided parameters.
+    ''' </para>
+    ''' <para>
+    ''' This method handles safe formatting, validation, and optional message splitting to avoid truncation of diagnostic content.
+    ''' </para>
     ''' </remarks>
     Public Sub Log(
             ByVal machineName As String,
@@ -794,13 +1006,18 @@ Public Module SmartEventLogger
     ''' namespace, class, and method name. If the source exceeds 254 characters, it is automatically truncated.
     ''' </param>
     ''' <param name="message">
-    ''' The message to log. If <c>null</c> or empty, a default message is used. Messages longer than 32,766 characters
-    ''' are truncated and suffixed with "… &lt;truncated&gt;" unless multi-entry logging is enabled.
+    ''' The message to log. If <c>null</c> or empty, a default message is used.
+    ''' 
+    ''' If <see cref="AllowMultiEntryMessages"/> is <c>false</c> (default), messages longer than 32,766 characters are truncated
+    ''' and suffixed with the <see cref="TruncationMarker"/> (e.g., <c>"... [TRUNCATED]"</c>).
+    ''' 
+    ''' If <see cref="AllowMultiEntryMessages"/> is <c>true</c>, long messages are split into multiple event entries,
+    ''' each prefixed with part information (e.g., <c>[Part 1/3]</c>) and intermediate entries are suffixed with
+    ''' the <see cref="ContinuationMarker"/> (e.g., <c>" ..."</c>) to indicate continuation.
     ''' </param>
     ''' <param name="eventType">
-    ''' The type of event to log. Valid values are <see cref="EventLogEntryType.Error" />,
-    ''' <see cref="EventLogEntryType.Warning" />, and <see cref="EventLogEntryType.Information" />.
-    ''' If an invalid value is passed, the event is logged as <c>Information</c>.
+    ''' The type of event. Valid values are <see cref="EventLogEntryType.Error"/>, <see cref="EventLogEntryType.Warning"/>, and
+    ''' <see cref="EventLogEntryType.Information"/>. If invalid, <c>Information</c> is used.
     ''' </param>
     ''' <param name="eventID">
     ''' The numeric event identifier for the log entry. This is application-defined and may be used to group similar events.
@@ -816,8 +1033,12 @@ Public Module SmartEventLogger
     ''' Must be between 64 KB and 4 GB. If 0 or negative, the system default is used.
     ''' </param>
     ''' <remarks>
-    ''' If the specified log or source does not exist, they are created automatically. The message is automatically wrapped
-    ''' in square brackets with the source name if it does not already include them, and ends with a period.
+    ''' <para>
+    ''' If the specified event log or source does not exist, they are created automatically using the provided parameters.
+    ''' </para>
+    ''' <para>
+    ''' This method handles safe formatting, validation, and optional message splitting to avoid truncation of diagnostic content.
+    ''' </para>
     ''' </remarks>
     Public Sub Log(
             ByVal machineName As String,
@@ -848,8 +1069,14 @@ Public Module SmartEventLogger
     ''' Writes an entry to the Windows Event Log using the provided parameters.
     ''' </summary>
     ''' <param name="message">
-    ''' The message to log. If <c>null</c> or empty, a default message is used. Messages longer than 32,766 characters
-    ''' are truncated and suffixed with "… &lt;truncated&gt;" unless multi-entry logging is enabled.
+    ''' The message to log. If <c>null</c> or empty, a default message is used.
+    ''' 
+    ''' If <see cref="AllowMultiEntryMessages"/> is <c>false</c> (default), messages longer than 32,766 characters are truncated
+    ''' and suffixed with the <see cref="TruncationMarker"/> (e.g., <c>"... [TRUNCATED]"</c>).
+    ''' 
+    ''' If <see cref="AllowMultiEntryMessages"/> is <c>true</c>, long messages are split into multiple event entries,
+    ''' each prefixed with part information (e.g., <c>[Part 1/3]</c>) and intermediate entries are suffixed with
+    ''' the <see cref="ContinuationMarker"/> (e.g., <c>" ..."</c>) to indicate continuation.
     ''' </param>
     ''' <param name="maxKilobytes">
     ''' The maximum size of the event log in kilobytes. Only used when creating a new log.
@@ -860,8 +1087,12 @@ Public Module SmartEventLogger
     ''' Only used when creating a new log.
     ''' </param>
     ''' <remarks>
-    ''' If the specified log or source does not exist, they are created automatically. The message is automatically wrapped
-    ''' in square brackets with the source name if it does not already include them, and ends with a period.
+    ''' <para>
+    ''' If the specified event log or source does not exist, they are created automatically using the provided parameters.
+    ''' </para>
+    ''' <para>
+    ''' This method handles safe formatting, validation, and optional message splitting to avoid truncation of diagnostic content.
+    ''' </para>
     ''' </remarks>
     Public Sub Log(
             ByVal message As String,
@@ -880,13 +1111,18 @@ Public Module SmartEventLogger
     ''' Writes an entry to the Windows Event Log using the provided parameters.
     ''' </summary>
     ''' <param name="message">
-    ''' The message to log. If <c>null</c> or empty, a default message is used. Messages longer than 32,766 characters
-    ''' are truncated and suffixed with "… &lt;truncated&gt;" unless multi-entry logging is enabled.
+    ''' The message to log. If <c>null</c> or empty, a default message is used.
+    ''' 
+    ''' If <see cref="AllowMultiEntryMessages"/> is <c>false</c> (default), messages longer than 32,766 characters are truncated
+    ''' and suffixed with the <see cref="TruncationMarker"/> (e.g., <c>"... [TRUNCATED]"</c>).
+    ''' 
+    ''' If <see cref="AllowMultiEntryMessages"/> is <c>true</c>, long messages are split into multiple event entries,
+    ''' each prefixed with part information (e.g., <c>[Part 1/3]</c>) and intermediate entries are suffixed with
+    ''' the <see cref="ContinuationMarker"/> (e.g., <c>" ..."</c>) to indicate continuation.
     ''' </param>
     ''' <param name="eventType">
-    ''' The type of event to log. Valid values are <see cref="EventLogEntryType.Error" />,
-    ''' <see cref="EventLogEntryType.Warning" />, and <see cref="EventLogEntryType.Information" />.
-    ''' If an invalid value is passed, the event is logged as <c>Information</c>.
+    ''' The type of event. Valid values are <see cref="EventLogEntryType.Error"/>, <see cref="EventLogEntryType.Warning"/>, and
+    ''' <see cref="EventLogEntryType.Information"/>. If invalid, <c>Information</c> is used.
     ''' </param>
     ''' <param name="maxKilobytes">
     ''' The maximum size of the event log in kilobytes. Only used when creating a new log.
@@ -897,8 +1133,12 @@ Public Module SmartEventLogger
     ''' Only used when creating a new log.
     ''' </param>
     ''' <remarks>
-    ''' If the specified log or source does not exist, they are created automatically. The message is automatically wrapped
-    ''' in square brackets with the source name if it does not already include them, and ends with a period.
+    ''' <para>
+    ''' If the specified event log or source does not exist, they are created automatically using the provided parameters.
+    ''' </para>
+    ''' <para>
+    ''' This method handles safe formatting, validation, and optional message splitting to avoid truncation of diagnostic content.
+    ''' </para>
     ''' </remarks>
     Public Sub Log(
             ByVal message As String,
@@ -919,13 +1159,18 @@ Public Module SmartEventLogger
     ''' Writes an entry to the Windows Event Log using the provided parameters.
     ''' </summary>
     ''' <param name="message">
-    ''' The message to log. If <c>null</c> or empty, a default message is used. Messages longer than 32,766 characters
-    ''' are truncated and suffixed with "… &lt;truncated&gt;" unless multi-entry logging is enabled.
+    ''' The message to log. If <c>null</c> or empty, a default message is used.
+    ''' 
+    ''' If <see cref="AllowMultiEntryMessages"/> is <c>false</c> (default), messages longer than 32,766 characters are truncated
+    ''' and suffixed with the <see cref="TruncationMarker"/> (e.g., <c>"... [TRUNCATED]"</c>).
+    ''' 
+    ''' If <see cref="AllowMultiEntryMessages"/> is <c>true</c>, long messages are split into multiple event entries,
+    ''' each prefixed with part information (e.g., <c>[Part 1/3]</c>) and intermediate entries are suffixed with
+    ''' the <see cref="ContinuationMarker"/> (e.g., <c>" ..."</c>) to indicate continuation.
     ''' </param>
     ''' <param name="eventType">
-    ''' The type of event to log. Valid values are <see cref="EventLogEntryType.Error" />,
-    ''' <see cref="EventLogEntryType.Warning" />, and <see cref="EventLogEntryType.Information" />.
-    ''' If an invalid value is passed, the event is logged as <c>Information</c>.
+    ''' The type of event. Valid values are <see cref="EventLogEntryType.Error"/>, <see cref="EventLogEntryType.Warning"/>, and
+    ''' <see cref="EventLogEntryType.Information"/>. If invalid, <c>Information</c> is used.
     ''' </param>
     ''' <param name="eventID">
     ''' The numeric event identifier for the log entry. This is application-defined and may be used to group similar events.
@@ -939,8 +1184,12 @@ Public Module SmartEventLogger
     ''' Only used when creating a new log.
     ''' </param>
     ''' <remarks>
-    ''' If the specified log or source does not exist, they are created automatically. The message is automatically wrapped
-    ''' in square brackets with the source name if it does not already include them, and ends with a period.
+    ''' <para>
+    ''' If the specified event log or source does not exist, they are created automatically using the provided parameters.
+    ''' </para>
+    ''' <para>
+    ''' This method handles safe formatting, validation, and optional message splitting to avoid truncation of diagnostic content.
+    ''' </para>
     ''' </remarks>
     Public Sub Log(
             ByVal message As String,
@@ -963,13 +1212,18 @@ Public Module SmartEventLogger
     ''' Writes an entry to the Windows Event Log using the provided parameters.
     ''' </summary>
     ''' <param name="message">
-    ''' The message to log. If <c>null</c> or empty, a default message is used. Messages longer than 32,766 characters
-    ''' are truncated and suffixed with "… &lt;truncated&gt;" unless multi-entry logging is enabled.
+    ''' The message to log. If <c>null</c> or empty, a default message is used.
+    ''' 
+    ''' If <see cref="AllowMultiEntryMessages"/> is <c>false</c> (default), messages longer than 32,766 characters are truncated
+    ''' and suffixed with the <see cref="TruncationMarker"/> (e.g., <c>"... [TRUNCATED]"</c>).
+    ''' 
+    ''' If <see cref="AllowMultiEntryMessages"/> is <c>true</c>, long messages are split into multiple event entries,
+    ''' each prefixed with part information (e.g., <c>[Part 1/3]</c>) and intermediate entries are suffixed with
+    ''' the <see cref="ContinuationMarker"/> (e.g., <c>" ..."</c>) to indicate continuation.
     ''' </param>
     ''' <param name="eventType">
-    ''' The type of event to log. Valid values are <see cref="EventLogEntryType.Error" />,
-    ''' <see cref="EventLogEntryType.Warning" />, and <see cref="EventLogEntryType.Information" />.
-    ''' If an invalid value is passed, the event is logged as <c>Information</c>.
+    ''' The type of event. Valid values are <see cref="EventLogEntryType.Error"/>, <see cref="EventLogEntryType.Warning"/>, and
+    ''' <see cref="EventLogEntryType.Information"/>. If invalid, <c>Information</c> is used.
     ''' </param>
     ''' <param name="eventID">
     ''' The numeric event identifier for the log entry. This is application-defined and may be used to group similar events.
@@ -986,8 +1240,12 @@ Public Module SmartEventLogger
     ''' Only used when creating a new log.
     ''' </param>
     ''' <remarks>
-    ''' If the specified log or source does not exist, they are created automatically. The message is automatically wrapped
-    ''' in square brackets with the source name if it does not already include them, and ends with a period.
+    ''' <para>
+    ''' If the specified event log or source does not exist, they are created automatically using the provided parameters.
+    ''' </para>
+    ''' <para>
+    ''' This method handles safe formatting, validation, and optional message splitting to avoid truncation of diagnostic content.
+    ''' </para>
     ''' </remarks>
     Public Sub Log(
             ByVal message As String,
@@ -1012,13 +1270,18 @@ Public Module SmartEventLogger
     ''' Writes an entry to the Windows Event Log using the provided parameters.
     ''' </summary>
     ''' <param name="message">
-    ''' The message to log. If <c>null</c> or empty, a default message is used. Messages longer than 32,766 characters
-    ''' are truncated and suffixed with "… &lt;truncated&gt;" unless multi-entry logging is enabled.
+    ''' The message to log. If <c>null</c> or empty, a default message is used.
+    ''' 
+    ''' If <see cref="AllowMultiEntryMessages"/> is <c>false</c> (default), messages longer than 32,766 characters are truncated
+    ''' and suffixed with the <see cref="TruncationMarker"/> (e.g., <c>"... [TRUNCATED]"</c>).
+    ''' 
+    ''' If <see cref="AllowMultiEntryMessages"/> is <c>true</c>, long messages are split into multiple event entries,
+    ''' each prefixed with part information (e.g., <c>[Part 1/3]</c>) and intermediate entries are suffixed with
+    ''' the <see cref="ContinuationMarker"/> (e.g., <c>" ..."</c>) to indicate continuation.
     ''' </param>
     ''' <param name="eventType">
-    ''' The type of event to log. Valid values are <see cref="EventLogEntryType.Error" />,
-    ''' <see cref="EventLogEntryType.Warning" />, and <see cref="EventLogEntryType.Information" />.
-    ''' If an invalid value is passed, the event is logged as <c>Information</c>.
+    ''' The type of event. Valid values are <see cref="EventLogEntryType.Error"/>, <see cref="EventLogEntryType.Warning"/>, and
+    ''' <see cref="EventLogEntryType.Information"/>. If invalid, <c>Information</c> is used.
     ''' </param>
     ''' <param name="eventID">
     ''' The numeric event identifier for the log entry. This is application-defined and may be used to group similar events.
@@ -1038,8 +1301,12 @@ Public Module SmartEventLogger
     ''' Only used when creating a new log.
     ''' </param>
     ''' <remarks>
-    ''' If the specified log or source does not exist, they are created automatically. The message is automatically wrapped
-    ''' in square brackets with the source name if it does not already include them, and ends with a period.
+    ''' <para>
+    ''' If the specified event log or source does not exist, they are created automatically using the provided parameters.
+    ''' </para>
+    ''' <para>
+    ''' This method handles safe formatting, validation, and optional message splitting to avoid truncation of diagnostic content.
+    ''' </para>
     ''' </remarks>
     Public Sub Log(
             ByVal message As String,
@@ -1070,13 +1337,18 @@ Public Module SmartEventLogger
     ''' namespace, class, and method name. If the source exceeds 254 characters, it is automatically truncated.
     ''' </param>
     ''' <param name="message">
-    ''' The message to log. If <c>null</c> or empty, a default message is used. Messages longer than 32,766 characters
-    ''' are truncated and suffixed with "… &lt;truncated&gt;" unless multi-entry logging is enabled.
+    ''' The message to log. If <c>null</c> or empty, a default message is used.
+    ''' 
+    ''' If <see cref="AllowMultiEntryMessages"/> is <c>false</c> (default), messages longer than 32,766 characters are truncated
+    ''' and suffixed with the <see cref="TruncationMarker"/> (e.g., <c>"... [TRUNCATED]"</c>).
+    ''' 
+    ''' If <see cref="AllowMultiEntryMessages"/> is <c>true</c>, long messages are split into multiple event entries,
+    ''' each prefixed with part information (e.g., <c>[Part 1/3]</c>) and intermediate entries are suffixed with
+    ''' the <see cref="ContinuationMarker"/> (e.g., <c>" ..."</c>) to indicate continuation.
     ''' </param>
     ''' <param name="eventType">
-    ''' The type of event to log. Valid values are <see cref="EventLogEntryType.Error" />,
-    ''' <see cref="EventLogEntryType.Warning" />, and <see cref="EventLogEntryType.Information" />.
-    ''' If an invalid value is passed, the event is logged as <c>Information</c>.
+    ''' The type of event. Valid values are <see cref="EventLogEntryType.Error"/>, <see cref="EventLogEntryType.Warning"/>, and
+    ''' <see cref="EventLogEntryType.Information"/>. If invalid, <c>Information</c> is used.
     ''' </param>
     ''' <param name="eventID">
     ''' The numeric event identifier for the log entry. This is application-defined and may be used to group similar events.
@@ -1096,8 +1368,12 @@ Public Module SmartEventLogger
     ''' Only used when creating a new log.
     ''' </param>
     ''' <remarks>
-    ''' If the specified log or source does not exist, they are created automatically. The message is automatically wrapped
-    ''' in square brackets with the source name if it does not already include them, and ends with a period.
+    ''' <para>
+    ''' If the specified event log or source does not exist, they are created automatically using the provided parameters.
+    ''' </para>
+    ''' <para>
+    ''' This method handles safe formatting, validation, and optional message splitting to avoid truncation of diagnostic content.
+    ''' </para>
     ''' </remarks>
     Public Sub Log(
             ByVal source As String,
@@ -1134,13 +1410,18 @@ Public Module SmartEventLogger
     ''' namespace, class, and method name. If the source exceeds 254 characters, it is automatically truncated.
     ''' </param>
     ''' <param name="message">
-    ''' The message to log. If <c>null</c> or empty, a default message is used. Messages longer than 32,766 characters
-    ''' are truncated and suffixed with "… &lt;truncated&gt;" unless multi-entry logging is enabled.
+    ''' The message to log. If <c>null</c> or empty, a default message is used.
+    ''' 
+    ''' If <see cref="AllowMultiEntryMessages"/> is <c>false</c> (default), messages longer than 32,766 characters are truncated
+    ''' and suffixed with the <see cref="TruncationMarker"/> (e.g., <c>"... [TRUNCATED]"</c>).
+    ''' 
+    ''' If <see cref="AllowMultiEntryMessages"/> is <c>true</c>, long messages are split into multiple event entries,
+    ''' each prefixed with part information (e.g., <c>[Part 1/3]</c>) and intermediate entries are suffixed with
+    ''' the <see cref="ContinuationMarker"/> (e.g., <c>" ..."</c>) to indicate continuation.
     ''' </param>
     ''' <param name="eventType">
-    ''' The type of event to log. Valid values are <see cref="EventLogEntryType.Error" />,
-    ''' <see cref="EventLogEntryType.Warning" />, and <see cref="EventLogEntryType.Information" />.
-    ''' If an invalid value is passed, the event is logged as <c>Information</c>.
+    ''' The type of event. Valid values are <see cref="EventLogEntryType.Error"/>, <see cref="EventLogEntryType.Warning"/>, and
+    ''' <see cref="EventLogEntryType.Information"/>. If invalid, <c>Information</c> is used.
     ''' </param>
     ''' <param name="eventID">
     ''' The numeric event identifier for the log entry. This is application-defined and may be used to group similar events.
@@ -1160,8 +1441,12 @@ Public Module SmartEventLogger
     ''' Only used when creating a new log.
     ''' </param>
     ''' <remarks>
-    ''' If the specified log or source does not exist, they are created automatically. The message is automatically wrapped
-    ''' in square brackets with the source name if it does not already include them, and ends with a period.
+    ''' <para>
+    ''' If the specified event log or source does not exist, they are created automatically using the provided parameters.
+    ''' </para>
+    ''' <para>
+    ''' This method handles safe formatting, validation, and optional message splitting to avoid truncation of diagnostic content.
+    ''' </para>
     ''' </remarks>
     Public Sub Log(
             ByVal logName As String,
@@ -1200,13 +1485,18 @@ Public Module SmartEventLogger
     ''' namespace, class, and method name. If the source exceeds 254 characters, it is automatically truncated.
     ''' </param>
     ''' <param name="message">
-    ''' The message to log. If <c>null</c> or empty, a default message is used. Messages longer than 32,766 characters
-    ''' are truncated and suffixed with "… &lt;truncated&gt;" unless multi-entry logging is enabled.
+    ''' The message to log. If <c>null</c> or empty, a default message is used.
+    ''' 
+    ''' If <see cref="AllowMultiEntryMessages"/> is <c>false</c> (default), messages longer than 32,766 characters are truncated
+    ''' and suffixed with the <see cref="TruncationMarker"/> (e.g., <c>"... [TRUNCATED]"</c>).
+    ''' 
+    ''' If <see cref="AllowMultiEntryMessages"/> is <c>true</c>, long messages are split into multiple event entries,
+    ''' each prefixed with part information (e.g., <c>[Part 1/3]</c>) and intermediate entries are suffixed with
+    ''' the <see cref="ContinuationMarker"/> (e.g., <c>" ..."</c>) to indicate continuation.
     ''' </param>
     ''' <param name="eventType">
-    ''' The type of event to log. Valid values are <see cref="EventLogEntryType.Error" />,
-    ''' <see cref="EventLogEntryType.Warning" />, and <see cref="EventLogEntryType.Information" />.
-    ''' If an invalid value is passed, the event is logged as <c>Information</c>.
+    ''' The type of event. Valid values are <see cref="EventLogEntryType.Error"/>, <see cref="EventLogEntryType.Warning"/>, and
+    ''' <see cref="EventLogEntryType.Information"/>. If invalid, <c>Information</c> is used.
     ''' </param>
     ''' <param name="eventID">
     ''' The numeric event identifier for the log entry. This is application-defined and may be used to group similar events.
@@ -1226,8 +1516,12 @@ Public Module SmartEventLogger
     ''' Only used when creating a new log.
     ''' </param>
     ''' <remarks>
-    ''' If the specified log or source does not exist, they are created automatically. The message is automatically wrapped
-    ''' in square brackets with the source name if it does not already include them, and ends with a period.
+    ''' <para>
+    ''' If the specified event log or source does not exist, they are created automatically using the provided parameters.
+    ''' </para>
+    ''' <para>
+    ''' This method handles safe formatting, validation, and optional message splitting to avoid truncation of diagnostic content.
+    ''' </para>
     ''' </remarks>
     Public Sub Log(
             ByVal machineName As String,
@@ -1260,8 +1554,14 @@ Public Module SmartEventLogger
     ''' Writes an entry to the Windows Event Log using the provided parameters.
     ''' </summary>
     ''' <param name="message">
-    ''' The message to log. If <c>null</c> or empty, a default message is used. Messages longer than 32,766 characters
-    ''' are truncated and suffixed with "… &lt;truncated&gt;" unless multi-entry logging is enabled.
+    ''' The message to log. If <c>null</c> or empty, a default message is used.
+    ''' 
+    ''' If <see cref="AllowMultiEntryMessages"/> is <c>false</c> (default), messages longer than 32,766 characters are truncated
+    ''' and suffixed with the <see cref="TruncationMarker"/> (e.g., <c>"... [TRUNCATED]"</c>).
+    ''' 
+    ''' If <see cref="AllowMultiEntryMessages"/> is <c>true</c>, long messages are split into multiple event entries,
+    ''' each prefixed with part information (e.g., <c>[Part 1/3]</c>) and intermediate entries are suffixed with
+    ''' the <see cref="ContinuationMarker"/> (e.g., <c>" ..."</c>) to indicate continuation.
     ''' </param>
     ''' <param name="maxKilobytes">
     ''' The maximum size of the event log in kilobytes. Only used when creating a new log.
@@ -1275,8 +1575,12 @@ Public Module SmartEventLogger
     ''' Indicates whether an initialization entry should be written when a new log is created.
     ''' </param>
     ''' <remarks>
-    ''' If the specified log or source does not exist, they are created automatically. The message is automatically wrapped
-    ''' in square brackets with the source name if it does not already include them, and ends with a period.
+    ''' <para>
+    ''' If the specified event log or source does not exist, they are created automatically using the provided parameters.
+    ''' </para>
+    ''' <para>
+    ''' This method handles safe formatting, validation, and optional message splitting to avoid truncation of diagnostic content.
+    ''' </para>
     ''' </remarks>
     Public Sub Log(
             ByVal message As String,
@@ -1297,13 +1601,18 @@ Public Module SmartEventLogger
     ''' Writes an entry to the Windows Event Log using the provided parameters.
     ''' </summary>
     ''' <param name="message">
-    ''' The message to log. If <c>null</c> or empty, a default message is used. Messages longer than 32,766 characters
-    ''' are truncated and suffixed with "… &lt;truncated&gt;" unless multi-entry logging is enabled.
+    ''' The message to log. If <c>null</c> or empty, a default message is used.
+    ''' 
+    ''' If <see cref="AllowMultiEntryMessages"/> is <c>false</c> (default), messages longer than 32,766 characters are truncated
+    ''' and suffixed with the <see cref="TruncationMarker"/> (e.g., <c>"... [TRUNCATED]"</c>).
+    ''' 
+    ''' If <see cref="AllowMultiEntryMessages"/> is <c>true</c>, long messages are split into multiple event entries,
+    ''' each prefixed with part information (e.g., <c>[Part 1/3]</c>) and intermediate entries are suffixed with
+    ''' the <see cref="ContinuationMarker"/> (e.g., <c>" ..."</c>) to indicate continuation.
     ''' </param>
     ''' <param name="eventType">
-    ''' The type of event to log. Valid values are <see cref="EventLogEntryType.Error" />,
-    ''' <see cref="EventLogEntryType.Warning" />, and <see cref="EventLogEntryType.Information" />.
-    ''' If an invalid value is passed, the event is logged as <c>Information</c>.
+    ''' The type of event. Valid values are <see cref="EventLogEntryType.Error"/>, <see cref="EventLogEntryType.Warning"/>, and
+    ''' <see cref="EventLogEntryType.Information"/>. If invalid, <c>Information</c> is used.
     ''' </param>
     ''' <param name="maxKilobytes">
     ''' The maximum size of the event log in kilobytes. Only used when creating a new log.
@@ -1317,8 +1626,12 @@ Public Module SmartEventLogger
     ''' Indicates whether an initialization entry should be written when a new log is created.
     ''' </param>
     ''' <remarks>
-    ''' If the specified log or source does not exist, they are created automatically. The message is automatically wrapped
-    ''' in square brackets with the source name if it does not already include them, and ends with a period.
+    ''' <para>
+    ''' If the specified event log or source does not exist, they are created automatically using the provided parameters.
+    ''' </para>
+    ''' <para>
+    ''' This method handles safe formatting, validation, and optional message splitting to avoid truncation of diagnostic content.
+    ''' </para>
     ''' </remarks>
     Public Sub Log(
             ByVal message As String,
@@ -1341,13 +1654,18 @@ Public Module SmartEventLogger
     ''' Writes an entry to the Windows Event Log using the provided parameters.
     ''' </summary>
     ''' <param name="message">
-    ''' The message to log. If <c>null</c> or empty, a default message is used. Messages longer than 32,766 characters
-    ''' are truncated and suffixed with "… &lt;truncated&gt;" unless multi-entry logging is enabled.
+    ''' The message to log. If <c>null</c> or empty, a default message is used.
+    ''' 
+    ''' If <see cref="AllowMultiEntryMessages"/> is <c>false</c> (default), messages longer than 32,766 characters are truncated
+    ''' and suffixed with the <see cref="TruncationMarker"/> (e.g., <c>"... [TRUNCATED]"</c>).
+    ''' 
+    ''' If <see cref="AllowMultiEntryMessages"/> is <c>true</c>, long messages are split into multiple event entries,
+    ''' each prefixed with part information (e.g., <c>[Part 1/3]</c>) and intermediate entries are suffixed with
+    ''' the <see cref="ContinuationMarker"/> (e.g., <c>" ..."</c>) to indicate continuation.
     ''' </param>
     ''' <param name="eventType">
-    ''' The type of event to log. Valid values are <see cref="EventLogEntryType.Error" />,
-    ''' <see cref="EventLogEntryType.Warning" />, and <see cref="EventLogEntryType.Information" />.
-    ''' If an invalid value is passed, the event is logged as <c>Information</c>.
+    ''' The type of event. Valid values are <see cref="EventLogEntryType.Error"/>, <see cref="EventLogEntryType.Warning"/>, and
+    ''' <see cref="EventLogEntryType.Information"/>. If invalid, <c>Information</c> is used.
     ''' </param>
     ''' <param name="eventID">
     ''' The numeric event identifier for the log entry. This is application-defined and may be used to group similar events.
@@ -1364,8 +1682,12 @@ Public Module SmartEventLogger
     ''' Indicates whether an initialization entry should be written when a new log is created.
     ''' </param>
     ''' <remarks>
-    ''' If the specified log or source does not exist, they are created automatically. The message is automatically wrapped
-    ''' in square brackets with the source name if it does not already include them, and ends with a period.
+    ''' <para>
+    ''' If the specified event log or source does not exist, they are created automatically using the provided parameters.
+    ''' </para>
+    ''' <para>
+    ''' This method handles safe formatting, validation, and optional message splitting to avoid truncation of diagnostic content.
+    ''' </para>
     ''' </remarks>
     Public Sub Log(
             ByVal message As String,
@@ -1390,13 +1712,18 @@ Public Module SmartEventLogger
     ''' Writes an entry to the Windows Event Log using the provided parameters.
     ''' </summary>
     ''' <param name="message">
-    ''' The message to log. If <c>null</c> or empty, a default message is used. Messages longer than 32,766 characters
-    ''' are truncated and suffixed with "… &lt;truncated&gt;" unless multi-entry logging is enabled.
+    ''' The message to log. If <c>null</c> or empty, a default message is used.
+    ''' 
+    ''' If <see cref="AllowMultiEntryMessages"/> is <c>false</c> (default), messages longer than 32,766 characters are truncated
+    ''' and suffixed with the <see cref="TruncationMarker"/> (e.g., <c>"... [TRUNCATED]"</c>).
+    ''' 
+    ''' If <see cref="AllowMultiEntryMessages"/> is <c>true</c>, long messages are split into multiple event entries,
+    ''' each prefixed with part information (e.g., <c>[Part 1/3]</c>) and intermediate entries are suffixed with
+    ''' the <see cref="ContinuationMarker"/> (e.g., <c>" ..."</c>) to indicate continuation.
     ''' </param>
     ''' <param name="eventType">
-    ''' The type of event to log. Valid values are <see cref="EventLogEntryType.Error" />,
-    ''' <see cref="EventLogEntryType.Warning" />, and <see cref="EventLogEntryType.Information" />.
-    ''' If an invalid value is passed, the event is logged as <c>Information</c>.
+    ''' The type of event. Valid values are <see cref="EventLogEntryType.Error"/>, <see cref="EventLogEntryType.Warning"/>, and
+    ''' <see cref="EventLogEntryType.Information"/>. If invalid, <c>Information</c> is used.
     ''' </param>
     ''' <param name="eventID">
     ''' The numeric event identifier for the log entry. This is application-defined and may be used to group similar events.
@@ -1416,8 +1743,12 @@ Public Module SmartEventLogger
     ''' Indicates whether an initialization entry should be written when a new log is created.
     ''' </param>
     ''' <remarks>
-    ''' If the specified log or source does not exist, they are created automatically. The message is automatically wrapped
-    ''' in square brackets with the source name if it does not already include them, and ends with a period.
+    ''' <para>
+    ''' If the specified event log or source does not exist, they are created automatically using the provided parameters.
+    ''' </para>
+    ''' <para>
+    ''' This method handles safe formatting, validation, and optional message splitting to avoid truncation of diagnostic content.
+    ''' </para>
     ''' </remarks>
     Public Sub Log(
             ByVal message As String,
@@ -1444,13 +1775,18 @@ Public Module SmartEventLogger
     ''' Writes an entry to the Windows Event Log using the provided parameters.
     ''' </summary>
     ''' <param name="message">
-    ''' The message to log. If <c>null</c> or empty, a default message is used. Messages longer than 32,766 characters
-    ''' are truncated and suffixed with "… &lt;truncated&gt;" unless multi-entry logging is enabled.
+    ''' The message to log. If <c>null</c> or empty, a default message is used.
+    ''' 
+    ''' If <see cref="AllowMultiEntryMessages"/> is <c>false</c> (default), messages longer than 32,766 characters are truncated
+    ''' and suffixed with the <see cref="TruncationMarker"/> (e.g., <c>"... [TRUNCATED]"</c>).
+    ''' 
+    ''' If <see cref="AllowMultiEntryMessages"/> is <c>true</c>, long messages are split into multiple event entries,
+    ''' each prefixed with part information (e.g., <c>[Part 1/3]</c>) and intermediate entries are suffixed with
+    ''' the <see cref="ContinuationMarker"/> (e.g., <c>" ..."</c>) to indicate continuation.
     ''' </param>
     ''' <param name="eventType">
-    ''' The type of event to log. Valid values are <see cref="EventLogEntryType.Error" />,
-    ''' <see cref="EventLogEntryType.Warning" />, and <see cref="EventLogEntryType.Information" />.
-    ''' If an invalid value is passed, the event is logged as <c>Information</c>.
+    ''' The type of event. Valid values are <see cref="EventLogEntryType.Error"/>, <see cref="EventLogEntryType.Warning"/>, and
+    ''' <see cref="EventLogEntryType.Information"/>. If invalid, <c>Information</c> is used.
     ''' </param>
     ''' <param name="eventID">
     ''' The numeric event identifier for the log entry. This is application-defined and may be used to group similar events.
@@ -1473,8 +1809,12 @@ Public Module SmartEventLogger
     ''' Indicates whether an initialization entry should be written when a new log is created.
     ''' </param>
     ''' <remarks>
-    ''' If the specified log or source does not exist, they are created automatically. The message is automatically wrapped
-    ''' in square brackets with the source name if it does not already include them, and ends with a period.
+    ''' <para>
+    ''' If the specified event log or source does not exist, they are created automatically using the provided parameters.
+    ''' </para>
+    ''' <para>
+    ''' This method handles safe formatting, validation, and optional message splitting to avoid truncation of diagnostic content.
+    ''' </para>
     ''' </remarks>
     Public Sub Log(
             ByVal message As String,
@@ -1507,13 +1847,18 @@ Public Module SmartEventLogger
     ''' namespace, class, and method name. If the source exceeds 254 characters, it is automatically truncated.
     ''' </param>
     ''' <param name="message">
-    ''' The message to log. If <c>null</c> or empty, a default message is used. Messages longer than 32,766 characters
-    ''' are truncated and suffixed with "… &lt;truncated&gt;" unless multi-entry logging is enabled.
+    ''' The message to log. If <c>null</c> or empty, a default message is used.
+    ''' 
+    ''' If <see cref="AllowMultiEntryMessages"/> is <c>false</c> (default), messages longer than 32,766 characters are truncated
+    ''' and suffixed with the <see cref="TruncationMarker"/> (e.g., <c>"... [TRUNCATED]"</c>).
+    ''' 
+    ''' If <see cref="AllowMultiEntryMessages"/> is <c>true</c>, long messages are split into multiple event entries,
+    ''' each prefixed with part information (e.g., <c>[Part 1/3]</c>) and intermediate entries are suffixed with
+    ''' the <see cref="ContinuationMarker"/> (e.g., <c>" ..."</c>) to indicate continuation.
     ''' </param>
     ''' <param name="eventType">
-    ''' The type of event to log. Valid values are <see cref="EventLogEntryType.Error" />,
-    ''' <see cref="EventLogEntryType.Warning" />, and <see cref="EventLogEntryType.Information" />.
-    ''' If an invalid value is passed, the event is logged as <c>Information</c>.
+    ''' The type of event. Valid values are <see cref="EventLogEntryType.Error"/>, <see cref="EventLogEntryType.Warning"/>, and
+    ''' <see cref="EventLogEntryType.Information"/>. If invalid, <c>Information</c> is used.
     ''' </param>
     ''' <param name="eventID">
     ''' The numeric event identifier for the log entry. This is application-defined and may be used to group similar events.
@@ -1536,8 +1881,12 @@ Public Module SmartEventLogger
     ''' Indicates whether an initialization entry should be written when a new log is created.
     ''' </param>
     ''' <remarks>
-    ''' If the specified log or source does not exist, they are created automatically. The message is automatically wrapped
-    ''' in square brackets with the source name if it does not already include them, and ends with a period.
+    ''' <para>
+    ''' If the specified event log or source does not exist, they are created automatically using the provided parameters.
+    ''' </para>
+    ''' <para>
+    ''' This method handles safe formatting, validation, and optional message splitting to avoid truncation of diagnostic content.
+    ''' </para>
     ''' </remarks>
     Public Sub Log(
             ByVal sourceName As String,
@@ -1576,13 +1925,18 @@ Public Module SmartEventLogger
     ''' namespace, class, and method name. If the source exceeds 254 characters, it is automatically truncated.
     ''' </param>
     ''' <param name="message">
-    ''' The message to log. If <c>null</c> or empty, a default message is used. Messages longer than 32,766 characters
-    ''' are truncated and suffixed with "… &lt;truncated&gt;" unless multi-entry logging is enabled.
+    ''' The message to log. If <c>null</c> or empty, a default message is used.
+    ''' 
+    ''' If <see cref="AllowMultiEntryMessages"/> is <c>false</c> (default), messages longer than 32,766 characters are truncated
+    ''' and suffixed with the <see cref="TruncationMarker"/> (e.g., <c>"... [TRUNCATED]"</c>).
+    ''' 
+    ''' If <see cref="AllowMultiEntryMessages"/> is <c>true</c>, long messages are split into multiple event entries,
+    ''' each prefixed with part information (e.g., <c>[Part 1/3]</c>) and intermediate entries are suffixed with
+    ''' the <see cref="ContinuationMarker"/> (e.g., <c>" ..."</c>) to indicate continuation.
     ''' </param>
     ''' <param name="eventType">
-    ''' The type of event to log. Valid values are <see cref="EventLogEntryType.Error" />,
-    ''' <see cref="EventLogEntryType.Warning" />, and <see cref="EventLogEntryType.Information" />.
-    ''' If an invalid value is passed, the event is logged as <c>Information</c>.
+    ''' The type of event. Valid values are <see cref="EventLogEntryType.Error"/>, <see cref="EventLogEntryType.Warning"/>, and
+    ''' <see cref="EventLogEntryType.Information"/>. If invalid, <c>Information</c> is used.
     ''' </param>
     ''' <param name="eventID">
     ''' The numeric event identifier for the log entry. This is application-defined and may be used to group similar events.
@@ -1605,8 +1959,12 @@ Public Module SmartEventLogger
     ''' Indicates whether an initialization entry should be written when a new log is created.
     ''' </param>
     ''' <remarks>
-    ''' If the specified log or source does not exist, they are created automatically. The message is automatically wrapped
-    ''' in square brackets with the source name if it does not already include them, and ends with a period.
+    ''' <para>
+    ''' If the specified event log or source does not exist, they are created automatically using the provided parameters.
+    ''' </para>
+    ''' <para>
+    ''' This method handles safe formatting, validation, and optional message splitting to avoid truncation of diagnostic content.
+    ''' </para>
     ''' </remarks>
     Public Sub Log(
             ByVal logName As String,
@@ -1636,62 +1994,59 @@ Public Module SmartEventLogger
     End Sub
 
     ''' <summary>
-    ''' Writes an entry to the Windows Event Log using the specified parameters.
+    ''' Writes an entry (or entries) to the Windows Event Log using the specified parameters.
     ''' </summary>
     ''' <param name="_machineName">
-    ''' The name of the machine where the event log resides. Use <c>"."</c> to refer to the local machine.
-    ''' If <c>null</c> or empty, the local machine is used by default, or the value in <c>MachinName</c> if set.
+    ''' The name of the machine where the event log resides. Use <c>"."</c> for the local machine.
+    ''' If <c>null</c> or empty, the local machine is used by default, or the value of the <see cref="MachineName"/> property if set.
     ''' </param>
     ''' <param name="_logName">
-    ''' The name of the event log to write to (e.g., <c>"Application"</c>, <c>"System"</c>, or a custom log name).
-    ''' If <c>null</c> or empty, the value of the static <c>LogName</c> property is used.
+    ''' The name of the event log (e.g., <c>"Application"</c>, <c>"System"</c>, or a custom log name).
+    ''' If <c>null</c> or empty, the value of the <see cref="LogName"/> property is used.
     ''' </param>
     ''' <param name="sourceName">
-    ''' The source name to associate with the event log entry. If <c>null</c> or empty, a source is automatically
-    ''' generated using the calling method's namespace, class, and method name.
-    ''' If the source exceeds 254 characters, it is automatically truncated.
+    ''' The source name for the event entry. If <c>null</c> or empty, a source is auto-generated from the calling method's namespace, class, and method name.
+    ''' If the resulting name exceeds 254 characters, it will be truncated.
     ''' </param>
     ''' <param name="message">
-    ''' The message to write to the event log. If <c>null</c> or empty, a default message is used.
-    ''' Messages longer than 32,766 characters are truncated and suffixed with <c>"... [TRUNCATED]"</c>
-    ''' unless multi-entry logging is enabled.
-    ''' The message is automatically wrapped with the source name if it does not start with a square bracket.
+    ''' The message to log. If <c>null</c> or empty, a default message is used.
+    ''' 
+    ''' If <see cref="AllowMultiEntryMessages"/> is <c>false</c> (default), messages longer than 32,766 characters are truncated
+    ''' and suffixed with the <see cref="TruncationMarker"/> (e.g., <c>"... [TRUNCATED]"</c>).
+    ''' 
+    ''' If <see cref="AllowMultiEntryMessages"/> is <c>true</c>, long messages are split into multiple event entries,
+    ''' each prefixed with part information (e.g., <c>[Part 1/3]</c>) and intermediate entries are suffixed with
+    ''' the <see cref="ContinuationMarker"/> (e.g., <c>" ..."</c>) to indicate continuation.
     ''' </param>
     ''' <param name="eventType">
-    ''' The type of event. Valid values are <see cref="EventLogEntryType.Error"/>,
-    ''' <see cref="EventLogEntryType.Warning"/>, and <see cref="EventLogEntryType.Information"/>.
-    ''' If an invalid value is passed, <c>Information</c> is used.
+    ''' The type of event. Valid values are <see cref="EventLogEntryType.Error"/>, <see cref="EventLogEntryType.Warning"/>, and
+    ''' <see cref="EventLogEntryType.Information"/>. If invalid, <c>Information</c> is used.
     ''' </param>
     ''' <param name="eventID">
-    ''' The numeric event identifier. This is application-defined and can be used for grouping or filtering related events.
+    ''' The numeric event identifier. Application-defined and useful for grouping related events.
     ''' </param>
     ''' <param name="category">
-    ''' The event category. This can be used in categorized event log views. Set to 0 if unused.
+    ''' The category ID for the event. Use 0 if not applicable.
     ''' </param>
     ''' <param name="rawData">
-    ''' Optional binary data to associate with the event entry. Can be <c>null</c>.
+    ''' Optional binary data to associate with the event. Can be <c>null</c>.
     ''' </param>
     ''' <param name="maxKilobytes">
-    ''' The maximum size of the event log in kilobytes. Only used when creating a new log.
-    ''' Must be between 64 KB and 4 GB. If 0 or negative, the system default is used.
+    ''' The maximum size of the event log in kilobytes. Only applies when creating a new log. Range: 64 KB – 4 GB.
     ''' </param>
     ''' <param name="retentionDays">
-    ''' The number of days to retain event log entries. If 0, events are retained indefinitely.
-    ''' Only used when creating a new log.
+    ''' The number of days entries should be retained. 0 means entries are kept indefinitely.
+    ''' Applies only when creating a new log.
     ''' </param>
     ''' <param name="writeInitEntry">
-    ''' Indicates whether an initialization entry should be written when a new log is created.
+    ''' Whether to write an initialization entry when a new log is created.
     ''' </param>
     ''' <remarks>
     ''' <para>
-    ''' If the specified log or source does not exist, they are automatically created.
+    ''' If the specified event log or source does not exist, they are created automatically using the provided parameters.
     ''' </para>
     ''' <para>
-    ''' This method ensures the message is formatted consistently and applies truncation if needed.
-    ''' If <see cref="TruncationMarker"/> is set, it is used instead of the default <c>"... [TRUNCATED]"</c>.
-    ''' </para>
-    ''' <para>
-    ''' This method uses the configured <see cref="_writer"/> to write the event.
+    ''' This method handles safe formatting, validation, and optional message splitting to avoid truncation of diagnostic content.
     ''' </para>
     ''' </remarks>
     Public Sub Log(
@@ -1715,17 +2070,35 @@ Public Module SmartEventLogger
             _writer.CreateEventSource(defaultSource, defaultLog, _machineName)
         End If
 
-        _writer.WriteEntry(defaultMachine,
+        Dim finalEventType As EventLogEntryType = NormalizeEventType(eventType)
+
+        If AllowMultiEntryMessages AndAlso message.Length > 32766 Then
+            For Each chunk As String In SplitMessageIntoPages(defaultSource, message)
+                _writer.WriteEntry(defaultMachine,
                            defaultLog,
                            defaultSource,
-                           NormalizeMessage(defaultSource, message),
-                           NormalizeEventType(eventType),
+                           chunk,
+                           finalEventType,
                            eventID,
                            category,
                            rawData,
                            maxKilobytes,
                            retentionDays,
                            writeInitEntry)
+            Next
+        Else
+            _writer.WriteEntry(defaultMachine,
+                               defaultLog,
+                               defaultSource,
+                               NormalizeMessage(defaultSource, message),
+                               finalEventType,
+                               eventID,
+                               category,
+                               rawData,
+                               maxKilobytes,
+                               retentionDays,
+                               writeInitEntry)
+        End If
 
     End Sub
 
@@ -1741,11 +2114,14 @@ Public Module SmartEventLogger
     ''' with a valid log name and source.
     ''' </param>
     ''' <param name="message">
-    ''' The message to write to the event log. If <c>null</c> or empty, a default message is used.
-    ''' Messages longer than 32,766 characters are truncated and suffixed with <c>"... [TRUNCATED]"</c>
-    ''' unless a custom truncation marker is configured.
-    ''' If the message does not start with a square bracket, it is automatically prefixed with the source name in
-    ''' brackets (e.g., <c>[MySource]</c>).
+    ''' The message to log. If <c>null</c> or empty, a default message is used.
+    ''' 
+    ''' If <see cref="AllowMultiEntryMessages"/> is <c>false</c> (default), messages longer than 32,766 characters are truncated
+    ''' and suffixed with the <see cref="TruncationMarker"/> (e.g., <c>"... [TRUNCATED]"</c>).
+    ''' 
+    ''' If <see cref="AllowMultiEntryMessages"/> is <c>true</c>, long messages are split into multiple event entries,
+    ''' each prefixed with part information (e.g., <c>[Part 1/3]</c>) and intermediate entries are suffixed with
+    ''' the <see cref="ContinuationMarker"/> (e.g., <c>" ..."</c>) to indicate continuation.
     ''' </param>
     ''' <remarks>
     ''' This method uses configured or default values for formatting and fallbacks. The message is normalized
@@ -1771,16 +2147,18 @@ Public Module SmartEventLogger
     ''' with a valid log name and source.
     ''' </param>
     ''' <param name="message">
-    ''' The message to write to the event log. If <c>null</c> or empty, a default message is used.
-    ''' Messages longer than 32,766 characters are truncated and suffixed with <c>"... [TRUNCATED]"</c>
-    ''' unless a custom truncation marker is configured.
-    ''' If the message does not start with a square bracket, it is automatically prefixed with the source name in
-    ''' brackets (e.g., <c>[MySource]</c>).
+    ''' The message to log. If <c>null</c> or empty, a default message is used.
+    ''' 
+    ''' If <see cref="AllowMultiEntryMessages"/> is <c>false</c> (default), messages longer than 32,766 characters are truncated
+    ''' and suffixed with the <see cref="TruncationMarker"/> (e.g., <c>"... [TRUNCATED]"</c>).
+    ''' 
+    ''' If <see cref="AllowMultiEntryMessages"/> is <c>true</c>, long messages are split into multiple event entries,
+    ''' each prefixed with part information (e.g., <c>[Part 1/3]</c>) and intermediate entries are suffixed with
+    ''' the <see cref="ContinuationMarker"/> (e.g., <c>" ..."</c>) to indicate continuation.
     ''' </param>
     ''' <param name="eventType">
-    ''' The type of event to log. Acceptable values include <see cref="EventLogEntryType.Error"/>,
-    ''' <see cref="EventLogEntryType.Warning"/>, and <see cref="EventLogEntryType.Information"/>.
-    ''' If an unrecognized value is provided, the event is logged as <see cref="EventLogEntryType.Information"/>.
+    ''' The type of event. Valid values are <see cref="EventLogEntryType.Error"/>, <see cref="EventLogEntryType.Warning"/>, and
+    ''' <see cref="EventLogEntryType.Information"/>. If invalid, <c>Information</c> is used.
     ''' </param>
     ''' <remarks>
     ''' This method uses configured or default values for formatting and fallbacks. The message is normalized
@@ -1808,11 +2186,14 @@ Public Module SmartEventLogger
     ''' with a valid log name and source.
     ''' </param>
     ''' <param name="message">
-    ''' The message to write to the event log. If <c>null</c> or empty, a default message is used.
-    ''' Messages longer than 32,766 characters are truncated and suffixed with <c>"... [TRUNCATED]"</c>
-    ''' unless a custom truncation marker is configured.
-    ''' If the message does not start with a square bracket, it is automatically prefixed with the source name in
-    ''' brackets (e.g., <c>[MySource]</c>).
+    ''' The message to log. If <c>null</c> or empty, a default message is used.
+    ''' 
+    ''' If <see cref="AllowMultiEntryMessages"/> is <c>false</c> (default), messages longer than 32,766 characters are truncated
+    ''' and suffixed with the <see cref="TruncationMarker"/> (e.g., <c>"... [TRUNCATED]"</c>).
+    ''' 
+    ''' If <see cref="AllowMultiEntryMessages"/> is <c>true</c>, long messages are split into multiple event entries,
+    ''' each prefixed with part information (e.g., <c>[Part 1/3]</c>) and intermediate entries are suffixed with
+    ''' the <see cref="ContinuationMarker"/> (e.g., <c>" ..."</c>) to indicate continuation.
     ''' </param>
     ''' <param name="eventID">
     ''' A numeric identifier for the event. This value is application-defined and can be used for categorizing
@@ -1844,11 +2225,14 @@ Public Module SmartEventLogger
     ''' with a valid log name and source.
     ''' </param>
     ''' <param name="message">
-    ''' The message to write to the event log. If <c>null</c> or empty, a default message is used.
-    ''' Messages longer than 32,766 characters are truncated and suffixed with <c>"... [TRUNCATED]"</c>
-    ''' unless a custom truncation marker is configured.
-    ''' If the message does not start with a square bracket, it is automatically prefixed with the source name in
-    ''' brackets (e.g., <c>[MySource]</c>).
+    ''' The message to log. If <c>null</c> or empty, a default message is used.
+    ''' 
+    ''' If <see cref="AllowMultiEntryMessages"/> is <c>false</c> (default), messages longer than 32,766 characters are truncated
+    ''' and suffixed with the <see cref="TruncationMarker"/> (e.g., <c>"... [TRUNCATED]"</c>).
+    ''' 
+    ''' If <see cref="AllowMultiEntryMessages"/> is <c>true</c>, long messages are split into multiple event entries,
+    ''' each prefixed with part information (e.g., <c>[Part 1/3]</c>) and intermediate entries are suffixed with
+    ''' the <see cref="ContinuationMarker"/> (e.g., <c>" ..."</c>) to indicate continuation.
     ''' </param>
     ''' <param name="category">
     ''' A numeric category for the event. This is typically used in categorized views of the Event Log.
@@ -1880,16 +2264,18 @@ Public Module SmartEventLogger
     ''' with a valid log name and source.
     ''' </param>
     ''' <param name="message">
-    ''' The message to write to the event log. If <c>null</c> or empty, a default message is used.
-    ''' Messages longer than 32,766 characters are truncated and suffixed with <c>"... [TRUNCATED]"</c>
-    ''' unless a custom truncation marker is configured.
-    ''' If the message does not start with a square bracket, it is automatically prefixed with the source name in
-    ''' brackets (e.g., <c>[MySource]</c>).
+    ''' The message to log. If <c>null</c> or empty, a default message is used.
+    ''' 
+    ''' If <see cref="AllowMultiEntryMessages"/> is <c>false</c> (default), messages longer than 32,766 characters are truncated
+    ''' and suffixed with the <see cref="TruncationMarker"/> (e.g., <c>"... [TRUNCATED]"</c>).
+    ''' 
+    ''' If <see cref="AllowMultiEntryMessages"/> is <c>true</c>, long messages are split into multiple event entries,
+    ''' each prefixed with part information (e.g., <c>[Part 1/3]</c>) and intermediate entries are suffixed with
+    ''' the <see cref="ContinuationMarker"/> (e.g., <c>" ..."</c>) to indicate continuation.
     ''' </param>
     ''' <param name="eventType">
-    ''' The type of event to log. Acceptable values include <see cref="EventLogEntryType.Error"/>,
-    ''' <see cref="EventLogEntryType.Warning"/>, and <see cref="EventLogEntryType.Information"/>.
-    ''' If an unrecognized value is provided, the event is logged as <see cref="EventLogEntryType.Information"/>.
+    ''' The type of event. Valid values are <see cref="EventLogEntryType.Error"/>, <see cref="EventLogEntryType.Warning"/>, and
+    ''' <see cref="EventLogEntryType.Information"/>. If invalid, <c>Information</c> is used.
     ''' </param>
     ''' <param name="eventID">
     ''' A numeric identifier for the event. This value is application-defined and can be used for categorizing
@@ -1923,16 +2309,18 @@ Public Module SmartEventLogger
     ''' with a valid log name and source.
     ''' </param>
     ''' <param name="message">
-    ''' The message to write to the event log. If <c>null</c> or empty, a default message is used.
-    ''' Messages longer than 32,766 characters are truncated and suffixed with <c>"... [TRUNCATED]"</c>
-    ''' unless a custom truncation marker is configured.
-    ''' If the message does not start with a square bracket, it is automatically prefixed with the source name in
-    ''' brackets (e.g., <c>[MySource]</c>).
+    ''' The message to log. If <c>null</c> or empty, a default message is used.
+    ''' 
+    ''' If <see cref="AllowMultiEntryMessages"/> is <c>false</c> (default), messages longer than 32,766 characters are truncated
+    ''' and suffixed with the <see cref="TruncationMarker"/> (e.g., <c>"... [TRUNCATED]"</c>).
+    ''' 
+    ''' If <see cref="AllowMultiEntryMessages"/> is <c>true</c>, long messages are split into multiple event entries,
+    ''' each prefixed with part information (e.g., <c>[Part 1/3]</c>) and intermediate entries are suffixed with
+    ''' the <see cref="ContinuationMarker"/> (e.g., <c>" ..."</c>) to indicate continuation.
     ''' </param>
     ''' <param name="eventType">
-    ''' The type of event to log. Acceptable values include <see cref="EventLogEntryType.Error"/>,
-    ''' <see cref="EventLogEntryType.Warning"/>, and <see cref="EventLogEntryType.Information"/>.
-    ''' If an unrecognized value is provided, the event is logged as <see cref="EventLogEntryType.Information"/>.
+    ''' The type of event. Valid values are <see cref="EventLogEntryType.Error"/>, <see cref="EventLogEntryType.Warning"/>, and
+    ''' <see cref="EventLogEntryType.Information"/>. If invalid, <c>Information</c> is used.
     ''' </param>
     ''' <param name="category">
     ''' A numeric category for the event. This is typically used in categorized views of the Event Log.
@@ -1966,16 +2354,18 @@ Public Module SmartEventLogger
     ''' with a valid log name and source.
     ''' </param>
     ''' <param name="message">
-    ''' The message to write to the event log. If <c>null</c> or empty, a default message is used.
-    ''' Messages longer than 32,766 characters are truncated and suffixed with <c>"... [TRUNCATED]"</c>
-    ''' unless a custom truncation marker is configured.
-    ''' If the message does not start with a square bracket, it is automatically prefixed with the source name in
-    ''' brackets (e.g., <c>[MySource]</c>).
+    ''' The message to log. If <c>null</c> or empty, a default message is used.
+    ''' 
+    ''' If <see cref="AllowMultiEntryMessages"/> is <c>false</c> (default), messages longer than 32,766 characters are truncated
+    ''' and suffixed with the <see cref="TruncationMarker"/> (e.g., <c>"... [TRUNCATED]"</c>).
+    ''' 
+    ''' If <see cref="AllowMultiEntryMessages"/> is <c>true</c>, long messages are split into multiple event entries,
+    ''' each prefixed with part information (e.g., <c>[Part 1/3]</c>) and intermediate entries are suffixed with
+    ''' the <see cref="ContinuationMarker"/> (e.g., <c>" ..."</c>) to indicate continuation.
     ''' </param>
     ''' <param name="eventType">
-    ''' The type of event to log. Acceptable values include <see cref="EventLogEntryType.Error"/>,
-    ''' <see cref="EventLogEntryType.Warning"/>, and <see cref="EventLogEntryType.Information"/>.
-    ''' If an unrecognized value is provided, the event is logged as <see cref="EventLogEntryType.Information"/>.
+    ''' The type of event. Valid values are <see cref="EventLogEntryType.Error"/>, <see cref="EventLogEntryType.Warning"/>, and
+    ''' <see cref="EventLogEntryType.Information"/>. If invalid, <c>Information</c> is used.
     ''' </param>
     ''' <param name="eventID">
     ''' A numeric identifier for the event. This value is application-defined and can be used for categorizing
@@ -2015,11 +2405,14 @@ Public Module SmartEventLogger
     ''' with a valid log name and source.
     ''' </param>
     ''' <param name="message">
-    ''' The message to write to the event log. If <c>null</c> or empty, a default message is used.
-    ''' Messages longer than 32,766 characters are truncated and suffixed with <c>"... [TRUNCATED]"</c>
-    ''' unless a custom truncation marker is configured.
-    ''' If the message does not start with a square bracket, it is automatically prefixed with the source name in
-    ''' brackets (e.g., <c>[MySource]</c>).
+    ''' The message to log. If <c>null</c> or empty, a default message is used.
+    ''' 
+    ''' If <see cref="AllowMultiEntryMessages"/> is <c>false</c> (default), messages longer than 32,766 characters are truncated
+    ''' and suffixed with the <see cref="TruncationMarker"/> (e.g., <c>"... [TRUNCATED]"</c>).
+    ''' 
+    ''' If <see cref="AllowMultiEntryMessages"/> is <c>true</c>, long messages are split into multiple event entries,
+    ''' each prefixed with part information (e.g., <c>[Part 1/3]</c>) and intermediate entries are suffixed with
+    ''' the <see cref="ContinuationMarker"/> (e.g., <c>" ..."</c>) to indicate continuation.
     ''' </param>
     ''' <param name="rawData">
     ''' Optional binary data to associate with the log entry. This can be <c>null</c> if unused.
@@ -2050,16 +2443,18 @@ Public Module SmartEventLogger
     ''' with a valid log name and source.
     ''' </param>
     ''' <param name="message">
-    ''' The message to write to the event log. If <c>null</c> or empty, a default message is used.
-    ''' Messages longer than 32,766 characters are truncated and suffixed with <c>"... [TRUNCATED]"</c>
-    ''' unless a custom truncation marker is configured.
-    ''' If the message does not start with a square bracket, it is automatically prefixed with the source name in
-    ''' brackets (e.g., <c>[MySource]</c>).
+    ''' The message to log. If <c>null</c> or empty, a default message is used.
+    ''' 
+    ''' If <see cref="AllowMultiEntryMessages"/> is <c>false</c> (default), messages longer than 32,766 characters are truncated
+    ''' and suffixed with the <see cref="TruncationMarker"/> (e.g., <c>"... [TRUNCATED]"</c>).
+    ''' 
+    ''' If <see cref="AllowMultiEntryMessages"/> is <c>true</c>, long messages are split into multiple event entries,
+    ''' each prefixed with part information (e.g., <c>[Part 1/3]</c>) and intermediate entries are suffixed with
+    ''' the <see cref="ContinuationMarker"/> (e.g., <c>" ..."</c>) to indicate continuation.
     ''' </param>
     ''' <param name="eventType">
-    ''' The type of event to log. Acceptable values include <see cref="EventLogEntryType.Error"/>,
-    ''' <see cref="EventLogEntryType.Warning"/>, and <see cref="EventLogEntryType.Information"/>.
-    ''' If an unrecognized value is provided, the event is logged as <see cref="EventLogEntryType.Information"/>.
+    ''' The type of event. Valid values are <see cref="EventLogEntryType.Error"/>, <see cref="EventLogEntryType.Warning"/>, and
+    ''' <see cref="EventLogEntryType.Information"/>. If invalid, <c>Information</c> is used.
     ''' </param>
     ''' <param name="rawData">
     ''' Optional binary data to associate with the log entry. This can be <c>null</c> if unused.
@@ -2092,16 +2487,18 @@ Public Module SmartEventLogger
     ''' with a valid log name and source.
     ''' </param>
     ''' <param name="message">
-    ''' The message to write to the event log. If <c>null</c> or empty, a default message is used.
-    ''' Messages longer than 32,766 characters are truncated and suffixed with <c>"... [TRUNCATED]"</c>
-    ''' unless a custom truncation marker is configured.
-    ''' If the message does not start with a square bracket, it is automatically prefixed with the source name in
-    ''' brackets (e.g., <c>[MySource]</c>).
+    ''' The message to log. If <c>null</c> or empty, a default message is used.
+    ''' 
+    ''' If <see cref="AllowMultiEntryMessages"/> is <c>false</c> (default), messages longer than 32,766 characters are truncated
+    ''' and suffixed with the <see cref="TruncationMarker"/> (e.g., <c>"... [TRUNCATED]"</c>).
+    ''' 
+    ''' If <see cref="AllowMultiEntryMessages"/> is <c>true</c>, long messages are split into multiple event entries,
+    ''' each prefixed with part information (e.g., <c>[Part 1/3]</c>) and intermediate entries are suffixed with
+    ''' the <see cref="ContinuationMarker"/> (e.g., <c>" ..."</c>) to indicate continuation.
     ''' </param>
     ''' <param name="eventType">
-    ''' The type of event to log. Acceptable values include <see cref="EventLogEntryType.Error"/>,
-    ''' <see cref="EventLogEntryType.Warning"/>, and <see cref="EventLogEntryType.Information"/>.
-    ''' If an unrecognized value is provided, the event is logged as <see cref="EventLogEntryType.Information"/>.
+    ''' The type of event. Valid values are <see cref="EventLogEntryType.Error"/>, <see cref="EventLogEntryType.Warning"/>, and
+    ''' <see cref="EventLogEntryType.Information"/>. If invalid, <c>Information</c> is used.
     ''' </param>
     ''' <param name="eventID">
     ''' A numeric identifier for the event. This value is application-defined and can be used for categorizing
@@ -2140,16 +2537,18 @@ Public Module SmartEventLogger
     ''' with a valid log name and source.
     ''' </param>
     ''' <param name="message">
-    ''' The message to write to the event log. If <c>null</c> or empty, a default message is used.
-    ''' Messages longer than 32,766 characters are truncated and suffixed with <c>"... [TRUNCATED]"</c>
-    ''' unless a custom truncation marker is configured.
-    ''' If the message does not start with a square bracket, it is automatically prefixed with the source name in
-    ''' brackets (e.g., <c>[MySource]</c>).
+    ''' The message to log. If <c>null</c> or empty, a default message is used.
+    ''' 
+    ''' If <see cref="AllowMultiEntryMessages"/> is <c>false</c> (default), messages longer than 32,766 characters are truncated
+    ''' and suffixed with the <see cref="TruncationMarker"/> (e.g., <c>"... [TRUNCATED]"</c>).
+    ''' 
+    ''' If <see cref="AllowMultiEntryMessages"/> is <c>true</c>, long messages are split into multiple event entries,
+    ''' each prefixed with part information (e.g., <c>[Part 1/3]</c>) and intermediate entries are suffixed with
+    ''' the <see cref="ContinuationMarker"/> (e.g., <c>" ..."</c>) to indicate continuation.
     ''' </param>
     ''' <param name="eventType">
-    ''' The type of event to log. Acceptable values include <see cref="EventLogEntryType.Error"/>,
-    ''' <see cref="EventLogEntryType.Warning"/>, and <see cref="EventLogEntryType.Information"/>.
-    ''' If an unrecognized value is provided, the event is logged as <see cref="EventLogEntryType.Information"/>.
+    ''' The type of event. Valid values are <see cref="EventLogEntryType.Error"/>, <see cref="EventLogEntryType.Warning"/>, and
+    ''' <see cref="EventLogEntryType.Information"/>. If invalid, <c>Information</c> is used.
     ''' </param>
     ''' <param name="eventID">
     ''' A numeric identifier for the event. This value is application-defined and can be used for categorizing
@@ -2176,12 +2575,26 @@ Public Module SmartEventLogger
             ByVal category As Short,
             ByVal rawData As Byte())
 
-        _writer.WriteEntry(eventLog,
-                           NormalizeMessage(eventLog.Source, message),
-                           NormalizeEventType(eventType),
+        Dim defaultSource As String = Source(eventLog.Source)
+        Dim finalEventType As EventLogEntryType = NormalizeEventType(eventType)
+
+        If AllowMultiEntryMessages AndAlso message.Length > 32766 Then
+            For Each chunk As String In SplitMessageIntoPages(defaultSource, message)
+                _writer.WriteEntry(eventLog,
+                           chunk,
+                           finalEventType,
                            eventID,
                            category,
                            rawData)
+            Next
+        Else
+            _writer.WriteEntry(eventLog,
+                               NormalizeMessage(eventLog.Source, message),
+                               NormalizeEventType(eventType),
+                               eventID,
+                               category,
+                               rawData)
+        End If
 
     End Sub
 
@@ -2353,6 +2766,57 @@ Public Module SmartEventLogger
         End If
 
         Return finalMessage
+
+    End Function
+
+    ''' <summary>
+    ''' Splits the message into pages.
+    ''' </summary>
+    ''' <param name="sourceName">Name of the source.</param>
+    ''' <param name="message">The message.</param>
+    ''' <returns></returns>
+    Private Function SplitMessageIntoPages(
+        ByVal sourceName As String,
+        ByVal message As String) As IEnumerable(Of String)
+
+        Const maxLength As Integer = 32766
+        Dim defaultSource As String = Source(sourceName)
+        Dim baseMessage As String = message.Trim()
+        If Not baseMessage.EndsWith("."c) Then baseMessage &= "."
+
+        Dim cm As String = ContinuationMarker
+
+        If String.IsNullOrEmpty(cm) Then cm = " ..."
+
+        ' Initial prefix length calculation
+        ' Format: "[Source] [Part 999/999] "
+        Dim maxPartsEstimate As Integer = CInt(Math.Ceiling(baseMessage.Length / (maxLength - 50)))
+        Dim digitCount As Integer = maxPartsEstimate.ToString().Length + 1 ' pad by 1 digit for safety
+
+        ' Build conservative prefix sample with max digit placeholders
+        Dim maxPartsPlaceholder As New String("9"c, digitCount)
+        Dim prefixSample As String = $"[{defaultSource}] [Part {maxPartsPlaceholder}/{maxPartsPlaceholder}] "
+        ' Calculate the chunk size by subtracting the prefix length and the space for " ..." at the end of a chunk
+        Dim chunkSize As Integer = maxLength - prefixSample.Length - cm.Length
+
+        ' Now split message
+        Dim parts As New List(Of String)
+        Dim index As Integer = 0
+        While index < baseMessage.Length
+            Dim len As Integer = Math.Min(chunkSize, baseMessage.Length - index)
+            parts.Add(baseMessage.Substring(index, len))
+            index += len
+        End While
+
+        ' Now wrap each chunk with prefix
+        Dim total As Integer = parts.Count
+        Dim result As New List(Of String)
+        For i As Integer = 0 To total - 2
+            result.Add($"[{defaultSource}] [Part {i + 1}/{total}] {parts(i)}{cm}")
+        Next
+        result.Add($"[{defaultSource}] [Part {total}/{total}] {parts(total - 1)}")
+
+        Return result
 
     End Function
 
