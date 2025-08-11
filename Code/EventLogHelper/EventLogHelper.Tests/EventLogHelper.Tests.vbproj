@@ -183,6 +183,12 @@
     </PackageReference>
   </ItemGroup>
 
+  <ItemGroup>
+    <None Update="appsettings.json">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+  </ItemGroup>
+
   <Target Name="RunCoverageAfterBuild" AfterTargets="Build" Condition="'$(TargetFramework)' == 'net9.0-windows10.0.17763.0' and '$(BuildingInsideVisualStudio)' == 'true'">
     <Exec Command="powershell -ExecutionPolicy Bypass -File &quot;$(ProjectDir)GenerateCoverage.ps1&quot;" ContinueOnError="true" />
   </Target>

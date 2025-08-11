@@ -5,7 +5,7 @@ Imports Microsoft.Win32
 ''' <summary>
 ''' Provides a way to read and validate access to the Windows Registry.
 ''' </summary>
-''' <seealso cref="EventLogHelper.IRegistryReader" />
+''' <seealso cref="IRegistryReader" />
 #If NET35 Then
 <Diagnostics.ExcludeFromCodeCoverage>
 Friend Class RealRegistryReader

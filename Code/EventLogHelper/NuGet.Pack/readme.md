@@ -9,9 +9,9 @@
 - ✅ One-line logging to the Windows Event Log
 - ✅ Automatically creates event sources (with safe fallbacks)
 - ✅ Works in non-elevated environments
-- ✅ Configurable defaults via `App.config` or `Web.config`
+- ✅ Configurable defaults via App.config, Web.config, or appsettings.json (automatically loaded at first use)
 - ✅ Gracefully handles permission issues and registry conflicts
-- ✅ Supports structured messages and custom log levels
+- ✅ Custom log levels
 
 ---
 
@@ -74,6 +74,18 @@ SmartEventLogger.Log(
 ```
 
 You can also configure default values and plug in a custom writer for unit testing or specialized behavior.
+
+---
+
+## ⚙️ Configuration via App Settings
+
+SmartEventLogger can initialize itself automatically using application configuration files:
+
+.NET Framework – settings are read from <appSettings> in App.config or Web.config.
+
+.NET Core / .NET 5+ – settings are read from appsettings.json.
+
+If you don’t call InitializeConfiguration() explicitly, these settings will be loaded automatically the first time you use the logger.
 
 ---
 

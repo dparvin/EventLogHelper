@@ -1,5 +1,7 @@
 ﻿Imports Xunit
 Imports System.ComponentModel
+Imports System.Reflection
+
 
 #If NET35 Then
 Imports System.Diagnostics
@@ -25,7 +27,7 @@ Namespace net90
 #End If
 
     ''' <summary>
-    ''' Test class for <see cref="SmartEventLogger"/>.
+    ''' Test class for <see cref="SmartEventLogger" />.
     ''' This class is used to test the SmartEventLogger functionality.
     ''' It is designed to be run with xUnit and outputs results using ITestOutputHelper.
     ''' </summary>
@@ -988,15 +990,17 @@ Namespace net90
         Public Sub MaxSource_ReturnsProperSource_WhenGivenBlank_Source()
 
             ' Arrange
+            SourceName = String.Empty
 
             ' Act
             Dim result As String = MaxSource(String.Empty)
-
+            Dim Initialized As Boolean = IsInitialized
             ' Assert
             Output($"result = {result}")
+            Assert.True(Initialized)
 #If NET35 Then
-            Assert.true(result.StartsWith( "EventLogHelper.Tests.net"))
-            Assert.true(result.EndsWith(".SmartEventLoggerTest.MaxSource_ReturnsProperSource_WhenGivenBlank_Source"))
+            Assert.True(result.StartsWith("EventLogHelper.Tests.net"))
+            Assert.True(result.EndsWith(".SmartEventLoggerTest.MaxSource_ReturnsProperSource_WhenGivenBlank_Source"))
 #Else
             Assert.StartsWith("EventLogHelper.Tests.net", result)
             Assert.EndsWith(".SmartEventLoggerTest.MaxSource_ReturnsProperSource_WhenGivenBlank_Source", result)
@@ -1019,7 +1023,7 @@ Namespace net90
             ' Assert
             Output($"result = {result}")
 #If NET35 Then
-            Assert.true(result.Equals( "CustomSource"))
+            Assert.True(result.Equals("CustomSource"))
 #Else
             Assert.Equal("CustomSource", result)
 #End If
@@ -1133,19 +1137,53 @@ Namespace net90
 #End If
             SetWriter(testWriter)
 
+            ResetInitialization()
+            InitializeConfiguration()
+
             MachineName = "SomeMachineSomeplace"
-            Dim CurrentLog As String = "CustomLog"
-            Dim CurrentSource As String = "CustomSource"
+            LogName = "CustomLog"
+            SourceName = "CustomSource"
             MaxKilobytes = 1024 * 1024 ' 1 MB
             RetentionDays = 7
             WriteInitEntry = True
 
             ' Act
-            Dim result As EventLog = GetLog(CurrentLog, CurrentSource)
+            Dim result As EventLog = GetLog()
 
             ' Assert
             Output($"result = {(result.GetType())}")
             Assert.NotNull(result)
+
+        End Sub
+
+#If NET5_0_OR_GREATER Then
+        <Fact>
+        Public Sub GetAppSetting_ReadsValuesFromJson()
+
+            ' Arrange
+
+            ' Act
+            ResetInitialization()
+            InitializeConfiguration()
+
+            ' Assert
+            Assert.Equal("TestLog", LogName)
+            Assert.Equal(42, RetentionDays)
+            Assert.True(WriteInitEntry)
+
+        End Sub
+#End If
+
+        ''' <summary>
+        ''' Resets the initialization.
+        ''' </summary>
+        Private Shared Sub ResetInitialization()
+
+            Dim field As FieldInfo = GetType(SmartEventLogger).GetField("_isInitialized", BindingFlags.NonPublic Or BindingFlags.Static)
+            field.SetValue(Nothing, False)
+
+            field = GetType(SmartEventLogger).GetField("_isInitializing", BindingFlags.NonPublic Or BindingFlags.Static)
+            field.SetValue(Nothing, False)
 
         End Sub
 

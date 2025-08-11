@@ -2,6 +2,12 @@
 Imports System.Reflection
 Imports System.Runtime.CompilerServices
 
+#If NETFRAMEWORK Then
+Imports System.Configuration
+#Else
+Imports Microsoft.Extensions.Configuration
+#End If
+
 ''' <summary>
 ''' Provides high-level utilities for logging to the Windows Event Log in a simplified and customizable way.
 ''' </summary><remarks>
@@ -79,6 +85,205 @@ Public Module SmartEventLogger
 
 #End Region
 
+#Region " Initialization ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ "
+
+    ''' <summary>
+    ''' Has the Initialization process happened?
+    ''' This is used to prevent multiple initializations.
+    ''' </summary>
+    Private _isInitialized As Boolean = False
+
+    ''' <summary>
+    ''' is initializing
+    ''' </summary>
+    Private _isInitializing As Boolean = False
+
+    ''' <summary>
+    ''' The initialization lock
+    ''' </summary>
+    Private ReadOnly _initLock As New Object()
+
+    ''' <summary>
+    ''' Initializes this instance.
+    ''' </summary>
+    Private Sub Initialize()
+
+        If _isInitialized OrElse _isInitializing Then Return
+        _isInitializing = True
+        SyncLock _initLock
+            Try
+                If Not _isInitialized Then
+                    MachineName = GetAppSetting("EventLogHelper.MachineName", MachineName)
+                    LogName = GetAppSetting("EventLogHelper.LogName", LogName)
+                    SourceName = GetAppSetting("EventLogHelper.SourceName", SourceName)
+                    MaxKilobytes = GetAppSetting("EventLogHelper.MaxKilobytes", MaxKilobytes)
+                    RetentionDays = GetAppSetting("EventLogHelper.RetentionDays", RetentionDays)
+                    WriteInitEntry = GetAppSetting("EventLogHelper.WriteInitEntry", WriteInitEntry)
+                    TruncationMarker = GetAppSetting("EventLogHelper.TruncationMarker", TruncationMarker)
+                    ContinuationMarker = GetAppSetting("EventLogHelper.ContinuationMarker", ContinuationMarker)
+                    AllowMultiEntryMessages = GetAppSetting("EventLogHelper.AllowMultiEntryMessages", AllowMultiEntryMessages)
+
+                    _isInitialized = True
+                End If
+            Finally
+                _isInitializing = False
+            End Try
+        End SyncLock
+
+    End Sub
+
+    ''' <remarks>
+    ''' <para>
+    ''' This method reads predefined settings from the application's configuration and 
+    ''' applies them to the corresponding <see cref="SmartEventLogger"/> properties.
+    ''' If a configuration value is not found, the property's existing value is retained.
+    ''' </para>
+    ''' <para>
+    ''' Calling this method explicitly is optional. Configuration will also be loaded 
+    ''' automatically the first time a public method or property is accessed, unless it 
+    ''' has already been initialized.
+    ''' </para>
+    ''' <para>
+    ''' Thread-safe: Initialization is guaranteed to run only once, even if called
+    ''' concurrently from multiple threads.
+    ''' </para>
+    ''' 
+    ''' <para>
+    ''' Recognized configuration keys:
+    ''' </para>
+    ''' <list type="table">
+    '''   <listheader>
+    '''     <term>Key</term>
+    '''     <description>Description</description>
+    '''   </listheader>
+    ''' 
+    '''   <item>
+    '''     <term>EventLogHelper.MachineName</term>
+    '''     <description>
+    ''' The name of the machine where the event log resides. Use <c>"."</c> for the local machine. 
+    ''' Defaults to the current value of <see cref="MachineName"/> (normally ".").
+    ''' </description>
+    '''   </item>
+    ''' 
+    '''   <item>
+    '''     <term>EventLogHelper.LogName</term>
+    '''     <description>
+    ''' The name of the event log to write to (e.g., <c>"Application"</c>, <c>"System"</c>, or a custom log). 
+    ''' Defaults to the current value of <see cref="LogName"/> (normally "Application").
+    ''' </description>
+    '''   </item>
+    ''' 
+    '''   <item>
+    '''     <term>EventLogHelper.SourceName</term>
+    '''     <description>
+    ''' The event source name associated with log entries. If not provided, a name is automatically 
+    ''' generated from the calling method's namespace, class, and method name. Defaults to 
+    ''' the current value of <see cref="SourceName"/>.
+    ''' </description>
+    '''   </item>
+    ''' 
+    '''   <item>
+    '''     <term>EventLogHelper.MaxKilobytes</term>
+    '''     <description>
+    ''' The maximum size of the event log in kilobytes when creating a new log. 
+    ''' Must be between 64 KB and 4 GB. If 0 or negative, the system default is used.
+    ''' Defaults to the current value of <see cref="MaxKilobytes"/> (normally 0).
+    ''' </description>
+    '''   </item>
+    ''' 
+    '''   <item>
+    '''     <term>EventLogHelper.RetentionDays</term>
+    '''     <description>
+    ''' The number of days to retain event log entries when creating a new log. 
+    ''' If 0, events are retained indefinitely. 
+    ''' Defaults to the current value of <see cref="RetentionDays"/> (normally 0).
+    ''' </description>
+    '''   </item>
+    ''' 
+    '''   <item>
+    '''     <term>EventLogHelper.WriteInitEntry</term>
+    '''     <description>
+    ''' Indicates whether to write an initialization entry to the log when a new log is created. 
+    ''' Defaults to the current value of <see cref="WriteInitEntry"/> (normally True).
+    ''' </description>
+    '''   </item>
+    ''' 
+    '''   <item>
+    '''     <term>EventLogHelper.TruncationMarker</term>
+    '''     <description>
+    ''' The string appended to messages that are truncated due to exceeding the 32,766-character limit. 
+    ''' Defaults to the current value of <see cref="TruncationMarker"/> (normally "... [TRUNCATED]").
+    ''' </description>
+    '''   </item>
+    ''' 
+    '''   <item>
+    '''     <term>EventLogHelper.ContinuationMarker</term>
+    '''     <description>
+    ''' The string appended to all but the last chunk of a message when multi-entry logging is enabled. 
+    ''' Defaults to the current value of <see cref="ContinuationMarker"/> (normally " ...").
+    ''' </description>
+    '''   </item>
+    ''' 
+    '''   <item>
+    '''     <term>EventLogHelper.AllowMultiEntryMessages</term>
+    '''     <description>
+    ''' Indicates whether messages longer than 32,766 characters should be split into multiple 
+    ''' sequential entries instead of being truncated. Defaults to the current value of 
+    ''' <see cref="AllowMultiEntryMessages"/> (normally False).
+    ''' </description>
+    '''   </item>
+    ''' 
+    ''' </list>
+    ''' </remarks>
+    Public Sub InitializeConfiguration()
+
+        Initialize()
+
+    End Sub
+
+#End Region
+
+#Region " Backing Fields ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ "
+
+    ''' <summary>
+    ''' The machine name
+    ''' </summary>
+    Private _machineName As String = "."
+    ''' <summary>
+    ''' The log name
+    ''' </summary>
+    Private _logName As String = "Application"
+    ''' <summary>
+    ''' The source name
+    ''' </summary>
+    Private _sourceName As String = ""
+    ''' <summary>
+    ''' The maximum kilobytes
+    ''' </summary>
+    Private _maxKilobytes As Integer = 1024 * 1024
+    ''' <summary>
+    ''' The retention days
+    ''' </summary>
+    Private _retentionDays As Integer = 7
+    ''' <summary>
+    ''' The write initialize entry
+    ''' </summary>
+    Private _writeInitEntry As Boolean = False
+    ''' <summary>
+    ''' The truncation marker
+    ''' </summary>
+    Private _truncationMarker As String = "... [TRUNCATED]"
+    ''' <summary>
+    ''' The continuation marker
+    ''' </summary>
+    Private _continuationMarker As String = " ..."
+    ''' <summary>
+    ''' The allow multi entry messages
+    ''' </summary>
+    Private _allowMultiEntryMessages As Boolean = False
+
+#End Region
+
 #Region " Default Value Properties ^^^^^^^^^^^^^^^^^^^^^^^^ "
 
     ''' <summary>
@@ -87,7 +292,22 @@ Public Module SmartEventLogger
     ''' <value>
     ''' A string representing the machine name. Use <c>"."</c> for the local machine.
     ''' </value>
-    Public Property MachineName As String = "."
+    Property MachineName As String
+
+        Get
+
+            Initialize()
+            Return _machineName
+
+        End Get
+        Set
+
+            Initialize()
+            _machineName = Value
+
+        End Set
+
+    End Property
 
     ''' <summary>
     ''' Gets or sets the name of the Windows Event Log to write to (e.g., "Application", "System").
@@ -95,7 +315,22 @@ Public Module SmartEventLogger
     ''' <value>
     ''' A string specifying the log name. Defaults to <c>"Application"</c>.
     ''' </value>
-    Public Property LogName As String = "Application"
+    Property LogName As String
+
+        Get
+
+            Initialize()
+            Return _logName
+
+        End Get
+        Set
+
+            Initialize()
+            _logName = Value
+
+        End Set
+
+    End Property
 
     ''' <summary>
     ''' Gets or sets the name of the event source associated with log entries.
@@ -103,7 +338,22 @@ Public Module SmartEventLogger
     ''' <value>
     ''' A string representing the source name. If not set, a source is inferred automatically using the calling method's context.
     ''' </value>
-    Public Property SourceName As String = ""
+    Property SourceName As String
+
+        Get
+
+            Initialize()
+            Return _sourceName
+
+        End Get
+        Set
+
+            Initialize()
+            _sourceName = Value
+
+        End Set
+
+    End Property
 
     ''' <summary>
     ''' Gets or sets the maximum allowed size of the event log in kilobytes.
@@ -114,7 +364,22 @@ Public Module SmartEventLogger
     ''' <remarks>
     ''' Applies only when creating or configuring new custom logs. May require administrative privileges.
     ''' </remarks>
-    Public Property MaxKilobytes As Integer = 1024 * 1024
+    Property MaxKilobytes As Integer
+
+        Get
+
+            Initialize()
+            Return _maxKilobytes
+
+        End Get
+        Set
+
+            Initialize()
+            _maxKilobytes = Value
+
+        End Set
+
+    End Property
 
     ''' <summary>
     ''' Gets or sets the number of days event entries are retained before being overwritten.
@@ -125,7 +390,22 @@ Public Module SmartEventLogger
     ''' <remarks>
     ''' Used when initializing a new event log. May be ignored depending on overflow policy or system restrictions.
     ''' </remarks>
-    Public Property RetentionDays As Integer = 7
+    Property RetentionDays As Integer
+
+        Get
+
+            Initialize()
+            Return _retentionDays
+
+        End Get
+        Set
+
+            Initialize()
+            _retentionDays = Value
+
+        End Set
+
+    End Property
 
     ''' <summary>
     ''' Gets or sets a value indicating whether an informational entry should be written when a new log is created.
@@ -133,7 +413,22 @@ Public Module SmartEventLogger
     ''' <value>
     ''' <c>True</c> to log an initialization message; otherwise, <c>False</c>. Defaults to <c>False</c>.
     ''' </value>
-    Public Property WriteInitEntry As Boolean = False
+    Property WriteInitEntry As Boolean
+
+        Get
+
+            Initialize()
+            Return _writeInitEntry
+
+        End Get
+        Set
+
+            Initialize()
+            _writeInitEntry = Value
+
+        End Set
+
+    End Property
 
     ''' <summary>
     ''' Gets or sets the marker text used when a message is too long and must be truncated.
@@ -141,7 +436,22 @@ Public Module SmartEventLogger
     ''' <value>
     ''' A string appended to truncated log entries. Defaults to <c>"... [TRUNCATED]"</c>.
     ''' </value>
-    Public Property TruncationMarker As String = "... [TRUNCATED]"
+    Property TruncationMarker As String
+
+        Get
+
+            Initialize()
+            Return _truncationMarker
+
+        End Get
+        Set
+
+            Initialize()
+            _truncationMarker = Value
+
+        End Set
+
+    End Property
 
     ''' <summary>
     ''' Gets or sets the continuation marker used when splitting long messages 
@@ -159,7 +469,22 @@ Public Module SmartEventLogger
     ''' enough to allow meaningful message content within the 32,766-character 
     ''' limit of the Event Log.
     ''' </remarks>
-    Public Property ContinuationMarker As String = " ..."
+    Property ContinuationMarker As String
+
+        Get
+
+            Initialize()
+            Return _continuationMarker
+
+        End Get
+        Set
+
+            Initialize()
+            _continuationMarker = Value
+
+        End Set
+
+    End Property
 
     ''' <summary>
     ''' Gets or sets a value indicating whether messages that exceed the Event Log 
@@ -178,7 +503,37 @@ Public Module SmartEventLogger
     ''' When disabled, long messages are truncated to fit within the Event Log limit,
     ''' and the truncation marker (e.g., <c>"... [TRUNCATED]"</c>) is appended.
     ''' </remarks>
-    Public Property AllowMultiEntryMessages As Boolean = False
+    Property AllowMultiEntryMessages As Boolean
+
+        Get
+
+            Initialize()
+            Return _allowMultiEntryMessages
+
+        End Get
+        Set
+
+            Initialize()
+            _allowMultiEntryMessages = Value
+
+        End Set
+
+    End Property
+
+    ''' <summary>
+    ''' Gets a value indicating whether this instance is initialized.
+    ''' </summary>
+    ''' <value>
+    '''   <c>true</c> if this instance is initialized; otherwise, <c>false</c>.
+    ''' </value>
+    Public ReadOnly Property IsInitialized As Boolean
+
+        Get
+            Return _isInitialized
+
+        End Get
+
+    End Property
 
 #End Region
 
@@ -208,7 +563,9 @@ Public Module SmartEventLogger
     Public Sub Log(
             ByVal message As String)
 
-        Log("", "", message)
+        Log("",
+            "",
+            message)
 
     End Sub
 
@@ -241,7 +598,9 @@ Public Module SmartEventLogger
             ByVal source As String,
             ByVal message As String)
 
-        Log("", source, message)
+        Log("",
+            source,
+            message)
 
     End Sub
 
@@ -274,7 +633,9 @@ Public Module SmartEventLogger
             ByVal message As String,
             ByVal eventType As EventLogEntryType)
 
-        Log("", message, eventType)
+        Log("",
+            message,
+            eventType)
 
     End Sub
 
@@ -312,7 +673,10 @@ Public Module SmartEventLogger
             ByVal sourceName As String,
             ByVal message As String)
 
-        Log(logName, sourceName, message, EventLogEntryType.Information)
+        Log(logName,
+            sourceName,
+            message,
+            EventLogEntryType.Information)
 
     End Sub
 
@@ -350,7 +714,10 @@ Public Module SmartEventLogger
             ByVal message As String,
             ByVal eventType As EventLogEntryType)
 
-        Log("", sourceName, message, eventType)
+        Log("",
+            sourceName,
+            message,
+            eventType)
 
     End Sub
 
@@ -393,7 +760,11 @@ Public Module SmartEventLogger
             ByVal message As String,
             ByVal eventType As EventLogEntryType)
 
-        Log(logName, sourceName, message, eventType, 0)
+        Log(logName,
+            sourceName,
+            message,
+            eventType,
+            0)
 
     End Sub
 
@@ -430,7 +801,10 @@ Public Module SmartEventLogger
             ByVal eventType As EventLogEntryType,
             ByVal eventID As Integer)
 
-        Log("", message, eventType, eventID)
+        Log("",
+            message,
+            eventType,
+            eventID)
 
     End Sub
 
@@ -472,7 +846,11 @@ Public Module SmartEventLogger
             ByVal eventType As EventLogEntryType,
             ByVal eventID As Integer)
 
-        Log("", sourceName, message, eventType, eventID)
+        Log("",
+            sourceName,
+            message,
+            eventType,
+            eventID)
 
     End Sub
 
@@ -519,7 +897,12 @@ Public Module SmartEventLogger
             ByVal eventType As EventLogEntryType,
             ByVal eventID As Integer)
 
-        Log(logName, sourceName, message, eventType, eventID, 0)
+        Log(logName,
+            sourceName,
+            message,
+            eventType,
+            eventID,
+            0)
 
     End Sub
 
@@ -560,7 +943,11 @@ Public Module SmartEventLogger
             ByVal eventID As Integer,
             ByVal category As Short)
 
-        Log("", message, eventType, eventID, category)
+        Log("",
+            message,
+            eventType,
+            eventID,
+            category)
 
     End Sub
 
@@ -606,7 +993,12 @@ Public Module SmartEventLogger
             ByVal eventID As Integer,
             ByVal category As Short)
 
-        Log("", sourceName, message, eventType, eventID, category)
+        Log("",
+            sourceName,
+            message,
+            eventType,
+            eventID,
+            category)
 
     End Sub
 
@@ -657,7 +1049,14 @@ Public Module SmartEventLogger
             ByVal eventID As Integer,
             ByVal category As Short)
 
-        Log(MachineName, logName, sourceName, message, eventType, eventID, category, Nothing)
+        Log("",
+            logName,
+            sourceName,
+            message,
+            eventType,
+            eventID,
+            category,
+            Nothing)
 
     End Sub
 
@@ -689,7 +1088,9 @@ Public Module SmartEventLogger
             ByVal message As String,
             ByVal rawData As Byte())
 
-        Log(message, EventLogEntryType.Information, rawData)
+        Log(message,
+            EventLogEntryType.Information,
+            rawData)
 
     End Sub
 
@@ -726,7 +1127,10 @@ Public Module SmartEventLogger
             ByVal eventType As EventLogEntryType,
             ByVal rawData As Byte())
 
-        Log(message, eventType, 0, rawData)
+        Log(message,
+            eventType,
+            0,
+            rawData)
 
     End Sub
 
@@ -767,7 +1171,11 @@ Public Module SmartEventLogger
             ByVal eventID As Integer,
             ByVal rawData As Byte())
 
-        Log(message, eventType, eventID, 0, rawData)
+        Log(message,
+            eventType,
+            eventID,
+            0,
+            rawData)
 
     End Sub
 
@@ -812,7 +1220,14 @@ Public Module SmartEventLogger
             ByVal category As Short,
             ByVal rawData As Byte())
 
-        Log(MachineName, "", "", message, eventType, eventID, category, rawData)
+        Log("",
+            "",
+            "",
+            message,
+            eventType,
+            eventID,
+            category,
+            rawData)
 
     End Sub
 
@@ -862,7 +1277,14 @@ Public Module SmartEventLogger
             ByVal category As Short,
             ByVal rawData As Byte())
 
-        Log(MachineName, "", sourceName, message, eventType, eventID, category, rawData)
+        Log("",
+            "",
+            sourceName,
+            message,
+            eventType,
+            eventID,
+            category,
+            rawData)
 
     End Sub
 
@@ -981,6 +1403,7 @@ Public Module SmartEventLogger
             ByVal category As Short,
             ByVal rawData As Byte())
 
+        Initialize()
         Log(
             machineName,
             logName,
@@ -1051,6 +1474,7 @@ Public Module SmartEventLogger
             ByVal rawData As Byte(),
             ByVal maxKilobytes As Integer)
 
+        Initialize()
         Log(
             machineName,
             logName,
@@ -1460,7 +1884,7 @@ Public Module SmartEventLogger
             ByVal retentionDays As Integer)
 
         Log(
-            MachineName,
+            "",
             logName,
             source,
             message,
@@ -1534,6 +1958,8 @@ Public Module SmartEventLogger
             ByVal rawData As Byte(),
             ByVal maxKilobytes As Integer,
             ByVal retentionDays As Integer)
+
+        Initialize()
 
         Log(
             machineName,
@@ -1979,7 +2405,7 @@ Public Module SmartEventLogger
             ByVal writeInitEntry As Boolean)
 
         Log(
-            MachineName,
+            "",
             logName,
             sourceName,
             message,
@@ -2061,6 +2487,8 @@ Public Module SmartEventLogger
             ByVal maxKilobytes As Integer,
             ByVal retentionDays As Integer,
             ByVal writeInitEntry As Boolean)
+
+        Initialize()
 
         Dim defaultLog As String = If(String.IsNullOrEmpty(_logName), LogName, _logName.Trim())
         Dim defaultSource As String = Source(sourceName)
@@ -2575,6 +3003,8 @@ Public Module SmartEventLogger
             ByVal category As Short,
             ByVal rawData As Byte())
 
+        Initialize() ' By the time we get here, this should already be done, but just in case.
+
         Dim defaultSource As String = Source(eventLog.Source)
         Dim finalEventType As EventLogEntryType = NormalizeEventType(eventType)
 
@@ -2648,6 +3078,8 @@ Public Module SmartEventLogger
     ''' <returns>The name of a registered event source, or an empty string if none are found.</returns>
     Public Function DefaultSource(
             ByVal log As String) As String
+
+        Initialize()
 
         Return DefaultSource(log, MachineName)
 
@@ -2849,9 +3281,123 @@ Public Module SmartEventLogger
 
     End Function
 
+    ''' <summary>
+    ''' Reads an application setting by key and returns defaultValue
+    ''' when no setting is found or an error occurs.
+    ''' </summary>
+    ''' <param name="key">The key.</param>
+    ''' <param name="defaultValue">The default value.</param>
+    ''' <remarks>
+    ''' On .NET Core / .NET 5+ this method constructs and builds a <see href="ConfigurationBuilder"/>
+    ''' and reads <c>appsettings.json</c> each time it is invoked. During <c>InitializeConfiguration</c>
+    ''' this leads to the file being parsed once per recognized key. This is intentional to avoid
+    ''' static lifetime configuration state; if you need fewer file reads, enable caching
+    ''' (see caching example).
+    ''' </remarks>
+    ''' <returns>The value to be placed in the property associated with the call</returns>
+    Private Function GetAppSetting(
+            ByVal key As String,
+            ByVal defaultValue As String) As String
+
+#If NETFRAMEWORK Then
+        Try
+            ' .NET Framework: App.config / Web.config
+            Dim value As String = ConfigurationManager.AppSettings(key)
+            If String.IsNullOrEmpty(value) Then
+                Return defaultValue
+            End If
+
+            Return value
+        Catch
+            Return defaultValue
+        End Try
+#Else
+        ' .NET Core / .NET 5+ : appsettings.json
+        Dim builder As New ConfigurationBuilder()
+        builder.SetBasePath(AppContext.BaseDirectory)
+        builder.AddJsonFile("appsettings.json", optional:=True, reloadOnChange:=True)
+        Dim config As IConfigurationRoot = builder.Build()
+
+        Dim value As String = config(key)
+        If String.IsNullOrEmpty(value) Then
+            Return defaultValue
+        End If
+
+        Return value
+#End If
+
+    End Function
+
+    ''' <summary>
+    ''' Gets the application setting.
+    ''' </summary>
+    ''' <param name="key">The key.</param>
+    ''' <param name="defaultValue">The default value.</param>
+    ''' <returns></returns>
+    Private Function GetAppSetting(
+            ByVal key As String,
+            ByVal defaultValue As Integer) As Integer
+
+        Dim raw As String = GetAppSetting(key, defaultValue.ToString())
+
+        Dim result As Integer
+        Return If(Integer.TryParse(raw, result), result, defaultValue)
+
+    End Function
+
+    ''' <summary>
+    ''' Gets the application setting.
+    ''' </summary>
+    ''' <param name="key">The key.</param>
+    ''' <param name="defaultValue">if set to <c>true</c> default value.</param>
+    ''' <returns></returns>
+    Private Function GetAppSetting(
+            ByVal key As String,
+            ByVal defaultValue As Boolean) As Boolean
+
+        Dim raw As String = GetAppSetting(key, defaultValue.ToString())
+
+        Dim result As Boolean
+        Return If(Boolean.TryParse(raw, result), result, defaultValue)
+
+    End Function
+
 #End Region
 
 #Region " GetLog routines ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ "
+
+    ''' <summary>
+    ''' Gets the entry log class to use for writing to the event log.
+    ''' </summary>
+    ''' <returns></returns>
+    Public Function GetLog() As EventLog
+
+        Initialize()
+
+        Return GetLog(
+            SourceName)
+
+    End Function
+
+    ''' <summary>
+    ''' Gets the entry log class to use for writing to the event log.
+    ''' </summary>
+    ''' <param name="sourceName">
+    ''' The source name to associate with the event log entry. If <c>null</c> or empty, a source is automatically
+    ''' generated using the calling method's namespace, class, and method name.
+    ''' If the source exceeds 254 characters, it is automatically truncated.
+    ''' </param>
+    ''' <returns></returns>
+    Public Function GetLog(
+            ByVal sourceName As String) As EventLog
+
+        Initialize()
+
+        Return GetLog(
+            LogName,
+            sourceName)
+
+    End Function
 
     ''' <summary>
     ''' Gets the entry log class to use for writing to the event log.
@@ -2869,6 +3415,8 @@ Public Module SmartEventLogger
     Public Function GetLog(
             ByVal logName As String,
             ByVal sourceName As String) As EventLog
+
+        Initialize()
 
         Return GetLog(
             logName,
@@ -2904,6 +3452,8 @@ Public Module SmartEventLogger
             ByVal sourceName As String,
             ByVal maxKilobytes As Integer,
             ByVal retentionDays As Integer) As EventLog
+
+        Initialize()
 
         Return GetLog(
             logName,
@@ -2944,6 +3494,8 @@ Public Module SmartEventLogger
             ByVal maxKilobytes As Integer,
             ByVal retentionDays As Integer,
             ByVal writeInitEntry As Boolean) As EventLog
+
+        Initialize()
 
         Return GetLog(
             MachineName,
@@ -2990,6 +3542,8 @@ Public Module SmartEventLogger
             ByVal maxKilobytes As Integer,
             ByVal retentionDays As Integer,
             ByVal writeInitEntry As Boolean) As EventLog
+
+        Initialize()
 
         Return _writer.GetLog(
             NormalizeMachineName(machineName),
