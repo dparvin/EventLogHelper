@@ -132,6 +132,11 @@ Public Module SmartEventLogger
 
     End Sub
 
+    ''' <summary>
+    ''' Reads configuration values from <c>App.config</c>, <c>Web.config</c>, or 
+    ''' <c>appsettings.json</c> (depending on the target framework) and applies 
+    ''' them to <see cref="SmartEventLogger"/> defaults.
+    ''' </summary>
     ''' <remarks>
     ''' <para>
     ''' This method reads predefined settings from the application's configuration and 
