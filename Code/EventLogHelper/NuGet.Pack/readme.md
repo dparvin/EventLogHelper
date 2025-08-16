@@ -11,7 +11,7 @@
 - ✅ Works in non-elevated environments
 - ✅ Configurable defaults via App.config, Web.config, or appsettings.json (automatically loaded at first use)
 - ✅ Gracefully handles permission issues and registry conflicts
-- ✅ Custom log levels
+- ✅ Configurable logging severity (filter logs by importance)
 
 ---
 
@@ -70,7 +70,8 @@ SmartEventLogger.Log(
     rawData: Nothing,
     maxKilobytes: 1024 * 1024,    ' 1 GB
     retentionDays: 7,
-    writeInitEntry: True)
+    writeInitEntry: True,
+    EntrySeverity: LoggingSeverity.Info)
 ```
 
 You can also configure default values and plug in a custom writer for unit testing or specialized behavior.

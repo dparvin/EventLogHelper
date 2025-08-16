@@ -122,6 +122,8 @@ Public Module SmartEventLogger
                     TruncationMarker = GetAppSetting("EventLogHelper.TruncationMarker", TruncationMarker)
                     ContinuationMarker = GetAppSetting("EventLogHelper.ContinuationMarker", ContinuationMarker)
                     AllowMultiEntryMessages = GetAppSetting("EventLogHelper.AllowMultiEntryMessages", AllowMultiEntryMessages)
+                    CurrentLoggingLevel = GetAppSetting("EventLogHelper.CurrentLoggingLevel", CurrentLoggingLevel)
+                    LoggingSeverity = GetAppSetting("EventLogHelper.LoggingSeverity", LoggingSeverity)
 
                     _isInitialized = True
                 End If
@@ -286,6 +288,14 @@ Public Module SmartEventLogger
     ''' The allow multi entry messages
     ''' </summary>
     Private _allowMultiEntryMessages As Boolean = False
+    ''' <summary>
+    ''' The current logging level
+    ''' </summary>
+    Private _CurrentLoggingLevel As LoggingLevel = LoggingLevel.Verbose
+    ''' <summary>
+    ''' The logging severity
+    ''' </summary>
+    Private _LoggingSeverity As LoggingSeverity = LoggingSeverity.Info
 
 #End Region
 
@@ -297,7 +307,7 @@ Public Module SmartEventLogger
     ''' <value>
     ''' A string representing the machine name. Use <c>"."</c> for the local machine.
     ''' </value>
-    Property MachineName As String
+    Public Property MachineName As String
 
         Get
 
@@ -320,7 +330,7 @@ Public Module SmartEventLogger
     ''' <value>
     ''' A string specifying the log name. Defaults to <c>"Application"</c>.
     ''' </value>
-    Property LogName As String
+    Public Property LogName As String
 
         Get
 
@@ -343,7 +353,7 @@ Public Module SmartEventLogger
     ''' <value>
     ''' A string representing the source name. If not set, a source is inferred automatically using the calling method's context.
     ''' </value>
-    Property SourceName As String
+    Public Property SourceName As String
 
         Get
 
@@ -369,7 +379,7 @@ Public Module SmartEventLogger
     ''' <remarks>
     ''' Applies only when creating or configuring new custom logs. May require administrative privileges.
     ''' </remarks>
-    Property MaxKilobytes As Integer
+    Public Property MaxKilobytes As Integer
 
         Get
 
@@ -395,7 +405,7 @@ Public Module SmartEventLogger
     ''' <remarks>
     ''' Used when initializing a new event log. May be ignored depending on overflow policy or system restrictions.
     ''' </remarks>
-    Property RetentionDays As Integer
+    Public Property RetentionDays As Integer
 
         Get
 
@@ -418,7 +428,7 @@ Public Module SmartEventLogger
     ''' <value>
     ''' <c>True</c> to log an initialization message; otherwise, <c>False</c>. Defaults to <c>False</c>.
     ''' </value>
-    Property WriteInitEntry As Boolean
+    Public Property WriteInitEntry As Boolean
 
         Get
 
@@ -441,7 +451,7 @@ Public Module SmartEventLogger
     ''' <value>
     ''' A string appended to truncated log entries. Defaults to <c>"... [TRUNCATED]"</c>.
     ''' </value>
-    Property TruncationMarker As String
+    Public Property TruncationMarker As String
 
         Get
 
@@ -474,7 +484,7 @@ Public Module SmartEventLogger
     ''' enough to allow meaningful message content within the 32,766-character 
     ''' limit of the Event Log.
     ''' </remarks>
-    Property ContinuationMarker As String
+    Public Property ContinuationMarker As String
 
         Get
 
@@ -508,7 +518,7 @@ Public Module SmartEventLogger
     ''' When disabled, long messages are truncated to fit within the Event Log limit,
     ''' and the truncation marker (e.g., <c>"... [TRUNCATED]"</c>) is appended.
     ''' </remarks>
-    Property AllowMultiEntryMessages As Boolean
+    Public Property AllowMultiEntryMessages As Boolean
 
         Get
 
@@ -537,6 +547,52 @@ Public Module SmartEventLogger
             Return _isInitialized
 
         End Get
+
+    End Property
+
+    ''' <summary>
+    ''' Gets or sets the current logging level.
+    ''' </summary>
+    ''' <value>
+    ''' The current logging level.
+    ''' </value>
+    Public Property CurrentLoggingLevel As LoggingLevel
+
+        Get
+
+            Initialize()
+            Return _CurrentLoggingLevel
+
+        End Get
+        Set
+
+            Initialize()
+            _CurrentLoggingLevel = Value
+
+        End Set
+
+    End Property
+
+    ''' <summary>
+    ''' Gets or sets the logging severity.
+    ''' </summary>
+    ''' <value>
+    ''' The logging severity.
+    ''' </value>
+    Public Property LoggingSeverity As LoggingSeverity
+
+        Get
+
+            Initialize()
+            Return _LoggingSeverity
+
+        End Get
+        Set
+
+            Initialize()
+            _LoggingSeverity = Value
+
+        End Set
 
     End Property
 
@@ -571,6 +627,43 @@ Public Module SmartEventLogger
         Log("",
             "",
             message)
+
+    End Sub
+
+    ''' <summary>
+    ''' Writes an entry to the Windows Event Log using the provided parameters.
+    ''' </summary>
+    ''' <param name="message">
+    ''' The message to log. If <c>null</c> or empty, a default message is used.
+    ''' 
+    ''' If <see cref="AllowMultiEntryMessages"/> is <c>false</c> (default), messages longer than 32,766 characters are truncated
+    ''' and suffixed with the <see cref="TruncationMarker"/> (e.g., <c>"... [TRUNCATED]"</c>).
+    ''' 
+    ''' If <see cref="AllowMultiEntryMessages"/> is <c>true</c>, long messages are split into multiple event entries,
+    ''' each prefixed with part information (e.g., <c>[Part 1/3]</c>) and intermediate entries are suffixed with
+    ''' the <see cref="ContinuationMarker"/> (e.g., <c>" ..."</c>) to indicate continuation.
+    ''' </param>
+    ''' <param name="EntrySeverity">
+    ''' Indicates the importance or severity of this log entry relative to the configured logging threshold
+    ''' (<see cref="CurrentLoggingLevel"/>). If the severity is lower than the current logging level, the entry
+    ''' will be skipped and not written to the Event Log.
+    ''' </param>
+    ''' <remarks>
+    ''' <para>
+    ''' If the specified event log or source does not exist, they are created automatically using the provided parameters.
+    ''' </para>
+    ''' <para>
+    ''' This method handles safe formatting, validation, and optional message splitting to avoid truncation of diagnostic content.
+    ''' </para>
+    ''' </remarks>
+    Public Sub Log(
+            ByVal message As String,
+            ByVal EntrySeverity As LoggingSeverity)
+
+        Log("",
+            "",
+            message,
+            EntrySeverity)
 
     End Sub
 
@@ -612,6 +705,48 @@ Public Module SmartEventLogger
     ''' <summary>
     ''' Writes an entry to the Windows Event Log using the provided parameters.
     ''' </summary>
+    ''' <param name="source">
+    ''' The source of the log entry. If <c>null</c> or empty, a default source is generated using the calling method's
+    ''' namespace, class, and method name. If the source exceeds 254 characters, it is automatically truncated.
+    ''' </param>
+    ''' <param name="message">
+    ''' The message to log. If <c>null</c> or empty, a default message is used.
+    ''' 
+    ''' If <see cref="AllowMultiEntryMessages"/> is <c>false</c> (default), messages longer than 32,766 characters are truncated
+    ''' and suffixed with the <see cref="TruncationMarker"/> (e.g., <c>"... [TRUNCATED]"</c>).
+    ''' 
+    ''' If <see cref="AllowMultiEntryMessages"/> is <c>true</c>, long messages are split into multiple event entries,
+    ''' each prefixed with part information (e.g., <c>[Part 1/3]</c>) and intermediate entries are suffixed with
+    ''' the <see cref="ContinuationMarker"/> (e.g., <c>" ..."</c>) to indicate continuation.
+    ''' </param>
+    ''' <param name="EntrySeverity">
+    ''' Indicates the importance or severity of this log entry relative to the configured logging threshold
+    ''' (<see cref="CurrentLoggingLevel"/>). If the severity is lower than the current logging level, the entry
+    ''' will be skipped and not written to the Event Log.
+    ''' </param>
+    ''' <remarks>
+    ''' <para>
+    ''' If the specified event log or source does not exist, they are created automatically using the provided parameters.
+    ''' </para>
+    ''' <para>
+    ''' This method handles safe formatting, validation, and optional message splitting to avoid truncation of diagnostic content.
+    ''' </para>
+    ''' </remarks>
+    Public Sub Log(
+            ByVal source As String,
+            ByVal message As String,
+            ByVal EntrySeverity As LoggingSeverity)
+
+        Log("",
+            source,
+            message,
+            EntrySeverity)
+
+    End Sub
+
+    ''' <summary>
+    ''' Writes an entry to the Windows Event Log using the provided parameters.
+    ''' </summary>
     ''' <param name="message">
     ''' The message to log. If <c>null</c> or empty, a default message is used.
     ''' 
@@ -641,6 +776,48 @@ Public Module SmartEventLogger
         Log("",
             message,
             eventType)
+
+    End Sub
+
+    ''' <summary>
+    ''' Writes an entry to the Windows Event Log using the provided parameters.
+    ''' </summary>
+    ''' <param name="message">
+    ''' The message to log. If <c>null</c> or empty, a default message is used.
+    ''' 
+    ''' If <see cref="AllowMultiEntryMessages"/> is <c>false</c> (default), messages longer than 32,766 characters are truncated
+    ''' and suffixed with the <see cref="TruncationMarker"/> (e.g., <c>"... [TRUNCATED]"</c>).
+    ''' 
+    ''' If <see cref="AllowMultiEntryMessages"/> is <c>true</c>, long messages are split into multiple event entries,
+    ''' each prefixed with part information (e.g., <c>[Part 1/3]</c>) and intermediate entries are suffixed with
+    ''' the <see cref="ContinuationMarker"/> (e.g., <c>" ..."</c>) to indicate continuation.
+    ''' </param>
+    ''' <param name="eventType">
+    ''' The type of event. Valid values are <see cref="EventLogEntryType.Error"/>, <see cref="EventLogEntryType.Warning"/>, and
+    ''' <see cref="EventLogEntryType.Information"/>. If invalid, <c>Information</c> is used.
+    ''' </param>
+    ''' <param name="EntrySeverity">
+    ''' Indicates the importance or severity of this log entry relative to the configured logging threshold
+    ''' (<see cref="CurrentLoggingLevel"/>). If the severity is lower than the current logging level, the entry
+    ''' will be skipped and not written to the Event Log.
+    ''' </param>
+    ''' <remarks>
+    ''' <para>
+    ''' If the specified event log or source does not exist, they are created automatically using the provided parameters.
+    ''' </para>
+    ''' <para>
+    ''' This method handles safe formatting, validation, and optional message splitting to avoid truncation of diagnostic content.
+    ''' </para>
+    ''' </remarks>
+    Public Sub Log(
+            ByVal message As String,
+            ByVal eventType As EventLogEntryType,
+            ByVal EntrySeverity As LoggingSeverity)
+
+        Log("",
+            message,
+            eventType,
+            EntrySeverity)
 
     End Sub
 
@@ -688,6 +865,54 @@ Public Module SmartEventLogger
     ''' <summary>
     ''' Writes an entry to the Windows Event Log using the provided parameters.
     ''' </summary>
+    ''' <param name="logName">
+    ''' The name of the event log to write to (e.g., "Application", "System", or a custom log name).
+    ''' If <c>null</c> or empty, "Application" is used by default.
+    ''' </param>
+    ''' <param name="sourceName">
+    ''' The source of the log entry. If <c>null</c> or empty, a default source is generated using the calling method's
+    ''' namespace, class, and method name. If the source exceeds 254 characters, it is automatically truncated.
+    ''' </param>
+    ''' <param name="message">
+    ''' The message to log. If <c>null</c> or empty, a default message is used.
+    ''' 
+    ''' If <see cref="AllowMultiEntryMessages"/> is <c>false</c> (default), messages longer than 32,766 characters are truncated
+    ''' and suffixed with the <see cref="TruncationMarker"/> (e.g., <c>"... [TRUNCATED]"</c>).
+    ''' 
+    ''' If <see cref="AllowMultiEntryMessages"/> is <c>true</c>, long messages are split into multiple event entries,
+    ''' each prefixed with part information (e.g., <c>[Part 1/3]</c>) and intermediate entries are suffixed with
+    ''' the <see cref="ContinuationMarker"/> (e.g., <c>" ..."</c>) to indicate continuation.
+    ''' </param>
+    ''' <param name="EntrySeverity">
+    ''' Indicates the importance or severity of this log entry relative to the configured logging threshold
+    ''' (<see cref="CurrentLoggingLevel"/>). If the severity is lower than the current logging level, the entry
+    ''' will be skipped and not written to the Event Log.
+    ''' </param>
+    ''' <remarks>
+    ''' <para>
+    ''' If the specified event log or source does not exist, they are created automatically using the provided parameters.
+    ''' </para>
+    ''' <para>
+    ''' This method handles safe formatting, validation, and optional message splitting to avoid truncation of diagnostic content.
+    ''' </para>
+    ''' </remarks>
+    Public Sub Log(
+            ByVal logName As String,
+            ByVal sourceName As String,
+            ByVal message As String,
+            ByVal EntrySeverity As LoggingSeverity)
+
+        Log(logName,
+            sourceName,
+            message,
+            EventLogEntryType.Information,
+            EntrySeverity)
+
+    End Sub
+
+    ''' <summary>
+    ''' Writes an entry to the Windows Event Log using the provided parameters.
+    ''' </summary>
     ''' <param name="sourceName">
     ''' The source of the log entry. If <c>null</c> or empty, a default source is generated using the calling method's
     ''' namespace, class, and method name. If the source exceeds 254 characters, it is automatically truncated.
@@ -729,6 +954,54 @@ Public Module SmartEventLogger
     ''' <summary>
     ''' Writes an entry to the Windows Event Log using the provided parameters.
     ''' </summary>
+    ''' <param name="sourceName">
+    ''' The source of the log entry. If <c>null</c> or empty, a default source is generated using the calling method's
+    ''' namespace, class, and method name. If the source exceeds 254 characters, it is automatically truncated.
+    ''' </param>
+    ''' <param name="message">
+    ''' The message to log. If <c>null</c> or empty, a default message is used.
+    ''' 
+    ''' If <see cref="AllowMultiEntryMessages"/> is <c>false</c> (default), messages longer than 32,766 characters are truncated
+    ''' and suffixed with the <see cref="TruncationMarker"/> (e.g., <c>"... [TRUNCATED]"</c>).
+    ''' 
+    ''' If <see cref="AllowMultiEntryMessages"/> is <c>true</c>, long messages are split into multiple event entries,
+    ''' each prefixed with part information (e.g., <c>[Part 1/3]</c>) and intermediate entries are suffixed with
+    ''' the <see cref="ContinuationMarker"/> (e.g., <c>" ..."</c>) to indicate continuation.
+    ''' </param>
+    ''' <param name="eventType">
+    ''' The type of event. Valid values are <see cref="EventLogEntryType.Error"/>, <see cref="EventLogEntryType.Warning"/>, and
+    ''' <see cref="EventLogEntryType.Information"/>. If invalid, <c>Information</c> is used.
+    ''' </param>
+    ''' <param name="EntrySeverity">
+    ''' Indicates the importance or severity of this log entry relative to the configured logging threshold
+    ''' (<see cref="CurrentLoggingLevel"/>). If the severity is lower than the current logging level, the entry
+    ''' will be skipped and not written to the Event Log.
+    ''' </param>
+    ''' <remarks>
+    ''' <para>
+    ''' If the specified event log or source does not exist, they are created automatically using the provided parameters.
+    ''' </para>
+    ''' <para>
+    ''' This method handles safe formatting, validation, and optional message splitting to avoid truncation of diagnostic content.
+    ''' </para>
+    ''' </remarks>
+    Public Sub Log(
+            ByVal sourceName As String,
+            ByVal message As String,
+            ByVal eventType As EventLogEntryType,
+            ByVal EntrySeverity As LoggingSeverity)
+
+        Log("",
+            sourceName,
+            message,
+            eventType,
+            EntrySeverity)
+
+    End Sub
+
+    ''' <summary>
+    ''' Writes an entry to the Windows Event Log using the provided parameters.
+    ''' </summary>
     ''' <param name="logName">
     ''' The name of the event log to write to (e.g., "Application", "System", or a custom log name).
     ''' If <c>null</c> or empty, "Application" is used by default.
@@ -776,6 +1049,60 @@ Public Module SmartEventLogger
     ''' <summary>
     ''' Writes an entry to the Windows Event Log using the provided parameters.
     ''' </summary>
+    ''' <param name="logName">
+    ''' The name of the event log to write to (e.g., "Application", "System", or a custom log name).
+    ''' If <c>null</c> or empty, "Application" is used by default.
+    ''' </param>
+    ''' <param name="sourceName">
+    ''' The source of the log entry. If <c>null</c> or empty, a default source is generated using the calling method's
+    ''' namespace, class, and method name. If the source exceeds 254 characters, it is automatically truncated.
+    ''' </param>
+    ''' <param name="message">
+    ''' The message to log. If <c>null</c> or empty, a default message is used.
+    ''' 
+    ''' If <see cref="AllowMultiEntryMessages"/> is <c>false</c> (default), messages longer than 32,766 characters are truncated
+    ''' and suffixed with the <see cref="TruncationMarker"/> (e.g., <c>"... [TRUNCATED]"</c>).
+    ''' 
+    ''' If <see cref="AllowMultiEntryMessages"/> is <c>true</c>, long messages are split into multiple event entries,
+    ''' each prefixed with part information (e.g., <c>[Part 1/3]</c>) and intermediate entries are suffixed with
+    ''' the <see cref="ContinuationMarker"/> (e.g., <c>" ..."</c>) to indicate continuation.
+    ''' </param>
+    ''' <param name="eventType">
+    ''' The type of event. Valid values are <see cref="EventLogEntryType.Error"/>, <see cref="EventLogEntryType.Warning"/>, and
+    ''' <see cref="EventLogEntryType.Information"/>. If invalid, <c>Information</c> is used.
+    ''' </param>
+    ''' <param name="EntrySeverity">
+    ''' Indicates the importance or severity of this log entry relative to the configured logging threshold
+    ''' (<see cref="CurrentLoggingLevel"/>). If the severity is lower than the current logging level, the entry
+    ''' will be skipped and not written to the Event Log.
+    ''' </param>
+    ''' <remarks>
+    ''' <para>
+    ''' If the specified event log or source does not exist, they are created automatically using the provided parameters.
+    ''' </para>
+    ''' <para>
+    ''' This method handles safe formatting, validation, and optional message splitting to avoid truncation of diagnostic content.
+    ''' </para>
+    ''' </remarks>
+    Public Sub Log(
+            ByVal logName As String,
+            ByVal sourceName As String,
+            ByVal message As String,
+            ByVal eventType As EventLogEntryType,
+            ByVal EntrySeverity As LoggingSeverity)
+
+        Log(logName,
+            sourceName,
+            message,
+            eventType,
+            0,
+            EntrySeverity)
+
+    End Sub
+
+    ''' <summary>
+    ''' Writes an entry to the Windows Event Log using the provided parameters.
+    ''' </summary>
     ''' <param name="message">
     ''' The message to log. If <c>null</c> or empty, a default message is used.
     ''' 
@@ -810,6 +1137,53 @@ Public Module SmartEventLogger
             message,
             eventType,
             eventID)
+
+    End Sub
+
+    ''' <summary>
+    ''' Writes an entry to the Windows Event Log using the provided parameters.
+    ''' </summary>
+    ''' <param name="message">
+    ''' The message to log. If <c>null</c> or empty, a default message is used.
+    ''' 
+    ''' If <see cref="AllowMultiEntryMessages"/> is <c>false</c> (default), messages longer than 32,766 characters are truncated
+    ''' and suffixed with the <see cref="TruncationMarker"/> (e.g., <c>"... [TRUNCATED]"</c>).
+    ''' 
+    ''' If <see cref="AllowMultiEntryMessages"/> is <c>true</c>, long messages are split into multiple event entries,
+    ''' each prefixed with part information (e.g., <c>[Part 1/3]</c>) and intermediate entries are suffixed with
+    ''' the <see cref="ContinuationMarker"/> (e.g., <c>" ..."</c>) to indicate continuation.
+    ''' </param>
+    ''' <param name="eventType">
+    ''' The type of event. Valid values are <see cref="EventLogEntryType.Error"/>, <see cref="EventLogEntryType.Warning"/>, and
+    ''' <see cref="EventLogEntryType.Information"/>. If invalid, <c>Information</c> is used.
+    ''' </param>
+    ''' <param name="eventID">
+    ''' The numeric event identifier for the log entry. This is application-defined and may be used to group similar events.
+    ''' </param>
+    ''' <param name="EntrySeverity">
+    ''' Indicates the importance or severity of this log entry relative to the configured logging threshold
+    ''' (<see cref="CurrentLoggingLevel"/>). If the severity is lower than the current logging level, the entry
+    ''' will be skipped and not written to the Event Log.
+    ''' </param>
+    ''' <remarks>
+    ''' <para>
+    ''' If the specified event log or source does not exist, they are created automatically using the provided parameters.
+    ''' </para>
+    ''' <para>
+    ''' This method handles safe formatting, validation, and optional message splitting to avoid truncation of diagnostic content.
+    ''' </para>
+    ''' </remarks>
+    Public Sub Log(
+            ByVal message As String,
+            ByVal eventType As EventLogEntryType,
+            ByVal eventID As Integer,
+            ByVal EntrySeverity As LoggingSeverity)
+
+        Log("",
+            message,
+            eventType,
+            eventID,
+            EntrySeverity)
 
     End Sub
 
@@ -856,6 +1230,59 @@ Public Module SmartEventLogger
             message,
             eventType,
             eventID)
+
+    End Sub
+
+    ''' <summary>
+    ''' Writes an entry to the Windows Event Log using the provided parameters.
+    ''' </summary>
+    ''' <param name="sourceName">
+    ''' The source of the log entry. If <c>null</c> or empty, a default source is generated using the calling method's
+    ''' namespace, class, and method name. If the source exceeds 254 characters, it is automatically truncated.
+    ''' </param>
+    ''' <param name="message">
+    ''' The message to log. If <c>null</c> or empty, a default message is used.
+    ''' 
+    ''' If <see cref="AllowMultiEntryMessages"/> is <c>false</c> (default), messages longer than 32,766 characters are truncated
+    ''' and suffixed with the <see cref="TruncationMarker"/> (e.g., <c>"... [TRUNCATED]"</c>).
+    ''' 
+    ''' If <see cref="AllowMultiEntryMessages"/> is <c>true</c>, long messages are split into multiple event entries,
+    ''' each prefixed with part information (e.g., <c>[Part 1/3]</c>) and intermediate entries are suffixed with
+    ''' the <see cref="ContinuationMarker"/> (e.g., <c>" ..."</c>) to indicate continuation.
+    ''' </param>
+    ''' <param name="eventType">
+    ''' The type of event. Valid values are <see cref="EventLogEntryType.Error"/>, <see cref="EventLogEntryType.Warning"/>, and
+    ''' <see cref="EventLogEntryType.Information"/>. If invalid, <c>Information</c> is used.
+    ''' </param>
+    ''' <param name="eventID">
+    ''' The numeric event identifier for the log entry. This is application-defined and may be used to group similar events.
+    ''' </param>
+    ''' <param name="EntrySeverity">
+    ''' Indicates the importance or severity of this log entry relative to the configured logging threshold
+    ''' (<see cref="CurrentLoggingLevel"/>). If the severity is lower than the current logging level, the entry
+    ''' will be skipped and not written to the Event Log.
+    ''' </param>
+    ''' <remarks>
+    ''' <para>
+    ''' If the specified event log or source does not exist, they are created automatically using the provided parameters.
+    ''' </para>
+    ''' <para>
+    ''' This method handles safe formatting, validation, and optional message splitting to avoid truncation of diagnostic content.
+    ''' </para>
+    ''' </remarks>
+    Public Sub Log(
+            ByVal sourceName As String,
+            ByVal message As String,
+            ByVal eventType As EventLogEntryType,
+            ByVal eventID As Integer,
+            ByVal EntrySeverity As LoggingSeverity)
+
+        Log("",
+            sourceName,
+            message,
+            eventType,
+            eventID,
+            EntrySeverity)
 
     End Sub
 
@@ -914,6 +1341,65 @@ Public Module SmartEventLogger
     ''' <summary>
     ''' Writes an entry to the Windows Event Log using the provided parameters.
     ''' </summary>
+    ''' <param name="logName">
+    ''' The name of the event log to write to (e.g., "Application", "System", or a custom log name).
+    ''' If <c>null</c> or empty, "Application" is used by default.
+    ''' </param>
+    ''' <param name="sourceName">
+    ''' The source of the log entry. If <c>null</c> or empty, a default source is generated using the calling method's
+    ''' namespace, class, and method name. If the source exceeds 254 characters, it is automatically truncated.
+    ''' </param>
+    ''' <param name="message">
+    ''' The message to log. If <c>null</c> or empty, a default message is used.
+    ''' 
+    ''' If <see cref="AllowMultiEntryMessages"/> is <c>false</c> (default), messages longer than 32,766 characters are truncated
+    ''' and suffixed with the <see cref="TruncationMarker"/> (e.g., <c>"... [TRUNCATED]"</c>).
+    ''' 
+    ''' If <see cref="AllowMultiEntryMessages"/> is <c>true</c>, long messages are split into multiple event entries,
+    ''' each prefixed with part information (e.g., <c>[Part 1/3]</c>) and intermediate entries are suffixed with
+    ''' the <see cref="ContinuationMarker"/> (e.g., <c>" ..."</c>) to indicate continuation.
+    ''' </param>
+    ''' <param name="eventType">
+    ''' The type of event. Valid values are <see cref="EventLogEntryType.Error"/>, <see cref="EventLogEntryType.Warning"/>, and
+    ''' <see cref="EventLogEntryType.Information"/>. If invalid, <c>Information</c> is used.
+    ''' </param>
+    ''' <param name="eventID">
+    ''' The numeric event identifier for the log entry. This is application-defined and may be used to group similar events.
+    ''' </param>
+    ''' <param name="EntrySeverity">
+    ''' Indicates the importance or severity of this log entry relative to the configured logging threshold
+    ''' (<see cref="CurrentLoggingLevel"/>). If the severity is lower than the current logging level, the entry
+    ''' will be skipped and not written to the Event Log.
+    ''' </param>
+    ''' <remarks>
+    ''' <para>
+    ''' If the specified event log or source does not exist, they are created automatically using the provided parameters.
+    ''' </para>
+    ''' <para>
+    ''' This method handles safe formatting, validation, and optional message splitting to avoid truncation of diagnostic content.
+    ''' </para>
+    ''' </remarks>
+    Public Sub Log(
+            ByVal logName As String,
+            ByVal sourceName As String,
+            ByVal message As String,
+            ByVal eventType As EventLogEntryType,
+            ByVal eventID As Integer,
+            ByVal EntrySeverity As LoggingSeverity)
+
+        Log(logName,
+            sourceName,
+            message,
+            eventType,
+            eventID,
+            0,
+            EntrySeverity)
+
+    End Sub
+
+    ''' <summary>
+    ''' Writes an entry to the Windows Event Log using the provided parameters.
+    ''' </summary>
     ''' <param name="message">
     ''' The message to log. If <c>null</c> or empty, a default message is used.
     ''' 
@@ -953,6 +1439,58 @@ Public Module SmartEventLogger
             eventType,
             eventID,
             category)
+
+    End Sub
+
+    ''' <summary>
+    ''' Writes an entry to the Windows Event Log using the provided parameters.
+    ''' </summary>
+    ''' <param name="message">
+    ''' The message to log. If <c>null</c> or empty, a default message is used.
+    ''' 
+    ''' If <see cref="AllowMultiEntryMessages"/> is <c>false</c> (default), messages longer than 32,766 characters are truncated
+    ''' and suffixed with the <see cref="TruncationMarker"/> (e.g., <c>"... [TRUNCATED]"</c>).
+    ''' 
+    ''' If <see cref="AllowMultiEntryMessages"/> is <c>true</c>, long messages are split into multiple event entries,
+    ''' each prefixed with part information (e.g., <c>[Part 1/3]</c>) and intermediate entries are suffixed with
+    ''' the <see cref="ContinuationMarker"/> (e.g., <c>" ..."</c>) to indicate continuation.
+    ''' </param>
+    ''' <param name="eventType">
+    ''' The type of event. Valid values are <see cref="EventLogEntryType.Error"/>, <see cref="EventLogEntryType.Warning"/>, and
+    ''' <see cref="EventLogEntryType.Information"/>. If invalid, <c>Information</c> is used.
+    ''' </param>
+    ''' <param name="eventID">
+    ''' The numeric event identifier for the log entry. This is application-defined and may be used to group similar events.
+    ''' </param>
+    ''' <param name="category">
+    ''' The category for the event, if applicable. This is typically used in categorized event views.
+    ''' </param>
+    ''' <param name="EntrySeverity">
+    ''' Indicates the importance or severity of this log entry relative to the configured logging threshold
+    ''' (<see cref="CurrentLoggingLevel"/>). If the severity is lower than the current logging level, the entry
+    ''' will be skipped and not written to the Event Log.
+    ''' </param>
+    ''' <remarks>
+    ''' <para>
+    ''' If the specified event log or source does not exist, they are created automatically using the provided parameters.
+    ''' </para>
+    ''' <para>
+    ''' This method handles safe formatting, validation, and optional message splitting to avoid truncation of diagnostic content.
+    ''' </para>
+    ''' </remarks>
+    Public Sub Log(
+            ByVal message As String,
+            ByVal eventType As EventLogEntryType,
+            ByVal eventID As Integer,
+            ByVal category As Short,
+            ByVal EntrySeverity As LoggingSeverity)
+
+        Log("",
+            message,
+            eventType,
+            eventID,
+            category,
+            EntrySeverity)
 
     End Sub
 
@@ -1004,6 +1542,64 @@ Public Module SmartEventLogger
             eventType,
             eventID,
             category)
+
+    End Sub
+
+    ''' <summary>
+    ''' Writes an entry to the Windows Event Log using the provided parameters.
+    ''' </summary>
+    ''' <param name="sourceName">
+    ''' The source of the log entry. If <c>null</c> or empty, a default source is generated using the calling method's
+    ''' namespace, class, and method name. If the source exceeds 254 characters, it is automatically truncated.
+    ''' </param>
+    ''' <param name="message">
+    ''' The message to log. If <c>null</c> or empty, a default message is used.
+    ''' 
+    ''' If <see cref="AllowMultiEntryMessages"/> is <c>false</c> (default), messages longer than 32,766 characters are truncated
+    ''' and suffixed with the <see cref="TruncationMarker"/> (e.g., <c>"... [TRUNCATED]"</c>).
+    ''' 
+    ''' If <see cref="AllowMultiEntryMessages"/> is <c>true</c>, long messages are split into multiple event entries,
+    ''' each prefixed with part information (e.g., <c>[Part 1/3]</c>) and intermediate entries are suffixed with
+    ''' the <see cref="ContinuationMarker"/> (e.g., <c>" ..."</c>) to indicate continuation.
+    ''' </param>
+    ''' <param name="eventType">
+    ''' The type of event. Valid values are <see cref="EventLogEntryType.Error"/>, <see cref="EventLogEntryType.Warning"/>, and
+    ''' <see cref="EventLogEntryType.Information"/>. If invalid, <c>Information</c> is used.
+    ''' </param>
+    ''' <param name="eventID">
+    ''' The numeric event identifier for the log entry. This is application-defined and may be used to group similar events.
+    ''' </param>
+    ''' <param name="category">
+    ''' The category for the event, if applicable. This is typically used in categorized event views.
+    ''' </param>
+    ''' <param name="EntrySeverity">
+    ''' Indicates the importance or severity of this log entry relative to the configured logging threshold
+    ''' (<see cref="CurrentLoggingLevel"/>). If the severity is lower than the current logging level, the entry
+    ''' will be skipped and not written to the Event Log.
+    ''' </param>
+    ''' <remarks>
+    ''' <para>
+    ''' If the specified event log or source does not exist, they are created automatically using the provided parameters.
+    ''' </para>
+    ''' <para>
+    ''' This method handles safe formatting, validation, and optional message splitting to avoid truncation of diagnostic content.
+    ''' </para>
+    ''' </remarks>
+    Public Sub Log(
+            ByVal sourceName As String,
+            ByVal message As String,
+            ByVal eventType As EventLogEntryType,
+            ByVal eventID As Integer,
+            ByVal category As Short,
+            ByVal EntrySeverity As LoggingSeverity)
+
+        Log("",
+            sourceName,
+            message,
+            eventType,
+            eventID,
+            category,
+            EntrySeverity)
 
     End Sub
 
@@ -1068,6 +1664,71 @@ Public Module SmartEventLogger
     ''' <summary>
     ''' Writes an entry to the Windows Event Log using the provided parameters.
     ''' </summary>
+    ''' <param name="logName">
+    ''' The name of the event log to write to (e.g., "Application", "System", or a custom log name).
+    ''' If <c>null</c> or empty, "Application" is used by default.
+    ''' </param>
+    ''' <param name="sourceName">
+    ''' The source of the log entry. If <c>null</c> or empty, a default source is generated using the calling method's
+    ''' namespace, class, and method name. If the source exceeds 254 characters, it is automatically truncated.
+    ''' </param>
+    ''' <param name="message">
+    ''' The message to log. If <c>null</c> or empty, a default message is used.
+    ''' 
+    ''' If <see cref="AllowMultiEntryMessages"/> is <c>false</c> (default), messages longer than 32,766 characters are truncated
+    ''' and suffixed with the <see cref="TruncationMarker"/> (e.g., <c>"... [TRUNCATED]"</c>).
+    ''' 
+    ''' If <see cref="AllowMultiEntryMessages"/> is <c>true</c>, long messages are split into multiple event entries,
+    ''' each prefixed with part information (e.g., <c>[Part 1/3]</c>) and intermediate entries are suffixed with
+    ''' the <see cref="ContinuationMarker"/> (e.g., <c>" ..."</c>) to indicate continuation.
+    ''' </param>
+    ''' <param name="eventType">
+    ''' The type of event. Valid values are <see cref="EventLogEntryType.Error"/>, <see cref="EventLogEntryType.Warning"/>, and
+    ''' <see cref="EventLogEntryType.Information"/>. If invalid, <c>Information</c> is used.
+    ''' </param>
+    ''' <param name="eventID">
+    ''' The numeric event identifier for the log entry. This is application-defined and may be used to group similar events.
+    ''' </param>
+    ''' <param name="category">
+    ''' The category for the event, if applicable. This is typically used in categorized event views.
+    ''' </param>
+    ''' <param name="EntrySeverity">
+    ''' Indicates the importance or severity of this log entry relative to the configured logging threshold
+    ''' (<see cref="CurrentLoggingLevel"/>). If the severity is lower than the current logging level, the entry
+    ''' will be skipped and not written to the Event Log.
+    ''' </param>
+    ''' <remarks>
+    ''' <para>
+    ''' If the specified event log or source does not exist, they are created automatically using the provided parameters.
+    ''' </para>
+    ''' <para>
+    ''' This method handles safe formatting, validation, and optional message splitting to avoid truncation of diagnostic content.
+    ''' </para>
+    ''' </remarks>
+    Public Sub Log(
+            ByVal logName As String,
+            ByVal sourceName As String,
+            ByVal message As String,
+            ByVal eventType As EventLogEntryType,
+            ByVal eventID As Integer,
+            ByVal category As Short,
+            ByVal EntrySeverity As LoggingSeverity)
+
+        Log("",
+            logName,
+            sourceName,
+            message,
+            eventType,
+            eventID,
+            category,
+            Nothing,
+            EntrySeverity)
+
+    End Sub
+
+    ''' <summary>
+    ''' Writes an entry to the Windows Event Log using the provided parameters.
+    ''' </summary>
     ''' <param name="message">
     ''' The message to log. If <c>null</c> or empty, a default message is used.
     ''' 
@@ -1112,6 +1773,47 @@ Public Module SmartEventLogger
     ''' each prefixed with part information (e.g., <c>[Part 1/3]</c>) and intermediate entries are suffixed with
     ''' the <see cref="ContinuationMarker"/> (e.g., <c>" ..."</c>) to indicate continuation.
     ''' </param>
+    ''' <param name="rawData">
+    ''' Optional binary data to include with the log entry. Can be <c>null</c> if not used.
+    ''' </param>
+    ''' <param name="EntrySeverity">
+    ''' Indicates the importance or severity of this log entry relative to the configured logging threshold
+    ''' (<see cref="CurrentLoggingLevel"/>). If the severity is lower than the current logging level, the entry
+    ''' will be skipped and not written to the Event Log.
+    ''' </param>
+    ''' <remarks>
+    ''' <para>
+    ''' If the specified event log or source does not exist, they are created automatically using the provided parameters.
+    ''' </para>
+    ''' <para>
+    ''' This method handles safe formatting, validation, and optional message splitting to avoid truncation of diagnostic content.
+    ''' </para>
+    ''' </remarks>
+    Public Sub Log(
+            ByVal message As String,
+            ByVal rawData As Byte(),
+            ByVal EntrySeverity As LoggingSeverity)
+
+        Log(message,
+            EventLogEntryType.Information,
+            rawData,
+            EntrySeverity)
+
+    End Sub
+
+    ''' <summary>
+    ''' Writes an entry to the Windows Event Log using the provided parameters.
+    ''' </summary>
+    ''' <param name="message">
+    ''' The message to log. If <c>null</c> or empty, a default message is used.
+    ''' 
+    ''' If <see cref="AllowMultiEntryMessages"/> is <c>false</c> (default), messages longer than 32,766 characters are truncated
+    ''' and suffixed with the <see cref="TruncationMarker"/> (e.g., <c>"... [TRUNCATED]"</c>).
+    ''' 
+    ''' If <see cref="AllowMultiEntryMessages"/> is <c>true</c>, long messages are split into multiple event entries,
+    ''' each prefixed with part information (e.g., <c>[Part 1/3]</c>) and intermediate entries are suffixed with
+    ''' the <see cref="ContinuationMarker"/> (e.g., <c>" ..."</c>) to indicate continuation.
+    ''' </param>
     ''' <param name="eventType">
     ''' The type of event. Valid values are <see cref="EventLogEntryType.Error"/>, <see cref="EventLogEntryType.Warning"/>, and
     ''' <see cref="EventLogEntryType.Information"/>. If invalid, <c>Information</c> is used.
@@ -1136,6 +1838,53 @@ Public Module SmartEventLogger
             eventType,
             0,
             rawData)
+
+    End Sub
+
+    ''' <summary>
+    ''' Writes an entry to the Windows Event Log using the provided parameters.
+    ''' </summary>
+    ''' <param name="message">
+    ''' The message to log. If <c>null</c> or empty, a default message is used.
+    ''' 
+    ''' If <see cref="AllowMultiEntryMessages"/> is <c>false</c> (default), messages longer than 32,766 characters are truncated
+    ''' and suffixed with the <see cref="TruncationMarker"/> (e.g., <c>"... [TRUNCATED]"</c>).
+    ''' 
+    ''' If <see cref="AllowMultiEntryMessages"/> is <c>true</c>, long messages are split into multiple event entries,
+    ''' each prefixed with part information (e.g., <c>[Part 1/3]</c>) and intermediate entries are suffixed with
+    ''' the <see cref="ContinuationMarker"/> (e.g., <c>" ..."</c>) to indicate continuation.
+    ''' </param>
+    ''' <param name="eventType">
+    ''' The type of event. Valid values are <see cref="EventLogEntryType.Error"/>, <see cref="EventLogEntryType.Warning"/>, and
+    ''' <see cref="EventLogEntryType.Information"/>. If invalid, <c>Information</c> is used.
+    ''' </param>
+    ''' <param name="rawData">
+    ''' Optional binary data to include with the log entry. Can be <c>null</c> if not used.
+    ''' </param>
+    ''' <param name="EntrySeverity">
+    ''' Indicates the importance or severity of this log entry relative to the configured logging threshold
+    ''' (<see cref="CurrentLoggingLevel"/>). If the severity is lower than the current logging level, the entry
+    ''' will be skipped and not written to the Event Log.
+    ''' </param>
+    ''' <remarks>
+    ''' <para>
+    ''' If the specified event log or source does not exist, they are created automatically using the provided parameters.
+    ''' </para>
+    ''' <para>
+    ''' This method handles safe formatting, validation, and optional message splitting to avoid truncation of diagnostic content.
+    ''' </para>
+    ''' </remarks>
+    Public Sub Log(
+            ByVal message As String,
+            ByVal eventType As EventLogEntryType,
+            ByVal rawData As Byte(),
+            ByVal EntrySeverity As LoggingSeverity)
+
+        Log(message,
+            eventType,
+            0,
+            rawData,
+            EntrySeverity)
 
     End Sub
 
@@ -1181,6 +1930,58 @@ Public Module SmartEventLogger
             eventID,
             0,
             rawData)
+
+    End Sub
+
+    ''' <summary>
+    ''' Writes an entry to the Windows Event Log using the provided parameters.
+    ''' </summary>
+    ''' <param name="message">
+    ''' The message to log. If <c>null</c> or empty, a default message is used.
+    ''' 
+    ''' If <see cref="AllowMultiEntryMessages"/> is <c>false</c> (default), messages longer than 32,766 characters are truncated
+    ''' and suffixed with the <see cref="TruncationMarker"/> (e.g., <c>"... [TRUNCATED]"</c>).
+    ''' 
+    ''' If <see cref="AllowMultiEntryMessages"/> is <c>true</c>, long messages are split into multiple event entries,
+    ''' each prefixed with part information (e.g., <c>[Part 1/3]</c>) and intermediate entries are suffixed with
+    ''' the <see cref="ContinuationMarker"/> (e.g., <c>" ..."</c>) to indicate continuation.
+    ''' </param>
+    ''' <param name="eventType">
+    ''' The type of event. Valid values are <see cref="EventLogEntryType.Error"/>, <see cref="EventLogEntryType.Warning"/>, and
+    ''' <see cref="EventLogEntryType.Information"/>. If invalid, <c>Information</c> is used.
+    ''' </param>
+    ''' <param name="eventID">
+    ''' The numeric event identifier for the log entry. This is application-defined and may be used to group similar events.
+    ''' </param>
+    ''' <param name="rawData">
+    ''' Optional binary data to include with the log entry. Can be <c>null</c> if not used.
+    ''' </param>
+    ''' <param name="EntrySeverity">
+    ''' Indicates the importance or severity of this log entry relative to the configured logging threshold
+    ''' (<see cref="CurrentLoggingLevel"/>). If the severity is lower than the current logging level, the entry
+    ''' will be skipped and not written to the Event Log.
+    ''' </param>
+    ''' <remarks>
+    ''' <para>
+    ''' If the specified event log or source does not exist, they are created automatically using the provided parameters.
+    ''' </para>
+    ''' <para>
+    ''' This method handles safe formatting, validation, and optional message splitting to avoid truncation of diagnostic content.
+    ''' </para>
+    ''' </remarks>
+    Public Sub Log(
+            ByVal message As String,
+            ByVal eventType As EventLogEntryType,
+            ByVal eventID As Integer,
+            ByVal rawData As Byte(),
+            ByVal EntrySeverity As LoggingSeverity)
+
+        Log(message,
+            eventType,
+            eventID,
+            0,
+            rawData,
+            EntrySeverity)
 
     End Sub
 
@@ -1233,6 +2034,65 @@ Public Module SmartEventLogger
             eventID,
             category,
             rawData)
+
+    End Sub
+
+    ''' <summary>
+    ''' Writes an entry to the Windows Event Log using the provided parameters.
+    ''' </summary>
+    ''' <param name="message">
+    ''' The message to log. If <c>null</c> or empty, a default message is used.
+    ''' 
+    ''' If <see cref="AllowMultiEntryMessages"/> is <c>false</c> (default), messages longer than 32,766 characters are truncated
+    ''' and suffixed with the <see cref="TruncationMarker"/> (e.g., <c>"... [TRUNCATED]"</c>).
+    ''' 
+    ''' If <see cref="AllowMultiEntryMessages"/> is <c>true</c>, long messages are split into multiple event entries,
+    ''' each prefixed with part information (e.g., <c>[Part 1/3]</c>) and intermediate entries are suffixed with
+    ''' the <see cref="ContinuationMarker"/> (e.g., <c>" ..."</c>) to indicate continuation.
+    ''' </param>
+    ''' <param name="eventType">
+    ''' The type of event. Valid values are <see cref="EventLogEntryType.Error"/>, <see cref="EventLogEntryType.Warning"/>, and
+    ''' <see cref="EventLogEntryType.Information"/>. If invalid, <c>Information</c> is used.
+    ''' </param>
+    ''' <param name="eventID">
+    ''' The numeric event identifier for the log entry. This is application-defined and may be used to group similar events.
+    ''' </param>
+    ''' <param name="category">
+    ''' The category for the event, if applicable. This is typically used in categorized event views.
+    ''' </param>
+    ''' <param name="rawData">
+    ''' Optional binary data to include with the log entry. Can be <c>null</c> if not used.
+    ''' </param>
+    ''' <param name="EntrySeverity">
+    ''' Indicates the importance or severity of this log entry relative to the configured logging threshold
+    ''' (<see cref="CurrentLoggingLevel"/>). If the severity is lower than the current logging level, the entry
+    ''' will be skipped and not written to the Event Log.
+    ''' </param>
+    ''' <remarks>
+    ''' <para>
+    ''' If the specified event log or source does not exist, they are created automatically using the provided parameters.
+    ''' </para>
+    ''' <para>
+    ''' This method handles safe formatting, validation, and optional message splitting to avoid truncation of diagnostic content.
+    ''' </para>
+    ''' </remarks>
+    Public Sub Log(
+            ByVal message As String,
+            ByVal eventType As EventLogEntryType,
+            ByVal eventID As Integer,
+            ByVal category As Short,
+            ByVal rawData As Byte(),
+            ByVal EntrySeverity As LoggingSeverity)
+
+        Log("",
+            "",
+            "",
+            message,
+            eventType,
+            eventID,
+            category,
+            rawData,
+            EntrySeverity)
 
     End Sub
 
@@ -1296,6 +2156,70 @@ Public Module SmartEventLogger
     ''' <summary>
     ''' Writes an entry to the Windows Event Log using the provided parameters.
     ''' </summary>
+    ''' <param name="sourceName">
+    ''' The source of the log entry. If <c>null</c> or empty, a default source is generated using the calling method's
+    ''' namespace, class, and method name. If the source exceeds 254 characters, it is automatically truncated.
+    ''' </param>
+    ''' <param name="message">
+    ''' The message to log. If <c>null</c> or empty, a default message is used.
+    ''' 
+    ''' If <see cref="AllowMultiEntryMessages"/> is <c>false</c> (default), messages longer than 32,766 characters are truncated
+    ''' and suffixed with the <see cref="TruncationMarker"/> (e.g., <c>"... [TRUNCATED]"</c>).
+    ''' 
+    ''' If <see cref="AllowMultiEntryMessages"/> is <c>true</c>, long messages are split into multiple event entries,
+    ''' each prefixed with part information (e.g., <c>[Part 1/3]</c>) and intermediate entries are suffixed with
+    ''' the <see cref="ContinuationMarker"/> (e.g., <c>" ..."</c>) to indicate continuation.
+    ''' </param>
+    ''' <param name="eventType">
+    ''' The type of event. Valid values are <see cref="EventLogEntryType.Error"/>, <see cref="EventLogEntryType.Warning"/>, and
+    ''' <see cref="EventLogEntryType.Information"/>. If invalid, <c>Information</c> is used.
+    ''' </param>
+    ''' <param name="eventID">
+    ''' The numeric event identifier for the log entry. This is application-defined and may be used to group similar events.
+    ''' </param>
+    ''' <param name="category">
+    ''' The category for the event, if applicable. This is typically used in categorized event views.
+    ''' </param>
+    ''' <param name="rawData">
+    ''' Optional binary data to include with the log entry. Can be <c>null</c> if not used.
+    ''' </param>
+    ''' <param name="EntrySeverity">
+    ''' Indicates the importance or severity of this log entry relative to the configured logging threshold
+    ''' (<see cref="CurrentLoggingLevel"/>). If the severity is lower than the current logging level, the entry
+    ''' will be skipped and not written to the Event Log.
+    ''' </param>
+    ''' <remarks>
+    ''' <para>
+    ''' If the specified event log or source does not exist, they are created automatically using the provided parameters.
+    ''' </para>
+    ''' <para>
+    ''' This method handles safe formatting, validation, and optional message splitting to avoid truncation of diagnostic content.
+    ''' </para>
+    ''' </remarks>
+    Public Sub Log(
+            ByVal sourceName As String,
+            ByVal message As String,
+            ByVal eventType As EventLogEntryType,
+            ByVal eventID As Integer,
+            ByVal category As Short,
+            ByVal rawData As Byte(),
+            ByVal EntrySeverity As LoggingSeverity)
+
+        Log("",
+            "",
+            sourceName,
+            message,
+            eventType,
+            eventID,
+            category,
+            rawData,
+            EntrySeverity)
+
+    End Sub
+
+    ''' <summary>
+    ''' Writes an entry to the Windows Event Log using the provided parameters.
+    ''' </summary>
     ''' <param name="logName">
     ''' The name of the event log to write to (e.g., "Application", "System", or a custom log name).
     ''' If <c>null</c> or empty, "Application" is used by default.
@@ -1353,6 +2277,76 @@ Public Module SmartEventLogger
             eventID,
             category,
             rawData)
+
+    End Sub
+
+    ''' <summary>
+    ''' Writes an entry to the Windows Event Log using the provided parameters.
+    ''' </summary>
+    ''' <param name="logName">
+    ''' The name of the event log to write to (e.g., "Application", "System", or a custom log name).
+    ''' If <c>null</c> or empty, "Application" is used by default.
+    ''' </param>
+    ''' <param name="source">
+    ''' The source of the log entry. If <c>null</c> or empty, a default source is generated using the calling method's
+    ''' namespace, class, and method name. If the source exceeds 254 characters, it is automatically truncated.
+    ''' </param>
+    ''' <param name="message">
+    ''' The message to log. If <c>null</c> or empty, a default message is used.
+    ''' 
+    ''' If <see cref="AllowMultiEntryMessages"/> is <c>false</c> (default), messages longer than 32,766 characters are truncated
+    ''' and suffixed with the <see cref="TruncationMarker"/> (e.g., <c>"... [TRUNCATED]"</c>).
+    ''' 
+    ''' If <see cref="AllowMultiEntryMessages"/> is <c>true</c>, long messages are split into multiple event entries,
+    ''' each prefixed with part information (e.g., <c>[Part 1/3]</c>) and intermediate entries are suffixed with
+    ''' the <see cref="ContinuationMarker"/> (e.g., <c>" ..."</c>) to indicate continuation.
+    ''' </param>
+    ''' <param name="eventType">
+    ''' The type of event. Valid values are <see cref="EventLogEntryType.Error"/>, <see cref="EventLogEntryType.Warning"/>, and
+    ''' <see cref="EventLogEntryType.Information"/>. If invalid, <c>Information</c> is used.
+    ''' </param>
+    ''' <param name="eventID">
+    ''' The numeric event identifier for the log entry. This is application-defined and may be used to group similar events.
+    ''' </param>
+    ''' <param name="category">
+    ''' The category for the event, if applicable. This is typically used in categorized event views.
+    ''' </param>
+    ''' <param name="rawData">
+    ''' Optional binary data to include with the log entry. Can be <c>null</c> if not used.
+    ''' </param>
+    ''' <param name="EntrySeverity">
+    ''' Indicates the importance or severity of this log entry relative to the configured logging threshold
+    ''' (<see cref="CurrentLoggingLevel"/>). If the severity is lower than the current logging level, the entry
+    ''' will be skipped and not written to the Event Log.
+    ''' </param>
+    ''' <remarks>
+    ''' <para>
+    ''' If the specified event log or source does not exist, they are created automatically using the provided parameters.
+    ''' </para>
+    ''' <para>
+    ''' This method handles safe formatting, validation, and optional message splitting to avoid truncation of diagnostic content.
+    ''' </para>
+    ''' </remarks>
+    Public Sub Log(
+            ByVal logName As String,
+            ByVal source As String,
+            ByVal message As String,
+            ByVal eventType As EventLogEntryType,
+            ByVal eventID As Integer,
+            ByVal category As Short,
+            ByVal rawData As Byte(),
+            ByVal EntrySeverity As LoggingSeverity)
+
+        Log(
+            "",
+            logName,
+            source,
+            message,
+            eventType,
+            eventID,
+            category,
+            rawData,
+            EntrySeverity)
 
     End Sub
 
@@ -1456,6 +2450,79 @@ Public Module SmartEventLogger
     ''' <param name="rawData">
     ''' Optional binary data to include with the log entry. Can be <c>null</c> if not used.
     ''' </param>
+    ''' <param name="EntrySeverity">
+    ''' Indicates the importance or severity of this log entry relative to the configured logging threshold
+    ''' (<see cref="CurrentLoggingLevel"/>). If the severity is lower than the current logging level, the entry
+    ''' will be skipped and not written to the Event Log.
+    ''' </param>
+    ''' <remarks>
+    ''' <para>
+    ''' If the specified event log or source does not exist, they are created automatically using the provided parameters.
+    ''' </para>
+    ''' <para>
+    ''' This method handles safe formatting, validation, and optional message splitting to avoid truncation of diagnostic content.
+    ''' </para>
+    ''' </remarks>
+    Public Sub Log(
+            ByVal machineName As String,
+            ByVal logName As String,
+            ByVal source As String,
+            ByVal message As String,
+            ByVal eventType As EventLogEntryType,
+            ByVal eventID As Integer,
+            ByVal category As Short,
+            ByVal rawData As Byte(),
+            ByVal EntrySeverity As LoggingSeverity)
+
+        Initialize()
+        Log(
+            machineName,
+            logName,
+            source,
+            message,
+            eventType,
+            eventID,
+            category,
+            rawData,
+            MaxKilobytes,
+            EntrySeverity)
+
+    End Sub
+
+    ''' <summary>
+    ''' Writes an entry to the Windows Event Log using the provided parameters.
+    ''' </summary>
+    ''' <param name="logName">
+    ''' The name of the event log to write to (e.g., "Application", "System", or a custom log name).
+    ''' If <c>null</c> or empty, "Application" is used by default.
+    ''' </param>
+    ''' <param name="source">
+    ''' The source of the log entry. If <c>null</c> or empty, a default source is generated using the calling method's
+    ''' namespace, class, and method name. If the source exceeds 254 characters, it is automatically truncated.
+    ''' </param>
+    ''' <param name="message">
+    ''' The message to log. If <c>null</c> or empty, a default message is used.
+    ''' 
+    ''' If <see cref="AllowMultiEntryMessages"/> is <c>false</c> (default), messages longer than 32,766 characters are truncated
+    ''' and suffixed with the <see cref="TruncationMarker"/> (e.g., <c>"... [TRUNCATED]"</c>).
+    ''' 
+    ''' If <see cref="AllowMultiEntryMessages"/> is <c>true</c>, long messages are split into multiple event entries,
+    ''' each prefixed with part information (e.g., <c>[Part 1/3]</c>) and intermediate entries are suffixed with
+    ''' the <see cref="ContinuationMarker"/> (e.g., <c>" ..."</c>) to indicate continuation.
+    ''' </param>
+    ''' <param name="eventType">
+    ''' The type of event. Valid values are <see cref="EventLogEntryType.Error"/>, <see cref="EventLogEntryType.Warning"/>, and
+    ''' <see cref="EventLogEntryType.Information"/>. If invalid, <c>Information</c> is used.
+    ''' </param>
+    ''' <param name="eventID">
+    ''' The numeric event identifier for the log entry. This is application-defined and may be used to group similar events.
+    ''' </param>
+    ''' <param name="category">
+    ''' The category for the event, if applicable. This is typically used in categorized event views.
+    ''' </param>
+    ''' <param name="rawData">
+    ''' Optional binary data to include with the log entry. Can be <c>null</c> if not used.
+    ''' </param>
     ''' <param name="maxKilobytes">
     ''' The maximum size of the event log in kilobytes. Only used when creating a new log.
     ''' Must be between 64 KB and 4 GB. If 0 or negative, the system default is used.
@@ -1491,6 +2558,85 @@ Public Module SmartEventLogger
             rawData,
             maxKilobytes,
             RetentionDays)
+
+    End Sub
+
+    ''' <summary>
+    ''' Writes an entry to the Windows Event Log using the provided parameters.
+    ''' </summary>
+    ''' <param name="logName">
+    ''' The name of the event log to write to (e.g., "Application", "System", or a custom log name).
+    ''' If <c>null</c> or empty, "Application" is used by default.
+    ''' </param>
+    ''' <param name="source">
+    ''' The source of the log entry. If <c>null</c> or empty, a default source is generated using the calling method's
+    ''' namespace, class, and method name. If the source exceeds 254 characters, it is automatically truncated.
+    ''' </param>
+    ''' <param name="message">
+    ''' The message to log. If <c>null</c> or empty, a default message is used.
+    ''' 
+    ''' If <see cref="AllowMultiEntryMessages"/> is <c>false</c> (default), messages longer than 32,766 characters are truncated
+    ''' and suffixed with the <see cref="TruncationMarker"/> (e.g., <c>"... [TRUNCATED]"</c>).
+    ''' 
+    ''' If <see cref="AllowMultiEntryMessages"/> is <c>true</c>, long messages are split into multiple event entries,
+    ''' each prefixed with part information (e.g., <c>[Part 1/3]</c>) and intermediate entries are suffixed with
+    ''' the <see cref="ContinuationMarker"/> (e.g., <c>" ..."</c>) to indicate continuation.
+    ''' </param>
+    ''' <param name="eventType">
+    ''' The type of event. Valid values are <see cref="EventLogEntryType.Error"/>, <see cref="EventLogEntryType.Warning"/>, and
+    ''' <see cref="EventLogEntryType.Information"/>. If invalid, <c>Information</c> is used.
+    ''' </param>
+    ''' <param name="eventID">
+    ''' The numeric event identifier for the log entry. This is application-defined and may be used to group similar events.
+    ''' </param>
+    ''' <param name="category">
+    ''' The category for the event, if applicable. This is typically used in categorized event views.
+    ''' </param>
+    ''' <param name="rawData">
+    ''' Optional binary data to include with the log entry. Can be <c>null</c> if not used.
+    ''' </param>
+    ''' <param name="maxKilobytes">
+    ''' The maximum size of the event log in kilobytes. Only used when creating a new log.
+    ''' Must be between 64 KB and 4 GB. If 0 or negative, the system default is used.
+    ''' </param>
+    ''' <param name="EntrySeverity">
+    ''' Indicates the importance or severity of this log entry relative to the configured logging threshold
+    ''' (<see cref="CurrentLoggingLevel"/>). If the severity is lower than the current logging level, the entry
+    ''' will be skipped and not written to the Event Log.
+    ''' </param>
+    ''' <remarks>
+    ''' <para>
+    ''' If the specified event log or source does not exist, they are created automatically using the provided parameters.
+    ''' </para>
+    ''' <para>
+    ''' This method handles safe formatting, validation, and optional message splitting to avoid truncation of diagnostic content.
+    ''' </para>
+    ''' </remarks>
+    Public Sub Log(
+            ByVal machineName As String,
+            ByVal logName As String,
+            ByVal source As String,
+            ByVal message As String,
+            ByVal eventType As EventLogEntryType,
+            ByVal eventID As Integer,
+            ByVal category As Short,
+            ByVal rawData As Byte(),
+            ByVal maxKilobytes As Integer,
+            ByVal EntrySeverity As LoggingSeverity)
+
+        Initialize()
+        Log(
+            machineName,
+            logName,
+            source,
+            message,
+            eventType,
+            eventID,
+            category,
+            rawData,
+            maxKilobytes,
+            RetentionDays,
+            EntrySeverity)
 
     End Sub
 
@@ -1549,6 +2695,55 @@ Public Module SmartEventLogger
     ''' each prefixed with part information (e.g., <c>[Part 1/3]</c>) and intermediate entries are suffixed with
     ''' the <see cref="ContinuationMarker"/> (e.g., <c>" ..."</c>) to indicate continuation.
     ''' </param>
+    ''' <param name="maxKilobytes">
+    ''' The maximum size of the event log in kilobytes. Only used when creating a new log.
+    ''' Must be between 64 KB and 4 GB. If 0 or negative, the system default is used.
+    ''' </param>
+    ''' <param name="retentionDays">
+    ''' The number of days to retain event log entries. If 0, events are retained indefinitely.
+    ''' Only used when creating a new log.
+    ''' </param>
+    ''' <param name="EntrySeverity">
+    ''' Indicates the importance or severity of this log entry relative to the configured logging threshold
+    ''' (<see cref="CurrentLoggingLevel"/>). If the severity is lower than the current logging level, the entry
+    ''' will be skipped and not written to the Event Log.
+    ''' </param>
+    ''' <remarks>
+    ''' <para>
+    ''' If the specified event log or source does not exist, they are created automatically using the provided parameters.
+    ''' </para>
+    ''' <para>
+    ''' This method handles safe formatting, validation, and optional message splitting to avoid truncation of diagnostic content.
+    ''' </para>
+    ''' </remarks>
+    Public Sub Log(
+            ByVal message As String,
+            ByVal maxKilobytes As Integer,
+            ByVal retentionDays As Integer,
+            ByVal EntrySeverity As LoggingSeverity)
+
+        Log(
+            message,
+            EventLogEntryType.Information,
+            maxKilobytes,
+            retentionDays,
+            EntrySeverity)
+
+    End Sub
+
+    ''' <summary>
+    ''' Writes an entry to the Windows Event Log using the provided parameters.
+    ''' </summary>
+    ''' <param name="message">
+    ''' The message to log. If <c>null</c> or empty, a default message is used.
+    ''' 
+    ''' If <see cref="AllowMultiEntryMessages"/> is <c>false</c> (default), messages longer than 32,766 characters are truncated
+    ''' and suffixed with the <see cref="TruncationMarker"/> (e.g., <c>"... [TRUNCATED]"</c>).
+    ''' 
+    ''' If <see cref="AllowMultiEntryMessages"/> is <c>true</c>, long messages are split into multiple event entries,
+    ''' each prefixed with part information (e.g., <c>[Part 1/3]</c>) and intermediate entries are suffixed with
+    ''' the <see cref="ContinuationMarker"/> (e.g., <c>" ..."</c>) to indicate continuation.
+    ''' </param>
     ''' <param name="eventType">
     ''' The type of event. Valid values are <see cref="EventLogEntryType.Error"/>, <see cref="EventLogEntryType.Warning"/>, and
     ''' <see cref="EventLogEntryType.Information"/>. If invalid, <c>Information</c> is used.
@@ -1581,6 +2776,61 @@ Public Module SmartEventLogger
             0,
             maxKilobytes,
             retentionDays)
+
+    End Sub
+
+    ''' <summary>
+    ''' Writes an entry to the Windows Event Log using the provided parameters.
+    ''' </summary>
+    ''' <param name="message">
+    ''' The message to log. If <c>null</c> or empty, a default message is used.
+    ''' 
+    ''' If <see cref="AllowMultiEntryMessages"/> is <c>false</c> (default), messages longer than 32,766 characters are truncated
+    ''' and suffixed with the <see cref="TruncationMarker"/> (e.g., <c>"... [TRUNCATED]"</c>).
+    ''' 
+    ''' If <see cref="AllowMultiEntryMessages"/> is <c>true</c>, long messages are split into multiple event entries,
+    ''' each prefixed with part information (e.g., <c>[Part 1/3]</c>) and intermediate entries are suffixed with
+    ''' the <see cref="ContinuationMarker"/> (e.g., <c>" ..."</c>) to indicate continuation.
+    ''' </param>
+    ''' <param name="eventType">
+    ''' The type of event. Valid values are <see cref="EventLogEntryType.Error"/>, <see cref="EventLogEntryType.Warning"/>, and
+    ''' <see cref="EventLogEntryType.Information"/>. If invalid, <c>Information</c> is used.
+    ''' </param>
+    ''' <param name="maxKilobytes">
+    ''' The maximum size of the event log in kilobytes. Only used when creating a new log.
+    ''' Must be between 64 KB and 4 GB. If 0 or negative, the system default is used.
+    ''' </param>
+    ''' <param name="retentionDays">
+    ''' The number of days to retain event log entries. If 0, events are retained indefinitely.
+    ''' Only used when creating a new log.
+    ''' </param>
+    ''' <param name="EntrySeverity">
+    ''' Indicates the importance or severity of this log entry relative to the configured logging threshold
+    ''' (<see cref="CurrentLoggingLevel"/>). If the severity is lower than the current logging level, the entry
+    ''' will be skipped and not written to the Event Log.
+    ''' </param>
+    ''' <remarks>
+    ''' <para>
+    ''' If the specified event log or source does not exist, they are created automatically using the provided parameters.
+    ''' </para>
+    ''' <para>
+    ''' This method handles safe formatting, validation, and optional message splitting to avoid truncation of diagnostic content.
+    ''' </para>
+    ''' </remarks>
+    Public Sub Log(
+            ByVal message As String,
+            ByVal eventType As EventLogEntryType,
+            ByVal maxKilobytes As Integer,
+            ByVal retentionDays As Integer,
+            ByVal EntrySeverity As LoggingSeverity)
+
+        Log(
+            message,
+            eventType,
+            0,
+            maxKilobytes,
+            retentionDays,
+            EntrySeverity)
 
     End Sub
 
@@ -1634,6 +2884,66 @@ Public Module SmartEventLogger
             0,
             maxKilobytes,
             retentionDays)
+
+    End Sub
+
+    ''' <summary>
+    ''' Writes an entry to the Windows Event Log using the provided parameters.
+    ''' </summary>
+    ''' <param name="message">
+    ''' The message to log. If <c>null</c> or empty, a default message is used.
+    ''' 
+    ''' If <see cref="AllowMultiEntryMessages"/> is <c>false</c> (default), messages longer than 32,766 characters are truncated
+    ''' and suffixed with the <see cref="TruncationMarker"/> (e.g., <c>"... [TRUNCATED]"</c>).
+    ''' 
+    ''' If <see cref="AllowMultiEntryMessages"/> is <c>true</c>, long messages are split into multiple event entries,
+    ''' each prefixed with part information (e.g., <c>[Part 1/3]</c>) and intermediate entries are suffixed with
+    ''' the <see cref="ContinuationMarker"/> (e.g., <c>" ..."</c>) to indicate continuation.
+    ''' </param>
+    ''' <param name="eventType">
+    ''' The type of event. Valid values are <see cref="EventLogEntryType.Error"/>, <see cref="EventLogEntryType.Warning"/>, and
+    ''' <see cref="EventLogEntryType.Information"/>. If invalid, <c>Information</c> is used.
+    ''' </param>
+    ''' <param name="eventID">
+    ''' The numeric event identifier for the log entry. This is application-defined and may be used to group similar events.
+    ''' </param>
+    ''' <param name="maxKilobytes">
+    ''' The maximum size of the event log in kilobytes. Only used when creating a new log.
+    ''' Must be between 64 KB and 4 GB. If 0 or negative, the system default is used.
+    ''' </param>
+    ''' <param name="retentionDays">
+    ''' The number of days to retain event log entries. If 0, events are retained indefinitely.
+    ''' Only used when creating a new log.
+    ''' </param>
+    ''' <param name="EntrySeverity">
+    ''' Indicates the importance or severity of this log entry relative to the configured logging threshold
+    ''' (<see cref="CurrentLoggingLevel"/>). If the severity is lower than the current logging level, the entry
+    ''' will be skipped and not written to the Event Log.
+    ''' </param>
+    ''' <remarks>
+    ''' <para>
+    ''' If the specified event log or source does not exist, they are created automatically using the provided parameters.
+    ''' </para>
+    ''' <para>
+    ''' This method handles safe formatting, validation, and optional message splitting to avoid truncation of diagnostic content.
+    ''' </para>
+    ''' </remarks>
+    Public Sub Log(
+            ByVal message As String,
+            ByVal eventType As EventLogEntryType,
+            ByVal eventID As Integer,
+            ByVal maxKilobytes As Integer,
+            ByVal retentionDays As Integer,
+            ByVal EntrySeverity As LoggingSeverity)
+
+        Log(
+            message,
+            eventType,
+            eventID,
+            0,
+            maxKilobytes,
+            retentionDays,
+            EntrySeverity)
 
     End Sub
 
@@ -1718,6 +3028,71 @@ Public Module SmartEventLogger
     ''' <param name="category">
     ''' The category for the event, if applicable. This is typically used in categorized event views.
     ''' </param>
+    ''' <param name="maxKilobytes">
+    ''' The maximum size of the event log in kilobytes. Only used when creating a new log.
+    ''' Must be between 64 KB and 4 GB. If 0 or negative, the system default is used.
+    ''' </param>
+    ''' <param name="retentionDays">
+    ''' The number of days to retain event log entries. If 0, events are retained indefinitely.
+    ''' Only used when creating a new log.
+    ''' </param>
+    ''' <param name="EntrySeverity">
+    ''' Indicates the importance or severity of this log entry relative to the configured logging threshold
+    ''' (<see cref="CurrentLoggingLevel"/>). If the severity is lower than the current logging level, the entry
+    ''' will be skipped and not written to the Event Log.
+    ''' </param>
+    ''' <remarks>
+    ''' <para>
+    ''' If the specified event log or source does not exist, they are created automatically using the provided parameters.
+    ''' </para>
+    ''' <para>
+    ''' This method handles safe formatting, validation, and optional message splitting to avoid truncation of diagnostic content.
+    ''' </para>
+    ''' </remarks>
+    Public Sub Log(
+            ByVal message As String,
+            ByVal eventType As EventLogEntryType,
+            ByVal eventID As Integer,
+            ByVal category As Short,
+            ByVal maxKilobytes As Integer,
+            ByVal retentionDays As Integer,
+            ByVal EntrySeverity As LoggingSeverity)
+
+        Log(
+            message,
+            eventType,
+            eventID,
+            category,
+            Nothing,
+            maxKilobytes,
+            retentionDays,
+            EntrySeverity)
+
+    End Sub
+
+    ''' <summary>
+    ''' Writes an entry to the Windows Event Log using the provided parameters.
+    ''' </summary>
+    ''' <param name="message">
+    ''' The message to log. If <c>null</c> or empty, a default message is used.
+    ''' 
+    ''' If <see cref="AllowMultiEntryMessages"/> is <c>false</c> (default), messages longer than 32,766 characters are truncated
+    ''' and suffixed with the <see cref="TruncationMarker"/> (e.g., <c>"... [TRUNCATED]"</c>).
+    ''' 
+    ''' If <see cref="AllowMultiEntryMessages"/> is <c>true</c>, long messages are split into multiple event entries,
+    ''' each prefixed with part information (e.g., <c>[Part 1/3]</c>) and intermediate entries are suffixed with
+    ''' the <see cref="ContinuationMarker"/> (e.g., <c>" ..."</c>) to indicate continuation.
+    ''' </param>
+    ''' <param name="eventType">
+    ''' The type of event. Valid values are <see cref="EventLogEntryType.Error"/>, <see cref="EventLogEntryType.Warning"/>, and
+    ''' <see cref="EventLogEntryType.Information"/>. If invalid, <c>Information</c> is used.
+    ''' </param>
+    ''' <param name="eventID">
+    ''' The numeric event identifier for the log entry. This is application-defined and may be used to group similar events.
+    ''' </param>
+    ''' <param name="category">
+    ''' The category for the event, if applicable. This is typically used in categorized event views.
+    ''' </param>
     ''' <param name="rawData">
     ''' Optional binary data to include with the log entry. Can be <c>null</c> if not used.
     ''' </param>
@@ -1755,6 +3130,76 @@ Public Module SmartEventLogger
             rawData,
             maxKilobytes,
             retentionDays)
+
+    End Sub
+
+    ''' <summary>
+    ''' Writes an entry to the Windows Event Log using the provided parameters.
+    ''' </summary>
+    ''' <param name="message">
+    ''' The message to log. If <c>null</c> or empty, a default message is used.
+    ''' 
+    ''' If <see cref="AllowMultiEntryMessages"/> is <c>false</c> (default), messages longer than 32,766 characters are truncated
+    ''' and suffixed with the <see cref="TruncationMarker"/> (e.g., <c>"... [TRUNCATED]"</c>).
+    ''' 
+    ''' If <see cref="AllowMultiEntryMessages"/> is <c>true</c>, long messages are split into multiple event entries,
+    ''' each prefixed with part information (e.g., <c>[Part 1/3]</c>) and intermediate entries are suffixed with
+    ''' the <see cref="ContinuationMarker"/> (e.g., <c>" ..."</c>) to indicate continuation.
+    ''' </param>
+    ''' <param name="eventType">
+    ''' The type of event. Valid values are <see cref="EventLogEntryType.Error"/>, <see cref="EventLogEntryType.Warning"/>, and
+    ''' <see cref="EventLogEntryType.Information"/>. If invalid, <c>Information</c> is used.
+    ''' </param>
+    ''' <param name="eventID">
+    ''' The numeric event identifier for the log entry. This is application-defined and may be used to group similar events.
+    ''' </param>
+    ''' <param name="category">
+    ''' The category for the event, if applicable. This is typically used in categorized event views.
+    ''' </param>
+    ''' <param name="rawData">
+    ''' Optional binary data to include with the log entry. Can be <c>null</c> if not used.
+    ''' </param>
+    ''' <param name="maxKilobytes">
+    ''' The maximum size of the event log in kilobytes. Only used when creating a new log.
+    ''' Must be between 64 KB and 4 GB. If 0 or negative, the system default is used.
+    ''' </param>
+    ''' <param name="retentionDays">
+    ''' The number of days to retain event log entries. If 0, events are retained indefinitely.
+    ''' Only used when creating a new log.
+    ''' </param>
+    ''' <param name="EntrySeverity">
+    ''' Indicates the importance or severity of this log entry relative to the configured logging threshold
+    ''' (<see cref="CurrentLoggingLevel"/>). If the severity is lower than the current logging level, the entry
+    ''' will be skipped and not written to the Event Log.
+    ''' </param>
+    ''' <remarks>
+    ''' <para>
+    ''' If the specified event log or source does not exist, they are created automatically using the provided parameters.
+    ''' </para>
+    ''' <para>
+    ''' This method handles safe formatting, validation, and optional message splitting to avoid truncation of diagnostic content.
+    ''' </para>
+    ''' </remarks>
+    Public Sub Log(
+            ByVal message As String,
+            ByVal eventType As EventLogEntryType,
+            ByVal eventID As Integer,
+            ByVal category As Short,
+            ByVal rawData As Byte(),
+            ByVal maxKilobytes As Integer,
+            ByVal retentionDays As Integer,
+            ByVal EntrySeverity As LoggingSeverity)
+
+        Log(
+            "",
+            message,
+            eventType,
+            eventID,
+            category,
+            rawData,
+            maxKilobytes,
+            retentionDays,
+            EntrySeverity)
 
     End Sub
 
@@ -1824,6 +3269,82 @@ Public Module SmartEventLogger
             rawData,
             maxKilobytes,
             retentionDays)
+
+    End Sub
+
+    ''' <summary>
+    ''' Writes an entry to the Windows Event Log using the provided parameters.
+    ''' </summary>
+    ''' <param name="source">
+    ''' The source of the log entry. If <c>null</c> or empty, a default source is generated using the calling method's
+    ''' namespace, class, and method name. If the source exceeds 254 characters, it is automatically truncated.
+    ''' </param>
+    ''' <param name="message">
+    ''' The message to log. If <c>null</c> or empty, a default message is used.
+    ''' 
+    ''' If <see cref="AllowMultiEntryMessages"/> is <c>false</c> (default), messages longer than 32,766 characters are truncated
+    ''' and suffixed with the <see cref="TruncationMarker"/> (e.g., <c>"... [TRUNCATED]"</c>).
+    ''' 
+    ''' If <see cref="AllowMultiEntryMessages"/> is <c>true</c>, long messages are split into multiple event entries,
+    ''' each prefixed with part information (e.g., <c>[Part 1/3]</c>) and intermediate entries are suffixed with
+    ''' the <see cref="ContinuationMarker"/> (e.g., <c>" ..."</c>) to indicate continuation.
+    ''' </param>
+    ''' <param name="eventType">
+    ''' The type of event. Valid values are <see cref="EventLogEntryType.Error"/>, <see cref="EventLogEntryType.Warning"/>, and
+    ''' <see cref="EventLogEntryType.Information"/>. If invalid, <c>Information</c> is used.
+    ''' </param>
+    ''' <param name="eventID">
+    ''' The numeric event identifier for the log entry. This is application-defined and may be used to group similar events.
+    ''' </param>
+    ''' <param name="category">
+    ''' The category for the event, if applicable. This is typically used in categorized event views.
+    ''' </param>
+    ''' <param name="rawData">
+    ''' Optional binary data to include with the log entry. Can be <c>null</c> if not used.
+    ''' </param>
+    ''' <param name="maxKilobytes">
+    ''' The maximum size of the event log in kilobytes. Only used when creating a new log.
+    ''' Must be between 64 KB and 4 GB. If 0 or negative, the system default is used.
+    ''' </param>
+    ''' <param name="retentionDays">
+    ''' The number of days to retain event log entries. If 0, events are retained indefinitely.
+    ''' Only used when creating a new log.
+    ''' </param>
+    ''' <param name="EntrySeverity">
+    ''' Indicates the importance or severity of this log entry relative to the configured logging threshold
+    ''' (<see cref="CurrentLoggingLevel"/>). If the severity is lower than the current logging level, the entry
+    ''' will be skipped and not written to the Event Log.
+    ''' </param>
+    ''' <remarks>
+    ''' <para>
+    ''' If the specified event log or source does not exist, they are created automatically using the provided parameters.
+    ''' </para>
+    ''' <para>
+    ''' This method handles safe formatting, validation, and optional message splitting to avoid truncation of diagnostic content.
+    ''' </para>
+    ''' </remarks>
+    Public Sub Log(
+            ByVal source As String,
+            ByVal message As String,
+            ByVal eventType As EventLogEntryType,
+            ByVal eventID As Integer,
+            ByVal category As Short,
+            ByVal rawData As Byte(),
+            ByVal maxKilobytes As Integer,
+            ByVal retentionDays As Integer,
+            ByVal EntrySeverity As LoggingSeverity)
+
+        Log(
+            "",
+            source,
+            message,
+            eventType,
+            eventID,
+            category,
+            rawData,
+            maxKilobytes,
+            retentionDays,
+            EntrySeverity)
 
     End Sub
 
@@ -1899,6 +3420,88 @@ Public Module SmartEventLogger
             rawData,
             maxKilobytes,
             retentionDays)
+
+    End Sub
+
+    ''' <summary>
+    ''' Writes an entry to the Windows Event Log using the provided parameters.
+    ''' </summary>
+    ''' <param name="logName">
+    ''' The name of the event log to write to (e.g., "Application", "System", or a custom log name).
+    ''' If <c>null</c> or empty, "Application" is used by default.
+    ''' </param>
+    ''' <param name="source">
+    ''' The source of the log entry. If <c>null</c> or empty, a default source is generated using the calling method's
+    ''' namespace, class, and method name. If the source exceeds 254 characters, it is automatically truncated.
+    ''' </param>
+    ''' <param name="message">
+    ''' The message to log. If <c>null</c> or empty, a default message is used.
+    ''' 
+    ''' If <see cref="AllowMultiEntryMessages"/> is <c>false</c> (default), messages longer than 32,766 characters are truncated
+    ''' and suffixed with the <see cref="TruncationMarker"/> (e.g., <c>"... [TRUNCATED]"</c>).
+    ''' 
+    ''' If <see cref="AllowMultiEntryMessages"/> is <c>true</c>, long messages are split into multiple event entries,
+    ''' each prefixed with part information (e.g., <c>[Part 1/3]</c>) and intermediate entries are suffixed with
+    ''' the <see cref="ContinuationMarker"/> (e.g., <c>" ..."</c>) to indicate continuation.
+    ''' </param>
+    ''' <param name="eventType">
+    ''' The type of event. Valid values are <see cref="EventLogEntryType.Error"/>, <see cref="EventLogEntryType.Warning"/>, and
+    ''' <see cref="EventLogEntryType.Information"/>. If invalid, <c>Information</c> is used.
+    ''' </param>
+    ''' <param name="eventID">
+    ''' The numeric event identifier for the log entry. This is application-defined and may be used to group similar events.
+    ''' </param>
+    ''' <param name="category">
+    ''' The category for the event, if applicable. This is typically used in categorized event views.
+    ''' </param>
+    ''' <param name="rawData">
+    ''' Optional binary data to include with the log entry. Can be <c>null</c> if not used.
+    ''' </param>
+    ''' <param name="maxKilobytes">
+    ''' The maximum size of the event log in kilobytes. Only used when creating a new log.
+    ''' Must be between 64 KB and 4 GB. If 0 or negative, the system default is used.
+    ''' </param>
+    ''' <param name="retentionDays">
+    ''' The number of days to retain event log entries. If 0, events are retained indefinitely.
+    ''' Only used when creating a new log.
+    ''' </param>
+    ''' <param name="EntrySeverity">
+    ''' Indicates the importance or severity of this log entry relative to the configured logging threshold
+    ''' (<see cref="CurrentLoggingLevel"/>). If the severity is lower than the current logging level, the entry
+    ''' will be skipped and not written to the Event Log.
+    ''' </param>
+    ''' <remarks>
+    ''' <para>
+    ''' If the specified event log or source does not exist, they are created automatically using the provided parameters.
+    ''' </para>
+    ''' <para>
+    ''' This method handles safe formatting, validation, and optional message splitting to avoid truncation of diagnostic content.
+    ''' </para>
+    ''' </remarks>
+    Public Sub Log(
+            ByVal logName As String,
+            ByVal source As String,
+            ByVal message As String,
+            ByVal eventType As EventLogEntryType,
+            ByVal eventID As Integer,
+            ByVal category As Short,
+            ByVal rawData As Byte(),
+            ByVal maxKilobytes As Integer,
+            ByVal retentionDays As Integer,
+            ByVal EntrySeverity As LoggingSeverity)
+
+        Log(
+            "",
+            logName,
+            source,
+            message,
+            eventType,
+            eventID,
+            category,
+            rawData,
+            maxKilobytes,
+            retentionDays,
+            EntrySeverity)
 
     End Sub
 
@@ -1984,6 +3587,91 @@ Public Module SmartEventLogger
     ''' <summary>
     ''' Writes an entry to the Windows Event Log using the provided parameters.
     ''' </summary>
+    ''' <param name="logName">
+    ''' The name of the event log to write to (e.g., "Application", "System", or a custom log name).
+    ''' If <c>null</c> or empty, "Application" is used by default.
+    ''' </param>
+    ''' <param name="source">
+    ''' The source of the log entry. If <c>null</c> or empty, a default source is generated using the calling method's
+    ''' namespace, class, and method name. If the source exceeds 254 characters, it is automatically truncated.
+    ''' </param>
+    ''' <param name="message">
+    ''' The message to log. If <c>null</c> or empty, a default message is used.
+    ''' 
+    ''' If <see cref="AllowMultiEntryMessages"/> is <c>false</c> (default), messages longer than 32,766 characters are truncated
+    ''' and suffixed with the <see cref="TruncationMarker"/> (e.g., <c>"... [TRUNCATED]"</c>).
+    ''' 
+    ''' If <see cref="AllowMultiEntryMessages"/> is <c>true</c>, long messages are split into multiple event entries,
+    ''' each prefixed with part information (e.g., <c>[Part 1/3]</c>) and intermediate entries are suffixed with
+    ''' the <see cref="ContinuationMarker"/> (e.g., <c>" ..."</c>) to indicate continuation.
+    ''' </param>
+    ''' <param name="eventType">
+    ''' The type of event. Valid values are <see cref="EventLogEntryType.Error"/>, <see cref="EventLogEntryType.Warning"/>, and
+    ''' <see cref="EventLogEntryType.Information"/>. If invalid, <c>Information</c> is used.
+    ''' </param>
+    ''' <param name="eventID">
+    ''' The numeric event identifier for the log entry. This is application-defined and may be used to group similar events.
+    ''' </param>
+    ''' <param name="category">
+    ''' The category for the event, if applicable. This is typically used in categorized event views.
+    ''' </param>
+    ''' <param name="rawData">
+    ''' Optional binary data to include with the log entry. Can be <c>null</c> if not used.
+    ''' </param>
+    ''' <param name="maxKilobytes">
+    ''' The maximum size of the event log in kilobytes. Only used when creating a new log.
+    ''' Must be between 64 KB and 4 GB. If 0 or negative, the system default is used.
+    ''' </param>
+    ''' <param name="retentionDays">
+    ''' The number of days to retain event log entries. If 0, events are retained indefinitely.
+    ''' Only used when creating a new log.
+    ''' </param>
+    ''' <param name="EntrySeverity">
+    ''' Indicates the importance or severity of this log entry relative to the configured logging threshold
+    ''' (<see cref="CurrentLoggingLevel"/>). If the severity is lower than the current logging level, the entry
+    ''' will be skipped and not written to the Event Log.
+    ''' </param>
+    ''' <remarks>
+    ''' <para>
+    ''' If the specified event log or source does not exist, they are created automatically using the provided parameters.
+    ''' </para>
+    ''' <para>
+    ''' This method handles safe formatting, validation, and optional message splitting to avoid truncation of diagnostic content.
+    ''' </para>
+    ''' </remarks>
+    Public Sub Log(
+            ByVal machineName As String,
+            ByVal logName As String,
+            ByVal source As String,
+            ByVal message As String,
+            ByVal eventType As EventLogEntryType,
+            ByVal eventID As Integer,
+            ByVal category As Short,
+            ByVal rawData As Byte(),
+            ByVal maxKilobytes As Integer,
+            ByVal retentionDays As Integer,
+            ByVal EntrySeverity As LoggingSeverity)
+
+        Initialize()
+        Log(
+            machineName,
+            logName,
+            source,
+            message,
+            eventType,
+            eventID,
+            category,
+            rawData,
+            maxKilobytes,
+            retentionDays,
+            WriteInitEntry,
+            EntrySeverity)
+
+    End Sub
+
+    ''' <summary>
+    ''' Writes an entry to the Windows Event Log using the provided parameters.
+    ''' </summary>
     ''' <param name="message">
     ''' The message to log. If <c>null</c> or empty, a default message is used.
     ''' 
@@ -2041,6 +3729,60 @@ Public Module SmartEventLogger
     ''' each prefixed with part information (e.g., <c>[Part 1/3]</c>) and intermediate entries are suffixed with
     ''' the <see cref="ContinuationMarker"/> (e.g., <c>" ..."</c>) to indicate continuation.
     ''' </param>
+    ''' <param name="maxKilobytes">
+    ''' The maximum size of the event log in kilobytes. Only used when creating a new log.
+    ''' Must be between 64 KB and 4 GB. If 0 or negative, the system default is used.
+    ''' </param>
+    ''' <param name="retentionDays">
+    ''' The number of days to retain event log entries. If 0, events are retained indefinitely.
+    ''' Only used when creating a new log.
+    ''' </param>
+    ''' <param name="writeInitEntry">
+    ''' Indicates whether an initialization entry should be written when a new log is created.
+    ''' </param>
+    ''' <param name="EntrySeverity">
+    ''' Indicates the importance or severity of this log entry relative to the configured logging threshold
+    ''' (<see cref="CurrentLoggingLevel"/>). If the severity is lower than the current logging level, the entry
+    ''' will be skipped and not written to the Event Log.
+    ''' </param>
+    ''' <remarks>
+    ''' <para>
+    ''' If the specified event log or source does not exist, they are created automatically using the provided parameters.
+    ''' </para>
+    ''' <para>
+    ''' This method handles safe formatting, validation, and optional message splitting to avoid truncation of diagnostic content.
+    ''' </para>
+    ''' </remarks>
+    Public Sub Log(
+            ByVal message As String,
+            ByVal maxKilobytes As Integer,
+            ByVal retentionDays As Integer,
+            ByVal writeInitEntry As Boolean,
+            ByVal EntrySeverity As LoggingSeverity)
+
+        Log(
+            message,
+            EventLogEntryType.Information,
+            maxKilobytes,
+            retentionDays,
+            writeInitEntry,
+            EntrySeverity)
+
+    End Sub
+
+    ''' <summary>
+    ''' Writes an entry to the Windows Event Log using the provided parameters.
+    ''' </summary>
+    ''' <param name="message">
+    ''' The message to log. If <c>null</c> or empty, a default message is used.
+    ''' 
+    ''' If <see cref="AllowMultiEntryMessages"/> is <c>false</c> (default), messages longer than 32,766 characters are truncated
+    ''' and suffixed with the <see cref="TruncationMarker"/> (e.g., <c>"... [TRUNCATED]"</c>).
+    ''' 
+    ''' If <see cref="AllowMultiEntryMessages"/> is <c>true</c>, long messages are split into multiple event entries,
+    ''' each prefixed with part information (e.g., <c>[Part 1/3]</c>) and intermediate entries are suffixed with
+    ''' the <see cref="ContinuationMarker"/> (e.g., <c>" ..."</c>) to indicate continuation.
+    ''' </param>
     ''' <param name="eventType">
     ''' The type of event. Valid values are <see cref="EventLogEntryType.Error"/>, <see cref="EventLogEntryType.Warning"/>, and
     ''' <see cref="EventLogEntryType.Information"/>. If invalid, <c>Information</c> is used.
@@ -2078,6 +3820,66 @@ Public Module SmartEventLogger
             maxKilobytes,
             retentionDays,
             writeInitEntry)
+
+    End Sub
+
+    ''' <summary>
+    ''' Writes an entry to the Windows Event Log using the provided parameters.
+    ''' </summary>
+    ''' <param name="message">
+    ''' The message to log. If <c>null</c> or empty, a default message is used.
+    ''' 
+    ''' If <see cref="AllowMultiEntryMessages"/> is <c>false</c> (default), messages longer than 32,766 characters are truncated
+    ''' and suffixed with the <see cref="TruncationMarker"/> (e.g., <c>"... [TRUNCATED]"</c>).
+    ''' 
+    ''' If <see cref="AllowMultiEntryMessages"/> is <c>true</c>, long messages are split into multiple event entries,
+    ''' each prefixed with part information (e.g., <c>[Part 1/3]</c>) and intermediate entries are suffixed with
+    ''' the <see cref="ContinuationMarker"/> (e.g., <c>" ..."</c>) to indicate continuation.
+    ''' </param>
+    ''' <param name="eventType">
+    ''' The type of event. Valid values are <see cref="EventLogEntryType.Error"/>, <see cref="EventLogEntryType.Warning"/>, and
+    ''' <see cref="EventLogEntryType.Information"/>. If invalid, <c>Information</c> is used.
+    ''' </param>
+    ''' <param name="maxKilobytes">
+    ''' The maximum size of the event log in kilobytes. Only used when creating a new log.
+    ''' Must be between 64 KB and 4 GB. If 0 or negative, the system default is used.
+    ''' </param>
+    ''' <param name="retentionDays">
+    ''' The number of days to retain event log entries. If 0, events are retained indefinitely.
+    ''' Only used when creating a new log.
+    ''' </param>
+    ''' <param name="writeInitEntry">
+    ''' Indicates whether an initialization entry should be written when a new log is created.
+    ''' </param>
+    ''' <param name="EntrySeverity">
+    ''' Indicates the importance or severity of this log entry relative to the configured logging threshold
+    ''' (<see cref="CurrentLoggingLevel"/>). If the severity is lower than the current logging level, the entry
+    ''' will be skipped and not written to the Event Log.
+    ''' </param>
+    ''' <remarks>
+    ''' <para>
+    ''' If the specified event log or source does not exist, they are created automatically using the provided parameters.
+    ''' </para>
+    ''' <para>
+    ''' This method handles safe formatting, validation, and optional message splitting to avoid truncation of diagnostic content.
+    ''' </para>
+    ''' </remarks>
+    Public Sub Log(
+            ByVal message As String,
+            ByVal eventType As EventLogEntryType,
+            ByVal maxKilobytes As Integer,
+            ByVal retentionDays As Integer,
+            ByVal writeInitEntry As Boolean,
+            ByVal EntrySeverity As LoggingSeverity)
+
+        Log(
+            message,
+            eventType,
+            0,
+            maxKilobytes,
+            retentionDays,
+            writeInitEntry,
+            EntrySeverity)
 
     End Sub
 
@@ -2136,6 +3938,71 @@ Public Module SmartEventLogger
             maxKilobytes,
             retentionDays,
             writeInitEntry)
+
+    End Sub
+
+    ''' <summary>
+    ''' Writes an entry to the Windows Event Log using the provided parameters.
+    ''' </summary>
+    ''' <param name="message">
+    ''' The message to log. If <c>null</c> or empty, a default message is used.
+    ''' 
+    ''' If <see cref="AllowMultiEntryMessages"/> is <c>false</c> (default), messages longer than 32,766 characters are truncated
+    ''' and suffixed with the <see cref="TruncationMarker"/> (e.g., <c>"... [TRUNCATED]"</c>).
+    ''' 
+    ''' If <see cref="AllowMultiEntryMessages"/> is <c>true</c>, long messages are split into multiple event entries,
+    ''' each prefixed with part information (e.g., <c>[Part 1/3]</c>) and intermediate entries are suffixed with
+    ''' the <see cref="ContinuationMarker"/> (e.g., <c>" ..."</c>) to indicate continuation.
+    ''' </param>
+    ''' <param name="eventType">
+    ''' The type of event. Valid values are <see cref="EventLogEntryType.Error"/>, <see cref="EventLogEntryType.Warning"/>, and
+    ''' <see cref="EventLogEntryType.Information"/>. If invalid, <c>Information</c> is used.
+    ''' </param>
+    ''' <param name="eventID">
+    ''' The numeric event identifier for the log entry. This is application-defined and may be used to group similar events.
+    ''' </param>
+    ''' <param name="maxKilobytes">
+    ''' The maximum size of the event log in kilobytes. Only used when creating a new log.
+    ''' Must be between 64 KB and 4 GB. If 0 or negative, the system default is used.
+    ''' </param>
+    ''' <param name="retentionDays">
+    ''' The number of days to retain event log entries. If 0, events are retained indefinitely.
+    ''' Only used when creating a new log.
+    ''' </param>
+    ''' <param name="writeInitEntry">
+    ''' Indicates whether an initialization entry should be written when a new log is created.
+    ''' </param>
+    ''' <param name="EntrySeverity">
+    ''' Indicates the importance or severity of this log entry relative to the configured logging threshold
+    ''' (<see cref="CurrentLoggingLevel"/>). If the severity is lower than the current logging level, the entry
+    ''' will be skipped and not written to the Event Log.
+    ''' </param>
+    ''' <remarks>
+    ''' <para>
+    ''' If the specified event log or source does not exist, they are created automatically using the provided parameters.
+    ''' </para>
+    ''' <para>
+    ''' This method handles safe formatting, validation, and optional message splitting to avoid truncation of diagnostic content.
+    ''' </para>
+    ''' </remarks>
+    Public Sub Log(
+            ByVal message As String,
+            ByVal eventType As EventLogEntryType,
+            ByVal eventID As Integer,
+            ByVal maxKilobytes As Integer,
+            ByVal retentionDays As Integer,
+            ByVal writeInitEntry As Boolean,
+            ByVal EntrySeverity As LoggingSeverity)
+
+        Log(
+            message,
+            eventType,
+            eventID,
+            0,
+            maxKilobytes,
+            retentionDays,
+            writeInitEntry,
+            EntrySeverity)
 
     End Sub
 
@@ -2225,6 +4092,76 @@ Public Module SmartEventLogger
     ''' <param name="category">
     ''' The category for the event, if applicable. This is typically used in categorized event views.
     ''' </param>
+    ''' <param name="maxKilobytes">
+    ''' The maximum size of the event log in kilobytes. Only used when creating a new log.
+    ''' Must be between 64 KB and 4 GB. If 0 or negative, the system default is used.
+    ''' </param>
+    ''' <param name="retentionDays">
+    ''' The number of days to retain event log entries. If 0, events are retained indefinitely.
+    ''' Only used when creating a new log.
+    ''' </param>
+    ''' <param name="writeInitEntry">
+    ''' Indicates whether an initialization entry should be written when a new log is created.
+    ''' </param>
+    ''' <param name="EntrySeverity">
+    ''' Indicates the importance or severity of this log entry relative to the configured logging threshold
+    ''' (<see cref="CurrentLoggingLevel"/>). If the severity is lower than the current logging level, the entry
+    ''' will be skipped and not written to the Event Log.
+    ''' </param>
+    ''' <remarks>
+    ''' <para>
+    ''' If the specified event log or source does not exist, they are created automatically using the provided parameters.
+    ''' </para>
+    ''' <para>
+    ''' This method handles safe formatting, validation, and optional message splitting to avoid truncation of diagnostic content.
+    ''' </para>
+    ''' </remarks>
+    Public Sub Log(
+            ByVal message As String,
+            ByVal eventType As EventLogEntryType,
+            ByVal eventID As Integer,
+            ByVal category As Short,
+            ByVal maxKilobytes As Integer,
+            ByVal retentionDays As Integer,
+            ByVal writeInitEntry As Boolean,
+            ByVal EntrySeverity As LoggingSeverity)
+
+        Log(
+            message,
+            eventType,
+            eventID,
+            category,
+            Nothing,
+            maxKilobytes,
+            retentionDays,
+            writeInitEntry,
+            EntrySeverity)
+
+    End Sub
+
+    ''' <summary>
+    ''' Writes an entry to the Windows Event Log using the provided parameters.
+    ''' </summary>
+    ''' <param name="message">
+    ''' The message to log. If <c>null</c> or empty, a default message is used.
+    ''' 
+    ''' If <see cref="AllowMultiEntryMessages"/> is <c>false</c> (default), messages longer than 32,766 characters are truncated
+    ''' and suffixed with the <see cref="TruncationMarker"/> (e.g., <c>"... [TRUNCATED]"</c>).
+    ''' 
+    ''' If <see cref="AllowMultiEntryMessages"/> is <c>true</c>, long messages are split into multiple event entries,
+    ''' each prefixed with part information (e.g., <c>[Part 1/3]</c>) and intermediate entries are suffixed with
+    ''' the <see cref="ContinuationMarker"/> (e.g., <c>" ..."</c>) to indicate continuation.
+    ''' </param>
+    ''' <param name="eventType">
+    ''' The type of event. Valid values are <see cref="EventLogEntryType.Error"/>, <see cref="EventLogEntryType.Warning"/>, and
+    ''' <see cref="EventLogEntryType.Information"/>. If invalid, <c>Information</c> is used.
+    ''' </param>
+    ''' <param name="eventID">
+    ''' The numeric event identifier for the log entry. This is application-defined and may be used to group similar events.
+    ''' </param>
+    ''' <param name="category">
+    ''' The category for the event, if applicable. This is typically used in categorized event views.
+    ''' </param>
     ''' <param name="rawData">
     ''' Optional binary data to include with the log entry. Can be <c>null</c> if not used.
     ''' </param>
@@ -2267,6 +4204,81 @@ Public Module SmartEventLogger
             maxKilobytes,
             retentionDays,
             writeInitEntry)
+
+    End Sub
+
+    ''' <summary>
+    ''' Writes an entry to the Windows Event Log using the provided parameters.
+    ''' </summary>
+    ''' <param name="message">
+    ''' The message to log. If <c>null</c> or empty, a default message is used.
+    ''' 
+    ''' If <see cref="AllowMultiEntryMessages"/> is <c>false</c> (default), messages longer than 32,766 characters are truncated
+    ''' and suffixed with the <see cref="TruncationMarker"/> (e.g., <c>"... [TRUNCATED]"</c>).
+    ''' 
+    ''' If <see cref="AllowMultiEntryMessages"/> is <c>true</c>, long messages are split into multiple event entries,
+    ''' each prefixed with part information (e.g., <c>[Part 1/3]</c>) and intermediate entries are suffixed with
+    ''' the <see cref="ContinuationMarker"/> (e.g., <c>" ..."</c>) to indicate continuation.
+    ''' </param>
+    ''' <param name="eventType">
+    ''' The type of event. Valid values are <see cref="EventLogEntryType.Error"/>, <see cref="EventLogEntryType.Warning"/>, and
+    ''' <see cref="EventLogEntryType.Information"/>. If invalid, <c>Information</c> is used.
+    ''' </param>
+    ''' <param name="eventID">
+    ''' The numeric event identifier for the log entry. This is application-defined and may be used to group similar events.
+    ''' </param>
+    ''' <param name="category">
+    ''' The category for the event, if applicable. This is typically used in categorized event views.
+    ''' </param>
+    ''' <param name="rawData">
+    ''' Optional binary data to include with the log entry. Can be <c>null</c> if not used.
+    ''' </param>
+    ''' <param name="maxKilobytes">
+    ''' The maximum size of the event log in kilobytes. Only used when creating a new log.
+    ''' Must be between 64 KB and 4 GB. If 0 or negative, the system default is used.
+    ''' </param>
+    ''' <param name="retentionDays">
+    ''' The number of days to retain event log entries. If 0, events are retained indefinitely.
+    ''' Only used when creating a new log.
+    ''' </param>
+    ''' <param name="writeInitEntry">
+    ''' Indicates whether an initialization entry should be written when a new log is created.
+    ''' </param>
+    ''' <param name="EntrySeverity">
+    ''' Indicates the importance or severity of this log entry relative to the configured logging threshold
+    ''' (<see cref="CurrentLoggingLevel"/>). If the severity is lower than the current logging level, the entry
+    ''' will be skipped and not written to the Event Log.
+    ''' </param>
+    ''' <remarks>
+    ''' <para>
+    ''' If the specified event log or source does not exist, they are created automatically using the provided parameters.
+    ''' </para>
+    ''' <para>
+    ''' This method handles safe formatting, validation, and optional message splitting to avoid truncation of diagnostic content.
+    ''' </para>
+    ''' </remarks>
+    Public Sub Log(
+            ByVal message As String,
+            ByVal eventType As EventLogEntryType,
+            ByVal eventID As Integer,
+            ByVal category As Short,
+            ByVal rawData As Byte(),
+            ByVal maxKilobytes As Integer,
+            ByVal retentionDays As Integer,
+            ByVal writeInitEntry As Boolean,
+            ByVal EntrySeverity As LoggingSeverity)
+
+        Log(
+            "",
+            message,
+            eventType,
+            eventID,
+            category,
+            rawData,
+            maxKilobytes,
+            retentionDays,
+            writeInitEntry,
+            EntrySeverity)
 
     End Sub
 
@@ -2341,6 +4353,87 @@ Public Module SmartEventLogger
             maxKilobytes,
             retentionDays,
             writeInitEntry)
+
+    End Sub
+
+    ''' <summary>
+    ''' Writes an entry to the Windows Event Log using the provided parameters.
+    ''' </summary>
+    ''' <param name="sourceName">
+    ''' The source of the log entry. If <c>null</c> or empty, a default source is generated using the calling method's
+    ''' namespace, class, and method name. If the source exceeds 254 characters, it is automatically truncated.
+    ''' </param>
+    ''' <param name="message">
+    ''' The message to log. If <c>null</c> or empty, a default message is used.
+    ''' 
+    ''' If <see cref="AllowMultiEntryMessages"/> is <c>false</c> (default), messages longer than 32,766 characters are truncated
+    ''' and suffixed with the <see cref="TruncationMarker"/> (e.g., <c>"... [TRUNCATED]"</c>).
+    ''' 
+    ''' If <see cref="AllowMultiEntryMessages"/> is <c>true</c>, long messages are split into multiple event entries,
+    ''' each prefixed with part information (e.g., <c>[Part 1/3]</c>) and intermediate entries are suffixed with
+    ''' the <see cref="ContinuationMarker"/> (e.g., <c>" ..."</c>) to indicate continuation.
+    ''' </param>
+    ''' <param name="eventType">
+    ''' The type of event. Valid values are <see cref="EventLogEntryType.Error"/>, <see cref="EventLogEntryType.Warning"/>, and
+    ''' <see cref="EventLogEntryType.Information"/>. If invalid, <c>Information</c> is used.
+    ''' </param>
+    ''' <param name="eventID">
+    ''' The numeric event identifier for the log entry. This is application-defined and may be used to group similar events.
+    ''' </param>
+    ''' <param name="category">
+    ''' The category for the event, if applicable. This is typically used in categorized event views.
+    ''' </param>
+    ''' <param name="rawData">
+    ''' Optional binary data to include with the log entry. Can be <c>null</c> if not used.
+    ''' </param>
+    ''' <param name="maxKilobytes">
+    ''' The maximum size of the event log in kilobytes. Only used when creating a new log.
+    ''' Must be between 64 KB and 4 GB. If 0 or negative, the system default is used.
+    ''' </param>
+    ''' <param name="retentionDays">
+    ''' The number of days to retain event log entries. If 0, events are retained indefinitely.
+    ''' Only used when creating a new log.
+    ''' </param>
+    ''' <param name="writeInitEntry">
+    ''' Indicates whether an initialization entry should be written when a new log is created.
+    ''' </param>
+    ''' <param name="EntrySeverity">
+    ''' Indicates the importance or severity of this log entry relative to the configured logging threshold
+    ''' (<see cref="CurrentLoggingLevel"/>). If the severity is lower than the current logging level, the entry
+    ''' will be skipped and not written to the Event Log.
+    ''' </param>
+    ''' <remarks>
+    ''' <para>
+    ''' If the specified event log or source does not exist, they are created automatically using the provided parameters.
+    ''' </para>
+    ''' <para>
+    ''' This method handles safe formatting, validation, and optional message splitting to avoid truncation of diagnostic content.
+    ''' </para>
+    ''' </remarks>
+    Public Sub Log(
+            ByVal sourceName As String,
+            ByVal message As String,
+            ByVal eventType As EventLogEntryType,
+            ByVal eventID As Integer,
+            ByVal category As Short,
+            ByVal rawData As Byte(),
+            ByVal maxKilobytes As Integer,
+            ByVal retentionDays As Integer,
+            ByVal writeInitEntry As Boolean,
+            ByVal EntrySeverity As LoggingSeverity)
+
+        Log(
+            "",
+            sourceName,
+            message,
+            eventType,
+            eventID,
+            category,
+            rawData,
+            maxKilobytes,
+            retentionDays,
+            writeInitEntry,
+            EntrySeverity)
 
     End Sub
 
@@ -2425,6 +4518,93 @@ Public Module SmartEventLogger
     End Sub
 
     ''' <summary>
+    ''' Writes an entry to the Windows Event Log using the provided parameters.
+    ''' </summary>
+    ''' <param name="logName">
+    ''' The name of the event log to write to (e.g., "Application", "System", or a custom log name).
+    ''' If <c>null</c> or empty, "Application" is used by default.
+    ''' </param>
+    ''' <param name="sourceName">
+    ''' The source of the log entry. If <c>null</c> or empty, a default source is generated using the calling method's
+    ''' namespace, class, and method name. If the source exceeds 254 characters, it is automatically truncated.
+    ''' </param>
+    ''' <param name="message">
+    ''' The message to log. If <c>null</c> or empty, a default message is used.
+    ''' 
+    ''' If <see cref="AllowMultiEntryMessages"/> is <c>false</c> (default), messages longer than 32,766 characters are truncated
+    ''' and suffixed with the <see cref="TruncationMarker"/> (e.g., <c>"... [TRUNCATED]"</c>).
+    ''' 
+    ''' If <see cref="AllowMultiEntryMessages"/> is <c>true</c>, long messages are split into multiple event entries,
+    ''' each prefixed with part information (e.g., <c>[Part 1/3]</c>) and intermediate entries are suffixed with
+    ''' the <see cref="ContinuationMarker"/> (e.g., <c>" ..."</c>) to indicate continuation.
+    ''' </param>
+    ''' <param name="eventType">
+    ''' The type of event. Valid values are <see cref="EventLogEntryType.Error"/>, <see cref="EventLogEntryType.Warning"/>, and
+    ''' <see cref="EventLogEntryType.Information"/>. If invalid, <c>Information</c> is used.
+    ''' </param>
+    ''' <param name="eventID">
+    ''' The numeric event identifier for the log entry. This is application-defined and may be used to group similar events.
+    ''' </param>
+    ''' <param name="category">
+    ''' The category for the event, if applicable. This is typically used in categorized event views.
+    ''' </param>
+    ''' <param name="rawData">
+    ''' Optional binary data to include with the log entry. Can be <c>null</c> if not used.
+    ''' </param>
+    ''' <param name="maxKilobytes">
+    ''' The maximum size of the event log in kilobytes. Only used when creating a new log.
+    ''' Must be between 64 KB and 4 GB. If 0 or negative, the system default is used.
+    ''' </param>
+    ''' <param name="retentionDays">
+    ''' The number of days to retain event log entries. If 0, events are retained indefinitely.
+    ''' Only used when creating a new log.
+    ''' </param>
+    ''' <param name="writeInitEntry">
+    ''' Indicates whether an initialization entry should be written when a new log is created.
+    ''' </param>
+    ''' <param name="EntrySeverity">
+    ''' Indicates the importance or severity of this log entry relative to the configured logging threshold
+    ''' (<see cref="CurrentLoggingLevel"/>). If the severity is lower than the current logging level, the entry
+    ''' will be skipped and not written to the Event Log.
+    ''' </param>
+    ''' <remarks>
+    ''' <para>
+    ''' If the specified event log or source does not exist, they are created automatically using the provided parameters.
+    ''' </para>
+    ''' <para>
+    ''' This method handles safe formatting, validation, and optional message splitting to avoid truncation of diagnostic content.
+    ''' </para>
+    ''' </remarks>
+    Public Sub Log(
+            ByVal logName As String,
+            ByVal sourceName As String,
+            ByVal message As String,
+            ByVal eventType As EventLogEntryType,
+            ByVal eventID As Integer,
+            ByVal category As Short,
+            ByVal rawData As Byte(),
+            ByVal maxKilobytes As Integer,
+            ByVal retentionDays As Integer,
+            ByVal writeInitEntry As Boolean,
+            ByVal EntrySeverity As LoggingSeverity)
+
+        Log(
+            "",
+            logName,
+            sourceName,
+            message,
+            eventType,
+            eventID,
+            category,
+            rawData,
+            maxKilobytes,
+            retentionDays,
+            writeInitEntry,
+            EntrySeverity)
+
+    End Sub
+
+    ''' <summary>
     ''' Writes an entry (or entries) to the Windows Event Log using the specified parameters.
     ''' </summary>
     ''' <param name="_machineName">
@@ -2494,6 +4674,100 @@ Public Module SmartEventLogger
             ByVal writeInitEntry As Boolean)
 
         Initialize()
+        Log(
+            _machineName,
+            _logName,
+            sourceName,
+            message,
+            eventType,
+            eventID,
+            category,
+            rawData,
+            maxKilobytes,
+            retentionDays,
+            writeInitEntry,
+            LoggingSeverity)
+
+    End Sub
+
+    ''' <summary>
+    ''' Writes an entry (or entries) to the Windows Event Log using the specified parameters.
+    ''' </summary>
+    ''' <param name="_machineName">
+    ''' The name of the machine where the event log resides. Use <c>"."</c> for the local machine.
+    ''' If <c>null</c> or empty, the local machine is used by default, or the value of the <see cref="MachineName"/> property if set.
+    ''' </param>
+    ''' <param name="_logName">
+    ''' The name of the event log (e.g., <c>"Application"</c>, <c>"System"</c>, or a custom log name).
+    ''' If <c>null</c> or empty, the value of the <see cref="LogName"/> property is used.
+    ''' </param>
+    ''' <param name="sourceName">
+    ''' The source name for the event entry. If <c>null</c> or empty, a source is auto-generated from the calling method's namespace, class, and method name.
+    ''' If the resulting name exceeds 254 characters, it will be truncated.
+    ''' </param>
+    ''' <param name="message">
+    ''' The message to log. If <c>null</c> or empty, a default message is used.
+    ''' 
+    ''' If <see cref="AllowMultiEntryMessages"/> is <c>false</c> (default), messages longer than 32,766 characters are truncated
+    ''' and suffixed with the <see cref="TruncationMarker"/> (e.g., <c>"... [TRUNCATED]"</c>).
+    ''' 
+    ''' If <see cref="AllowMultiEntryMessages"/> is <c>true</c>, long messages are split into multiple event entries,
+    ''' each prefixed with part information (e.g., <c>[Part 1/3]</c>) and intermediate entries are suffixed with
+    ''' the <see cref="ContinuationMarker"/> (e.g., <c>" ..."</c>) to indicate continuation.
+    ''' </param>
+    ''' <param name="eventType">
+    ''' The type of event. Valid values are <see cref="EventLogEntryType.Error"/>, <see cref="EventLogEntryType.Warning"/>, and
+    ''' <see cref="EventLogEntryType.Information"/>. If invalid, <c>Information</c> is used.
+    ''' </param>
+    ''' <param name="eventID">
+    ''' The numeric event identifier. Application-defined and useful for grouping related events.
+    ''' </param>
+    ''' <param name="category">
+    ''' The category ID for the event. Use 0 if not applicable.
+    ''' </param>
+    ''' <param name="rawData">
+    ''' Optional binary data to associate with the event. Can be <c>null</c>.
+    ''' </param>
+    ''' <param name="maxKilobytes">
+    ''' The maximum size of the event log in kilobytes. Only applies when creating a new log. Range: 64 KB – 4 GB.
+    ''' </param>
+    ''' <param name="retentionDays">
+    ''' The number of days entries should be retained. 0 means entries are kept indefinitely.
+    ''' Applies only when creating a new log.
+    ''' </param>
+    ''' <param name="writeInitEntry">
+    ''' Whether to write an initialization entry when a new log is created.
+    ''' </param>
+    ''' <param name="EntrySeverity">
+    ''' Indicates the importance or severity of this log entry relative to the configured logging threshold
+    ''' (<see cref="CurrentLoggingLevel"/>). If the severity is lower than the current logging level, the entry
+    ''' will be skipped and not written to the Event Log.
+    ''' </param>
+    ''' <remarks>
+    ''' <para>
+    ''' If the specified event log or source does not exist, they are created automatically using the provided parameters.
+    ''' </para>
+    ''' <para>
+    ''' This method handles safe formatting, validation, and optional message splitting to avoid truncation of diagnostic content.
+    ''' </para>
+    ''' </remarks>
+    Public Sub Log(
+            ByVal _machineName As String,
+            ByVal _logName As String,
+            ByVal sourceName As String,
+            ByVal message As String,
+            ByVal eventType As EventLogEntryType,
+            ByVal eventID As Integer,
+            ByVal category As Short,
+            ByVal rawData As Byte(),
+            ByVal maxKilobytes As Integer,
+            ByVal retentionDays As Integer,
+            ByVal writeInitEntry As Boolean,
+            ByVal EntrySeverity As LoggingSeverity)
+
+        Initialize()
+
+        If EntrySeverity < CurrentLoggingLevel Then Exit Sub
 
         Dim defaultLog As String = If(String.IsNullOrEmpty(_logName), LogName, _logName.Trim())
         Dim defaultSource As String = Source(sourceName)
@@ -2589,6 +4863,46 @@ Public Module SmartEventLogger
     ''' each prefixed with part information (e.g., <c>[Part 1/3]</c>) and intermediate entries are suffixed with
     ''' the <see cref="ContinuationMarker"/> (e.g., <c>" ..."</c>) to indicate continuation.
     ''' </param>
+    ''' <param name="EntrySeverity">
+    ''' Indicates the importance or severity of this log entry relative to the configured logging threshold
+    ''' (<see cref="CurrentLoggingLevel"/>). If the severity is lower than the current logging level, the entry
+    ''' will be skipped and not written to the Event Log.
+    ''' </param>
+    ''' <remarks>
+    ''' This method uses configured or default values for formatting and fallbacks. The message is normalized
+    ''' and validated prior to writing. If you are using a test environment, an alternate writer can be configured
+    ''' to intercept and test log output without writing to the system Event Log.
+    ''' </remarks>
+    <Extension>
+    Public Sub LogEntry(
+            ByVal eventLog As EventLog,
+            ByVal message As String,
+            ByVal EntrySeverity As LoggingSeverity)
+
+        LogEntry(eventLog,
+                 message,
+                 EventLogEntryType.Information,
+                 EntrySeverity)
+
+    End Sub
+
+    ''' <summary>
+    ''' Writes a log entry to the specified <see cref="EventLog"/> with the given parameters.
+    ''' </summary>
+    ''' <param name="eventLog">
+    ''' The <see cref="EventLog"/> instance to which the entry will be written. This must be properly initialized
+    ''' with a valid log name and source.
+    ''' </param>
+    ''' <param name="message">
+    ''' The message to log. If <c>null</c> or empty, a default message is used.
+    ''' 
+    ''' If <see cref="AllowMultiEntryMessages"/> is <c>false</c> (default), messages longer than 32,766 characters are truncated
+    ''' and suffixed with the <see cref="TruncationMarker"/> (e.g., <c>"... [TRUNCATED]"</c>).
+    ''' 
+    ''' If <see cref="AllowMultiEntryMessages"/> is <c>true</c>, long messages are split into multiple event entries,
+    ''' each prefixed with part information (e.g., <c>[Part 1/3]</c>) and intermediate entries are suffixed with
+    ''' the <see cref="ContinuationMarker"/> (e.g., <c>" ..."</c>) to indicate continuation.
+    ''' </param>
     ''' <param name="eventType">
     ''' The type of event. Valid values are <see cref="EventLogEntryType.Error"/>, <see cref="EventLogEntryType.Warning"/>, and
     ''' <see cref="EventLogEntryType.Information"/>. If invalid, <c>Information</c> is used.
@@ -2608,6 +4922,52 @@ Public Module SmartEventLogger
                  message,
                  eventType,
                  0)
+
+    End Sub
+
+    ''' <summary>
+    ''' Writes a log entry to the specified <see cref="EventLog"/> with the given parameters.
+    ''' </summary>
+    ''' <param name="eventLog">
+    ''' The <see cref="EventLog"/> instance to which the entry will be written. This must be properly initialized
+    ''' with a valid log name and source.
+    ''' </param>
+    ''' <param name="message">
+    ''' The message to log. If <c>null</c> or empty, a default message is used.
+    ''' 
+    ''' If <see cref="AllowMultiEntryMessages"/> is <c>false</c> (default), messages longer than 32,766 characters are truncated
+    ''' and suffixed with the <see cref="TruncationMarker"/> (e.g., <c>"... [TRUNCATED]"</c>).
+    ''' 
+    ''' If <see cref="AllowMultiEntryMessages"/> is <c>true</c>, long messages are split into multiple event entries,
+    ''' each prefixed with part information (e.g., <c>[Part 1/3]</c>) and intermediate entries are suffixed with
+    ''' the <see cref="ContinuationMarker"/> (e.g., <c>" ..."</c>) to indicate continuation.
+    ''' </param>
+    ''' <param name="eventType">
+    ''' The type of event. Valid values are <see cref="EventLogEntryType.Error"/>, <see cref="EventLogEntryType.Warning"/>, and
+    ''' <see cref="EventLogEntryType.Information"/>. If invalid, <c>Information</c> is used.
+    ''' </param>
+    ''' <param name="EntrySeverity">
+    ''' Indicates the importance or severity of this log entry relative to the configured logging threshold
+    ''' (<see cref="CurrentLoggingLevel"/>). If the severity is lower than the current logging level, the entry
+    ''' will be skipped and not written to the Event Log.
+    ''' </param>
+    ''' <remarks>
+    ''' This method uses configured or default values for formatting and fallbacks. The message is normalized
+    ''' and validated prior to writing. If you are using a test environment, an alternate writer can be configured
+    ''' to intercept and test log output without writing to the system Event Log.
+    ''' </remarks>
+    <Extension>
+    Public Sub LogEntry(
+            ByVal eventLog As EventLog,
+            ByVal message As String,
+            ByVal eventType As EventLogEntryType,
+            ByVal EntrySeverity As LoggingSeverity)
+
+        LogEntry(eventLog,
+                 message,
+                 eventType,
+                 0,
+                 EntrySeverity)
 
     End Sub
 
@@ -2667,6 +5027,52 @@ Public Module SmartEventLogger
     ''' each prefixed with part information (e.g., <c>[Part 1/3]</c>) and intermediate entries are suffixed with
     ''' the <see cref="ContinuationMarker"/> (e.g., <c>" ..."</c>) to indicate continuation.
     ''' </param>
+    ''' <param name="eventID">
+    ''' A numeric identifier for the event. This value is application-defined and can be used for categorizing
+    ''' or filtering related log entries.
+    ''' </param>
+    ''' <param name="EntrySeverity">
+    ''' Indicates the importance or severity of this log entry relative to the configured logging threshold
+    ''' (<see cref="CurrentLoggingLevel"/>). If the severity is lower than the current logging level, the entry
+    ''' will be skipped and not written to the Event Log.
+    ''' </param>
+    ''' <remarks>
+    ''' This method uses configured or default values for formatting and fallbacks. The message is normalized
+    ''' and validated prior to writing. If you are using a test environment, an alternate writer can be configured
+    ''' to intercept and test log output without writing to the system Event Log.
+    ''' </remarks>
+    <Extension>
+    Public Sub LogEntry(
+            ByVal eventLog As EventLog,
+            ByVal message As String,
+            ByVal eventID As Integer,
+            ByVal EntrySeverity As LoggingSeverity)
+
+        LogEntry(eventLog,
+                 message,
+                 EventLogEntryType.Information,
+                 eventID,
+                 EntrySeverity)
+
+    End Sub
+
+    ''' <summary>
+    ''' Writes a log entry to the specified <see cref="EventLog"/> with the given parameters.
+    ''' </summary>
+    ''' <param name="eventLog">
+    ''' The <see cref="EventLog"/> instance to which the entry will be written. This must be properly initialized
+    ''' with a valid log name and source.
+    ''' </param>
+    ''' <param name="message">
+    ''' The message to log. If <c>null</c> or empty, a default message is used.
+    ''' 
+    ''' If <see cref="AllowMultiEntryMessages"/> is <c>false</c> (default), messages longer than 32,766 characters are truncated
+    ''' and suffixed with the <see cref="TruncationMarker"/> (e.g., <c>"... [TRUNCATED]"</c>).
+    ''' 
+    ''' If <see cref="AllowMultiEntryMessages"/> is <c>true</c>, long messages are split into multiple event entries,
+    ''' each prefixed with part information (e.g., <c>[Part 1/3]</c>) and intermediate entries are suffixed with
+    ''' the <see cref="ContinuationMarker"/> (e.g., <c>" ..."</c>) to indicate continuation.
+    ''' </param>
     ''' <param name="category">
     ''' A numeric category for the event. This is typically used in categorized views of the Event Log.
     ''' Use 0 if no category is needed.
@@ -2686,6 +5092,52 @@ Public Module SmartEventLogger
                  message,
                  EventLogEntryType.Information,
                  category)
+
+    End Sub
+
+    ''' <summary>
+    ''' Writes a log entry to the specified <see cref="EventLog"/> with the given parameters.
+    ''' </summary>
+    ''' <param name="eventLog">
+    ''' The <see cref="EventLog"/> instance to which the entry will be written. This must be properly initialized
+    ''' with a valid log name and source.
+    ''' </param>
+    ''' <param name="message">
+    ''' The message to log. If <c>null</c> or empty, a default message is used.
+    ''' 
+    ''' If <see cref="AllowMultiEntryMessages"/> is <c>false</c> (default), messages longer than 32,766 characters are truncated
+    ''' and suffixed with the <see cref="TruncationMarker"/> (e.g., <c>"... [TRUNCATED]"</c>).
+    ''' 
+    ''' If <see cref="AllowMultiEntryMessages"/> is <c>true</c>, long messages are split into multiple event entries,
+    ''' each prefixed with part information (e.g., <c>[Part 1/3]</c>) and intermediate entries are suffixed with
+    ''' the <see cref="ContinuationMarker"/> (e.g., <c>" ..."</c>) to indicate continuation.
+    ''' </param>
+    ''' <param name="category">
+    ''' A numeric category for the event. This is typically used in categorized views of the Event Log.
+    ''' Use 0 if no category is needed.
+    ''' </param>
+    ''' <param name="EntrySeverity">
+    ''' Indicates the importance or severity of this log entry relative to the configured logging threshold
+    ''' (<see cref="CurrentLoggingLevel"/>). If the severity is lower than the current logging level, the entry
+    ''' will be skipped and not written to the Event Log.
+    ''' </param>
+    ''' <remarks>
+    ''' This method uses configured or default values for formatting and fallbacks. The message is normalized
+    ''' and validated prior to writing. If you are using a test environment, an alternate writer can be configured
+    ''' to intercept and test log output without writing to the system Event Log.
+    ''' </remarks>
+    <Extension>
+    Public Sub LogEntry(
+            ByVal eventLog As EventLog,
+            ByVal message As String,
+            ByVal category As Short,
+            ByVal EntrySeverity As LoggingSeverity)
+
+        LogEntry(eventLog,
+                 message,
+                 EventLogEntryType.Information,
+                 category,
+                 EntrySeverity)
 
     End Sub
 
@@ -2755,6 +5207,58 @@ Public Module SmartEventLogger
     ''' The type of event. Valid values are <see cref="EventLogEntryType.Error"/>, <see cref="EventLogEntryType.Warning"/>, and
     ''' <see cref="EventLogEntryType.Information"/>. If invalid, <c>Information</c> is used.
     ''' </param>
+    ''' <param name="eventID">
+    ''' A numeric identifier for the event. This value is application-defined and can be used for categorizing
+    ''' or filtering related log entries.
+    ''' </param>
+    ''' <param name="EntrySeverity">
+    ''' Indicates the importance or severity of this log entry relative to the configured logging threshold
+    ''' (<see cref="CurrentLoggingLevel"/>). If the severity is lower than the current logging level, the entry
+    ''' will be skipped and not written to the Event Log.
+    ''' </param>
+    ''' <remarks>
+    ''' This method uses configured or default values for formatting and fallbacks. The message is normalized
+    ''' and validated prior to writing. If you are using a test environment, an alternate writer can be configured
+    ''' to intercept and test log output without writing to the system Event Log.
+    ''' </remarks>
+    <Extension>
+    Public Sub LogEntry(
+            ByVal eventLog As EventLog,
+            ByVal message As String,
+            ByVal eventType As EventLogEntryType,
+            ByVal eventID As Integer,
+            ByVal EntrySeverity As LoggingSeverity)
+
+        LogEntry(eventLog,
+                 message,
+                 eventType,
+                 eventID,
+                 0,
+                 EntrySeverity)
+
+    End Sub
+
+    ''' <summary>
+    ''' Writes a log entry to the specified <see cref="EventLog"/> with the given parameters.
+    ''' </summary>
+    ''' <param name="eventLog">
+    ''' The <see cref="EventLog"/> instance to which the entry will be written. This must be properly initialized
+    ''' with a valid log name and source.
+    ''' </param>
+    ''' <param name="message">
+    ''' The message to log. If <c>null</c> or empty, a default message is used.
+    ''' 
+    ''' If <see cref="AllowMultiEntryMessages"/> is <c>false</c> (default), messages longer than 32,766 characters are truncated
+    ''' and suffixed with the <see cref="TruncationMarker"/> (e.g., <c>"... [TRUNCATED]"</c>).
+    ''' 
+    ''' If <see cref="AllowMultiEntryMessages"/> is <c>true</c>, long messages are split into multiple event entries,
+    ''' each prefixed with part information (e.g., <c>[Part 1/3]</c>) and intermediate entries are suffixed with
+    ''' the <see cref="ContinuationMarker"/> (e.g., <c>" ..."</c>) to indicate continuation.
+    ''' </param>
+    ''' <param name="eventType">
+    ''' The type of event. Valid values are <see cref="EventLogEntryType.Error"/>, <see cref="EventLogEntryType.Warning"/>, and
+    ''' <see cref="EventLogEntryType.Information"/>. If invalid, <c>Information</c> is used.
+    ''' </param>
     ''' <param name="category">
     ''' A numeric category for the event. This is typically used in categorized views of the Event Log.
     ''' Use 0 if no category is needed.
@@ -2776,6 +5280,58 @@ Public Module SmartEventLogger
                  eventType,
                  0,
                  category)
+
+    End Sub
+
+    ''' <summary>
+    ''' Writes a log entry to the specified <see cref="EventLog"/> with the given parameters.
+    ''' </summary>
+    ''' <param name="eventLog">
+    ''' The <see cref="EventLog"/> instance to which the entry will be written. This must be properly initialized
+    ''' with a valid log name and source.
+    ''' </param>
+    ''' <param name="message">
+    ''' The message to log. If <c>null</c> or empty, a default message is used.
+    ''' 
+    ''' If <see cref="AllowMultiEntryMessages"/> is <c>false</c> (default), messages longer than 32,766 characters are truncated
+    ''' and suffixed with the <see cref="TruncationMarker"/> (e.g., <c>"... [TRUNCATED]"</c>).
+    ''' 
+    ''' If <see cref="AllowMultiEntryMessages"/> is <c>true</c>, long messages are split into multiple event entries,
+    ''' each prefixed with part information (e.g., <c>[Part 1/3]</c>) and intermediate entries are suffixed with
+    ''' the <see cref="ContinuationMarker"/> (e.g., <c>" ..."</c>) to indicate continuation.
+    ''' </param>
+    ''' <param name="eventType">
+    ''' The type of event. Valid values are <see cref="EventLogEntryType.Error"/>, <see cref="EventLogEntryType.Warning"/>, and
+    ''' <see cref="EventLogEntryType.Information"/>. If invalid, <c>Information</c> is used.
+    ''' </param>
+    ''' <param name="category">
+    ''' A numeric category for the event. This is typically used in categorized views of the Event Log.
+    ''' Use 0 if no category is needed.
+    ''' </param>
+    ''' <param name="EntrySeverity">
+    ''' Indicates the importance or severity of this log entry relative to the configured logging threshold
+    ''' (<see cref="CurrentLoggingLevel"/>). If the severity is lower than the current logging level, the entry
+    ''' will be skipped and not written to the Event Log.
+    ''' </param>
+    ''' <remarks>
+    ''' This method uses configured or default values for formatting and fallbacks. The message is normalized
+    ''' and validated prior to writing. If you are using a test environment, an alternate writer can be configured
+    ''' to intercept and test log output without writing to the system Event Log.
+    ''' </remarks>
+    <Extension>
+    Public Sub LogEntry(
+            ByVal eventLog As EventLog,
+            ByVal message As String,
+            ByVal eventType As EventLogEntryType,
+            ByVal category As Short,
+            ByVal EntrySeverity As LoggingSeverity)
+
+        LogEntry(eventLog,
+                 message,
+                 eventType,
+                 0,
+                 category,
+                 EntrySeverity)
 
     End Sub
 
@@ -2826,7 +5382,65 @@ Public Module SmartEventLogger
                  eventType,
                  eventID,
                  category,
-                 Nothing)
+                 CType(Nothing, Byte()))
+
+    End Sub
+
+    ''' <summary>
+    ''' Writes a log entry to the specified <see cref="EventLog"/> with the given parameters.
+    ''' </summary>
+    ''' <param name="eventLog">
+    ''' The <see cref="EventLog"/> instance to which the entry will be written. This must be properly initialized
+    ''' with a valid log name and source.
+    ''' </param>
+    ''' <param name="message">
+    ''' The message to log. If <c>null</c> or empty, a default message is used.
+    ''' 
+    ''' If <see cref="AllowMultiEntryMessages"/> is <c>false</c> (default), messages longer than 32,766 characters are truncated
+    ''' and suffixed with the <see cref="TruncationMarker"/> (e.g., <c>"... [TRUNCATED]"</c>).
+    ''' 
+    ''' If <see cref="AllowMultiEntryMessages"/> is <c>true</c>, long messages are split into multiple event entries,
+    ''' each prefixed with part information (e.g., <c>[Part 1/3]</c>) and intermediate entries are suffixed with
+    ''' the <see cref="ContinuationMarker"/> (e.g., <c>" ..."</c>) to indicate continuation.
+    ''' </param>
+    ''' <param name="eventType">
+    ''' The type of event. Valid values are <see cref="EventLogEntryType.Error"/>, <see cref="EventLogEntryType.Warning"/>, and
+    ''' <see cref="EventLogEntryType.Information"/>. If invalid, <c>Information</c> is used.
+    ''' </param>
+    ''' <param name="eventID">
+    ''' A numeric identifier for the event. This value is application-defined and can be used for categorizing
+    ''' or filtering related log entries.
+    ''' </param>
+    ''' <param name="category">
+    ''' A numeric category for the event. This is typically used in categorized views of the Event Log.
+    ''' Use 0 if no category is needed.
+    ''' </param>
+    ''' <param name="EntrySeverity">
+    ''' Indicates the importance or severity of this log entry relative to the configured logging threshold
+    ''' (<see cref="CurrentLoggingLevel"/>). If the severity is lower than the current logging level, the entry
+    ''' will be skipped and not written to the Event Log.
+    ''' </param>
+    ''' <remarks>
+    ''' This method uses configured or default values for formatting and fallbacks. The message is normalized
+    ''' and validated prior to writing. If you are using a test environment, an alternate writer can be configured
+    ''' to intercept and test log output without writing to the system Event Log.
+    ''' </remarks>
+    <Extension>
+    Public Sub LogEntry(
+            ByVal eventLog As EventLog,
+            ByVal message As String,
+            ByVal eventType As EventLogEntryType,
+            ByVal eventID As Integer,
+            ByVal category As Short,
+            ByVal EntrySeverity As LoggingSeverity)
+
+        LogEntry(eventLog,
+                 message,
+                 eventType,
+                 eventID,
+                 category,
+                 Nothing,
+                 EntrySeverity)
 
     End Sub
 
@@ -2885,6 +5499,51 @@ Public Module SmartEventLogger
     ''' each prefixed with part information (e.g., <c>[Part 1/3]</c>) and intermediate entries are suffixed with
     ''' the <see cref="ContinuationMarker"/> (e.g., <c>" ..."</c>) to indicate continuation.
     ''' </param>
+    ''' <param name="rawData">
+    ''' Optional binary data to associate with the log entry. This can be <c>null</c> if unused.
+    ''' </param>
+    ''' <param name="EntrySeverity">
+    ''' Indicates the importance or severity of this log entry relative to the configured logging threshold
+    ''' (<see cref="CurrentLoggingLevel"/>). If the severity is lower than the current logging level, the entry
+    ''' will be skipped and not written to the Event Log.
+    ''' </param>
+    ''' <remarks>
+    ''' This method uses configured or default values for formatting and fallbacks. The message is normalized
+    ''' and validated prior to writing. If you are using a test environment, an alternate writer can be configured
+    ''' to intercept and test log output without writing to the system Event Log.
+    ''' </remarks>
+    <Extension>
+    Public Sub LogEntry(
+            ByVal eventLog As EventLog,
+            ByVal message As String,
+            ByVal rawData As Byte(),
+            ByVal EntrySeverity As LoggingSeverity)
+
+        LogEntry(eventLog,
+                 message,
+                 EventLogEntryType.Information,
+                 rawData,
+                 EntrySeverity)
+
+    End Sub
+
+    ''' <summary>
+    ''' Writes a log entry to the specified <see cref="EventLog"/> with the given parameters.
+    ''' </summary>
+    ''' <param name="eventLog">
+    ''' The <see cref="EventLog"/> instance to which the entry will be written. This must be properly initialized
+    ''' with a valid log name and source.
+    ''' </param>
+    ''' <param name="message">
+    ''' The message to log. If <c>null</c> or empty, a default message is used.
+    ''' 
+    ''' If <see cref="AllowMultiEntryMessages"/> is <c>false</c> (default), messages longer than 32,766 characters are truncated
+    ''' and suffixed with the <see cref="TruncationMarker"/> (e.g., <c>"... [TRUNCATED]"</c>).
+    ''' 
+    ''' If <see cref="AllowMultiEntryMessages"/> is <c>true</c>, long messages are split into multiple event entries,
+    ''' each prefixed with part information (e.g., <c>[Part 1/3]</c>) and intermediate entries are suffixed with
+    ''' the <see cref="ContinuationMarker"/> (e.g., <c>" ..."</c>) to indicate continuation.
+    ''' </param>
     ''' <param name="eventType">
     ''' The type of event. Valid values are <see cref="EventLogEntryType.Error"/>, <see cref="EventLogEntryType.Warning"/>, and
     ''' <see cref="EventLogEntryType.Information"/>. If invalid, <c>Information</c> is used.
@@ -2909,6 +5568,57 @@ Public Module SmartEventLogger
                  eventType,
                  0,
                  rawData)
+
+    End Sub
+
+    ''' <summary>
+    ''' Writes a log entry to the specified <see cref="EventLog"/> with the given parameters.
+    ''' </summary>
+    ''' <param name="eventLog">
+    ''' The <see cref="EventLog"/> instance to which the entry will be written. This must be properly initialized
+    ''' with a valid log name and source.
+    ''' </param>
+    ''' <param name="message">
+    ''' The message to log. If <c>null</c> or empty, a default message is used.
+    ''' 
+    ''' If <see cref="AllowMultiEntryMessages"/> is <c>false</c> (default), messages longer than 32,766 characters are truncated
+    ''' and suffixed with the <see cref="TruncationMarker"/> (e.g., <c>"... [TRUNCATED]"</c>).
+    ''' 
+    ''' If <see cref="AllowMultiEntryMessages"/> is <c>true</c>, long messages are split into multiple event entries,
+    ''' each prefixed with part information (e.g., <c>[Part 1/3]</c>) and intermediate entries are suffixed with
+    ''' the <see cref="ContinuationMarker"/> (e.g., <c>" ..."</c>) to indicate continuation.
+    ''' </param>
+    ''' <param name="eventType">
+    ''' The type of event. Valid values are <see cref="EventLogEntryType.Error"/>, <see cref="EventLogEntryType.Warning"/>, and
+    ''' <see cref="EventLogEntryType.Information"/>. If invalid, <c>Information</c> is used.
+    ''' </param>
+    ''' <param name="rawData">
+    ''' Optional binary data to associate with the log entry. This can be <c>null</c> if unused.
+    ''' </param>
+    ''' <param name="EntrySeverity">
+    ''' Indicates the importance or severity of this log entry relative to the configured logging threshold
+    ''' (<see cref="CurrentLoggingLevel"/>). If the severity is lower than the current logging level, the entry
+    ''' will be skipped and not written to the Event Log.
+    ''' </param>
+    ''' <remarks>
+    ''' This method uses configured or default values for formatting and fallbacks. The message is normalized
+    ''' and validated prior to writing. If you are using a test environment, an alternate writer can be configured
+    ''' to intercept and test log output without writing to the system Event Log.
+    ''' </remarks>
+    <Extension>
+    Public Sub LogEntry(
+            ByVal eventLog As EventLog,
+            ByVal message As String,
+            ByVal eventType As EventLogEntryType,
+            ByVal rawData As Byte(),
+            ByVal EntrySeverity As LoggingSeverity)
+
+        LogEntry(eventLog,
+                 message,
+                 eventType,
+                 0,
+                 rawData,
+                 EntrySeverity)
 
     End Sub
 
@@ -2987,6 +5697,63 @@ Public Module SmartEventLogger
     ''' A numeric identifier for the event. This value is application-defined and can be used for categorizing
     ''' or filtering related log entries.
     ''' </param>
+    ''' <param name="rawData">
+    ''' Optional binary data to associate with the log entry. This can be <c>null</c> if unused.
+    ''' </param>
+    ''' <param name="EntrySeverity">
+    ''' Indicates the importance or severity of this log entry relative to the configured logging threshold
+    ''' (<see cref="CurrentLoggingLevel"/>). If the severity is lower than the current logging level, the entry
+    ''' will be skipped and not written to the Event Log.
+    ''' </param>
+    ''' <remarks>
+    ''' This method uses configured or default values for formatting and fallbacks. The message is normalized
+    ''' and validated prior to writing. If you are using a test environment, an alternate writer can be configured
+    ''' to intercept and test log output without writing to the system Event Log.
+    ''' </remarks>
+    <Extension>
+    Public Sub LogEntry(
+            ByVal eventLog As EventLog,
+            ByVal message As String,
+            ByVal eventType As EventLogEntryType,
+            ByVal eventID As Integer,
+            ByVal rawData As Byte(),
+            ByVal EntrySeverity As LoggingSeverity)
+
+        LogEntry(eventLog,
+                 message,
+                 eventType,
+                 eventID,
+                 0,
+                 rawData,
+                 EntrySeverity)
+
+    End Sub
+
+    ''' <summary>
+    ''' Writes a log entry to the specified <see cref="EventLog"/> with the given parameters.
+    ''' </summary>
+    ''' <param name="eventLog">
+    ''' The <see cref="EventLog"/> instance to which the entry will be written. This must be properly initialized
+    ''' with a valid log name and source.
+    ''' </param>
+    ''' <param name="message">
+    ''' The message to log. If <c>null</c> or empty, a default message is used.
+    ''' 
+    ''' If <see cref="AllowMultiEntryMessages"/> is <c>false</c> (default), messages longer than 32,766 characters are truncated
+    ''' and suffixed with the <see cref="TruncationMarker"/> (e.g., <c>"... [TRUNCATED]"</c>).
+    ''' 
+    ''' If <see cref="AllowMultiEntryMessages"/> is <c>true</c>, long messages are split into multiple event entries,
+    ''' each prefixed with part information (e.g., <c>[Part 1/3]</c>) and intermediate entries are suffixed with
+    ''' the <see cref="ContinuationMarker"/> (e.g., <c>" ..."</c>) to indicate continuation.
+    ''' </param>
+    ''' <param name="eventType">
+    ''' The type of event. Valid values are <see cref="EventLogEntryType.Error"/>, <see cref="EventLogEntryType.Warning"/>, and
+    ''' <see cref="EventLogEntryType.Information"/>. If invalid, <c>Information</c> is used.
+    ''' </param>
+    ''' <param name="eventID">
+    ''' A numeric identifier for the event. This value is application-defined and can be used for categorizing
+    ''' or filtering related log entries.
+    ''' </param>
     ''' <param name="category">
     ''' A numeric category for the event. This is typically used in categorized views of the Event Log.
     ''' Use 0 if no category is needed.
@@ -3008,7 +5775,72 @@ Public Module SmartEventLogger
             ByVal category As Short,
             ByVal rawData As Byte())
 
+        Initialize()
+        LogEntry(eventLog,
+                 message,
+                 eventType,
+                 eventID,
+                 category,
+                 rawData,
+                 LoggingSeverity)
+
+    End Sub
+
+    ''' <summary>
+    ''' Writes a log entry to the specified <see cref="EventLog"/> with the given parameters.
+    ''' </summary>
+    ''' <param name="eventLog">
+    ''' The <see cref="EventLog"/> instance to which the entry will be written. This must be properly initialized
+    ''' with a valid log name and source.
+    ''' </param>
+    ''' <param name="message">
+    ''' The message to log. If <c>null</c> or empty, a default message is used.
+    ''' 
+    ''' If <see cref="AllowMultiEntryMessages"/> is <c>false</c> (default), messages longer than 32,766 characters are truncated
+    ''' and suffixed with the <see cref="TruncationMarker"/> (e.g., <c>"... [TRUNCATED]"</c>).
+    ''' 
+    ''' If <see cref="AllowMultiEntryMessages"/> is <c>true</c>, long messages are split into multiple event entries,
+    ''' each prefixed with part information (e.g., <c>[Part 1/3]</c>) and intermediate entries are suffixed with
+    ''' the <see cref="ContinuationMarker"/> (e.g., <c>" ..."</c>) to indicate continuation.
+    ''' </param>
+    ''' <param name="eventType">
+    ''' The type of event. Valid values are <see cref="EventLogEntryType.Error"/>, <see cref="EventLogEntryType.Warning"/>, and
+    ''' <see cref="EventLogEntryType.Information"/>. If invalid, <c>Information</c> is used.
+    ''' </param>
+    ''' <param name="eventID">
+    ''' A numeric identifier for the event. This value is application-defined and can be used for categorizing
+    ''' or filtering related log entries.
+    ''' </param>
+    ''' <param name="category">
+    ''' A numeric category for the event. This is typically used in categorized views of the Event Log.
+    ''' Use 0 if no category is needed.
+    ''' </param>
+    ''' <param name="rawData">
+    ''' Optional binary data to associate with the log entry. This can be <c>null</c> if unused.
+    ''' </param>
+    ''' <param name="EntrySeverity">
+    ''' Indicates the importance or severity of this log entry relative to the configured logging threshold
+    ''' (<see cref="CurrentLoggingLevel"/>). If the severity is lower than the current logging level, the entry
+    ''' will be skipped and not written to the Event Log.
+    ''' </param>
+    ''' <remarks>
+    ''' This method uses configured or default values for formatting and fallbacks. The message is normalized
+    ''' and validated prior to writing. If you are using a test environment, an alternate writer can be configured
+    ''' to intercept and test log output without writing to the system Event Log.
+    ''' </remarks>
+    <Extension>
+    Public Sub LogEntry(
+            ByVal eventLog As EventLog,
+            ByVal message As String,
+            ByVal eventType As EventLogEntryType,
+            ByVal eventID As Integer,
+            ByVal category As Short,
+            ByVal rawData As Byte(),
+            ByVal EntrySeverity As LoggingSeverity)
+
         Initialize() ' By the time we get here, this should already be done, but just in case.
+
+        If EntrySeverity < CurrentLoggingLevel Then Exit Sub
 
         Dim defaultSource As String = Source(eventLog.Source)
         Dim finalEventType As EventLogEntryType = NormalizeEventType(eventType)
@@ -3364,6 +6196,46 @@ Public Module SmartEventLogger
 
         Dim result As Boolean
         Return If(Boolean.TryParse(raw, result), result, defaultValue)
+
+    End Function
+
+    ''' <summary>
+    ''' Gets the application setting.
+    ''' </summary>
+    ''' <typeparam name="TEnum">The type of the enum.</typeparam>
+    ''' <param name="key">The key.</param>
+    ''' <param name="defaultValue">The default value.</param>
+    ''' <returns></returns>
+    ''' <exception cref="ArgumentException">{NameOf(TEnum)} must be an Enum type.</exception>
+    Friend Function GetAppSetting(Of TEnum As Structure)(
+            ByVal key As String,
+            ByVal defaultValue As TEnum) As TEnum
+
+        ' Make sure TEnum is actually an Enum
+        If Not GetType(TEnum).IsEnum Then
+            Throw New ArgumentException($"{NameOf(TEnum)} must be an Enum type.")
+        End If
+
+        Dim rawValue As String = GetAppSetting(key, CType(Nothing, String))
+        If String.IsNullOrEmpty(rawValue) Then
+            Return defaultValue
+        End If
+
+        Try
+            ' Use Enum.Parse for .NET 3.5 compatibility
+#If NETFRAMEWORK Then
+            Dim parsedObj As Object = [Enum].Parse(GetType(TEnum), rawValue, True)
+#Else
+            Dim parsedObj As Object = [Enum].Parse(Of TEnum)(rawValue, True)
+#End If
+            Return CType(parsedObj, TEnum)
+        Catch ex As ArgumentException
+            ' Value not valid for the enum
+            Return defaultValue
+        Catch ex As OverflowException
+            ' In case of underlying type overflow
+            Return defaultValue
+        End Try
 
     End Function
 

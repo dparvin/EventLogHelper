@@ -58,6 +58,41 @@ Namespace net90
         ''' <summary>
         ''' Logs the message.
         ''' </summary>
+        <Theory>
+        <InlineData(LoggingSeverity.Critical, True)>
+        <InlineData(LoggingSeverity.Error, True)>
+        <InlineData(LoggingSeverity.Info, True)>
+        <InlineData(LoggingSeverity.Warning, True)>
+        <InlineData(LoggingSeverity.Verbose, False)>
+        Public Sub Log_Message_Severity(
+                ByVal Severity As LoggingSeverity,
+                ByVal WriteEntry As Boolean)
+
+            ' Arrange
+            Dim ll As LoggingLevel = CurrentLoggingLevel
+            CurrentLoggingLevel = LoggingLevel.Normal
+#If NET35 Then
+            Dim testWriter As New TestEventLogWriter(logExists:=False, sourceExists:=False)
+#Else
+            Dim testWriter As New TestEventLogWriter(OutputHelper, logExists:=False, sourceExists:=False)
+#End If
+            SetWriter(testWriter)
+
+            Dim message As String = "Test message"
+
+            ' Act
+            Log(message, Severity)
+
+            ' Assert
+            CurrentLoggingLevel = ll ' Restore original logging level
+            Assert.Equal(WriteEntry, testWriter.CreateEventSourceCalled)
+            Assert.Equal(WriteEntry, testWriter.WriteEntryCalled)
+
+        End Sub
+
+        ''' <summary>
+        ''' Logs the message.
+        ''' </summary>
         <Fact>
         Public Sub Log_Message()
 
@@ -77,6 +112,34 @@ Namespace net90
             ' Assert
             Assert.True(testWriter.CreateEventSourceCalled)
             Assert.True(testWriter.WriteEntryCalled)
+
+        End Sub
+
+        ''' <summary>
+        ''' Logs the source name message.
+        ''' </summary>
+        <Fact>
+        Public Sub Log_SourceName_Message_Severity()
+
+            ' Arrange
+            Dim testWriter As TestEventLogWriter
+#If NET35 Then
+            testWriter = New TestEventLogWriter(logExists:=False, sourceExists:=False)
+#Else
+            testWriter = New TestEventLogWriter(OutputHelper, logExists:=False, sourceExists:=False)
+#End If
+            SetWriter(testWriter)
+
+            Dim sourceName As String = "CustomSource"
+            Dim message As String = "Test message"
+
+            ' Act
+            Log(sourceName, message, LoggingSeverity.Error)
+
+            ' Assert
+            Assert.True(testWriter.CreateEventSourceCalled)
+            Assert.True(testWriter.WriteEntryCalled)
+            Assert.Equal($"[{sourceName}] {message}.", testWriter.LastMessage)
 
         End Sub
 
@@ -137,6 +200,36 @@ Namespace net90
 
         End Sub
 
+        ''' <summary>
+        ''' Logs the type of the message event.
+        ''' </summary>
+        <Fact>
+        Public Sub Log_Message_EventType_EntrySeverity()
+
+            ' Arrange
+            Dim testWriter As TestEventLogWriter
+#If NET35 Then
+            testWriter = New TestEventLogWriter(logExists:=False, sourceExists:=False)
+#Else
+            testWriter = New TestEventLogWriter(OutputHelper, logExists:=False, sourceExists:=False)
+#End If
+            SetWriter(testWriter)
+
+            Dim message As String = "Test message"
+            Dim eventType As EventLogEntryType = EventLogEntryType.Warning
+
+            ' Act
+            Log(message, eventType, LoggingSeverity.Error)
+
+            ' Assert
+            Assert.True(testWriter.CreateEventSourceCalled)
+            Assert.True(testWriter.WriteEntryCalled)
+
+        End Sub
+
+        ''' <summary>
+        ''' Logs the type of the message event.
+        ''' </summary>
         <Fact>
         Public Sub Log_Message_EventType()
 
@@ -220,6 +313,37 @@ Namespace net90
 
         End Sub
 
+        ''' <summary>
+        ''' Logs the message event type event identifier.
+        ''' </summary>
+        <Fact>
+        Public Sub Log_Message_EventType_EventId_EntrySeverity()
+
+            ' Arrange
+            Dim testWriter As TestEventLogWriter
+#If NET35 Then
+            testWriter = New TestEventLogWriter(logExists:=False, sourceExists:=False)
+#Else
+            testWriter = New TestEventLogWriter(OutputHelper, logExists:=False, sourceExists:=False)
+#End If
+            SetWriter(testWriter)
+
+            Dim message As String = "Test message"
+            Dim eventType As EventLogEntryType = EventLogEntryType.Warning
+            Dim eventId As Integer = 42
+
+            ' Act
+            Log(message, eventType, eventId, LoggingSeverity.Error)
+
+            ' Assert
+            Assert.True(testWriter.CreateEventSourceCalled)
+            Assert.True(testWriter.WriteEntryCalled)
+
+        End Sub
+
+        ''' <summary>
+        ''' Logs the message event type event identifier.
+        ''' </summary>
         <Fact>
         Public Sub Log_Message_EventType_EventId()
 
@@ -238,6 +362,35 @@ Namespace net90
 
             ' Act
             Log(message, eventType, eventId)
+
+            ' Assert
+            Assert.True(testWriter.CreateEventSourceCalled)
+            Assert.True(testWriter.WriteEntryCalled)
+
+        End Sub
+
+        ''' <summary>
+        ''' Logs the message event type event identifier category.
+        ''' </summary>
+        <Fact>
+        Public Sub Log_Message_EventType_EventId_Category_EntrySeverity()
+
+            ' Arrange
+            Dim testWriter As TestEventLogWriter
+#If NET35 Then
+            testWriter = New TestEventLogWriter(logExists:=False, sourceExists:=False)
+#Else
+            testWriter = New TestEventLogWriter(OutputHelper, logExists:=False, sourceExists:=False)
+#End If
+            SetWriter(testWriter)
+
+            Dim message As String = "Test message"
+            Dim eventType As EventLogEntryType = EventLogEntryType.Warning
+            Dim eventId As Integer = 42
+            Dim category As Short = 1
+
+            ' Act
+            Log(message, eventType, eventId, category, LoggingSeverity.Error)
 
             ' Assert
             Assert.True(testWriter.CreateEventSourceCalled)
@@ -340,6 +493,38 @@ Namespace net90
         ''' Logs the log name source name message event type event identifier category.
         ''' </summary>
         <Fact>
+        Public Sub Log_LogName_SourceName_Message_EventType_EventId_Category_RawData_EntrySeverity()
+
+            ' Arrange
+            Dim testWriter As TestEventLogWriter
+#If NET35 Then
+            testWriter = New TestEventLogWriter(logExists:=False, sourceExists:=False)
+#Else
+            testWriter = New TestEventLogWriter(OutputHelper, logExists:=False, sourceExists:=False)
+#End If
+            SetWriter(testWriter)
+
+            Dim logName As String = "CustomLog"
+            Dim sourceName As String = "CustomSource"
+            Dim message As String = "Test message"
+            Dim eventType As EventLogEntryType = EventLogEntryType.Warning
+            Dim eventId As Integer = 42
+            Dim category As Short = 1
+
+            ' Act
+            Log(logName, sourceName, message, eventType, eventId, category, Nothing, LoggingSeverity.Error)
+
+            ' Assert
+            Assert.True(testWriter.CreateEventSourceCalled)
+            Assert.True(testWriter.WriteEntryCalled)
+            Assert.Equal($"[{sourceName}] {message}.", testWriter.LastMessage)
+
+        End Sub
+
+        ''' <summary>
+        ''' Logs the log name source name message event type event identifier category.
+        ''' </summary>
+        <Fact>
         Public Sub Log_LogName_SourceName_Message_EventType_EventId_Category()
 
             ' Arrange
@@ -365,6 +550,33 @@ Namespace net90
             Assert.True(testWriter.CreateEventSourceCalled)
             Assert.True(testWriter.WriteEntryCalled)
             Assert.Equal($"[{sourceName}] {message}.", testWriter.LastMessage)
+
+        End Sub
+
+        ''' <summary>
+        ''' Logs the message raw data.
+        ''' </summary>
+        <Fact>
+        Public Sub Log_Message_RawData_EventSeverity()
+
+            ' Arrange
+            Dim testWriter As TestEventLogWriter
+#If NET35 Then
+            testWriter = New TestEventLogWriter(logExists:=False, sourceExists:=False)
+#Else
+            testWriter = New TestEventLogWriter(OutputHelper, logExists:=False, sourceExists:=False)
+#End If
+            SetWriter(testWriter)
+
+            Dim message As String = "Test message"
+            Dim rawData As Byte() = Nothing
+
+            ' Act
+            Log(message, rawData, LoggingSeverity.Error)
+
+            ' Assert
+            Assert.True(testWriter.CreateEventSourceCalled)
+            Assert.True(testWriter.WriteEntryCalled)
 
         End Sub
 
@@ -486,6 +698,34 @@ Namespace net90
         ''' Logs the message event type event identifier category raw data.
         ''' </summary>
         <Fact>
+        Public Sub Log_Message_maxKilobytes_retentionDays_EntrySeverity()
+
+            ' Arrange
+            Dim testWriter As TestEventLogWriter
+#If NET35 Then
+            testWriter = New TestEventLogWriter(logExists:=False, sourceExists:=False)
+#Else
+            testWriter = New TestEventLogWriter(OutputHelper, logExists:=False, sourceExists:=False)
+#End If
+            SetWriter(testWriter)
+
+            Dim message As String = "Test message"
+            Dim maxKilobytes As Integer = 1024 * 1024 ' 1 MB
+            Dim retentionDays As Integer = 7
+
+            ' Act
+            Log(message, maxKilobytes, retentionDays, LoggingSeverity.Error)
+
+            ' Assert
+            Assert.True(testWriter.CreateEventSourceCalled)
+            Assert.True(testWriter.WriteEntryCalled)
+
+        End Sub
+
+        ''' <summary>
+        ''' Logs the message event type event identifier category raw data.
+        ''' </summary>
+        <Fact>
         Public Sub Log_Message_maxKilobytes_retentionDays()
 
             ' Arrange
@@ -503,6 +743,37 @@ Namespace net90
 
             ' Act
             Log(message, maxKilobytes, retentionDays)
+
+            ' Assert
+            Assert.True(testWriter.CreateEventSourceCalled)
+            Assert.True(testWriter.WriteEntryCalled)
+
+        End Sub
+
+        ''' <summary>
+        ''' Logs the message event type event identifier category raw data.
+        ''' </summary>
+        <Fact>
+        Public Sub Log_Message_maxKilobytes_retentionDays_writeInitEntry_EntrySeverity()
+
+            ' Arrange
+            Dim testWriter As TestEventLogWriter
+#If NET35 Then
+            testWriter = New TestEventLogWriter(logExists:=False, sourceExists:=False)
+#Else
+            testWriter = New TestEventLogWriter(OutputHelper, logExists:=False, sourceExists:=False)
+#End If
+            SetWriter(testWriter)
+            MachineName = ""
+            TruncationMarker = ""
+
+            Dim message As String = "Test message"
+            Dim maxKilobytes As Integer = 1024 * 1024 ' 1 MB
+            Dim retentionDays As Integer = 7
+            Dim writeInitEntry As Boolean = True
+
+            ' Act
+            Log(message, maxKilobytes, retentionDays, writeInitEntry, LoggingSeverity.Error)
 
             ' Assert
             Assert.True(testWriter.CreateEventSourceCalled)
@@ -538,6 +809,38 @@ Namespace net90
             ' Assert
             Assert.True(testWriter.CreateEventSourceCalled)
             Assert.True(testWriter.WriteEntryCalled)
+
+        End Sub
+
+        ''' <summary>
+        ''' Logs the source name message event type event identifier category raw data.
+        ''' </summary>
+        <Fact>
+        Public Sub Log_SourceName_Message_EventType_EventId_Category_RawData_EntrySeverity()
+
+            ' Arrange
+            Dim testWriter As TestEventLogWriter
+#If NET35 Then
+            testWriter = New TestEventLogWriter(logExists:=False, sourceExists:=False)
+#Else
+            testWriter = New TestEventLogWriter(OutputHelper, logExists:=False, sourceExists:=False)
+#End If
+            SetWriter(testWriter)
+            MachineName = "SomeMachineName"
+            Dim sourceName As String = "CustomSource"
+            Dim message As String = "Test message"
+            Dim eventType As EventLogEntryType = EventLogEntryType.Warning
+            Dim eventId As Integer = 42
+            Dim category As Short = 1
+            Dim rawData As Byte() = Nothing
+
+            ' Act
+            Log(sourceName, message, eventType, eventId, category, rawData, LoggingSeverity.Error)
+
+            ' Assert
+            Assert.True(testWriter.CreateEventSourceCalled)
+            Assert.True(testWriter.WriteEntryCalled)
+            Assert.Equal($"[{sourceName}] {message}.", testWriter.LastMessage)
 
         End Sub
 
@@ -801,6 +1104,50 @@ Namespace net90
 
         End Sub
 
+        ''' <summary>
+        ''' Fluents the log message.
+        ''' </summary>
+        <Theory>
+        <InlineData(LoggingSeverity.Critical, True)>
+        <InlineData(LoggingSeverity.Error, True)>
+        <InlineData(LoggingSeverity.Info, True)>
+        <InlineData(LoggingSeverity.Warning, True)>
+        <InlineData(LoggingSeverity.Verbose, False)>
+        Public Sub Fluent_Log_Message_Severity(
+                ByVal Severity As LoggingSeverity,
+                ByVal WriteEntry As Boolean)
+
+            ' Arrange
+            Dim ll As LoggingLevel = CurrentLoggingLevel
+            CurrentLoggingLevel = LoggingLevel.Normal
+            Dim testWriter As TestEventLogWriter
+#If NET35 Then
+            testWriter = New TestEventLogWriter()
+#Else
+            testWriter = New TestEventLogWriter(OutputHelper)
+#End If
+            SetWriter(testWriter)
+
+            Dim logName As String = ""
+            Dim sourceName As New String("s"c, 300) ' 300 characters long
+            Dim message As New String("X"c, 40000) ' 40,000 characters long
+            logName = "TestLog"
+
+            ' Act
+            GetLog(logName, sourceName).LogEntry(message, Severity)
+
+            ' Assert
+            CurrentLoggingLevel = ll ' Restore original logging level
+            Assert.False(testWriter.CreateEventSourceCalled)
+            Assert.Equal(WriteEntry, testWriter.WriteEntryCalled)
+            Assert.Equal(If(WriteEntry, 32766, 0), testWriter.MessageLength) ' Maximum length for event log message
+            Assert.Equal(211, testWriter.SourceLength) ' Source is truncated to 211 max characters
+
+        End Sub
+
+        ''' <summary>
+        ''' Fluents the log message.
+        ''' </summary>
         <Fact>
         Public Sub Fluent_Log_Message()
 
@@ -820,6 +1167,38 @@ Namespace net90
 
             ' Act
             GetLog(logName, sourceName).LogEntry(message)
+
+            ' Assert
+            Assert.False(testWriter.CreateEventSourceCalled)
+            Assert.True(testWriter.WriteEntryCalled)
+            Assert.Equal(32766, testWriter.MessageLength) ' Maximum length for event log message
+            Assert.Equal(211, testWriter.SourceLength) ' Source is truncated to 254 max characters
+
+        End Sub
+
+        ''' <summary>
+        ''' Fluents the log message event identifier.
+        ''' </summary>
+        <Fact>
+        Public Sub Fluent_Log_Message_EventId_EntrySeverity()
+
+            ' Arrange
+            Dim testWriter As TestEventLogWriter
+#If NET35 Then
+            testWriter = New TestEventLogWriter()
+#Else
+            testWriter = New TestEventLogWriter(OutputHelper)
+#End If
+            SetWriter(testWriter)
+
+            Dim logName As String = ""
+            Dim sourceName As New String("s"c, 300) ' 300 characters long
+            Dim message As New String("X"c, 40000) ' 40,000 characters long
+            Dim eventId As Integer = 42
+            logName = "TestLog"
+
+            ' Act
+            GetLog(logName, sourceName).LogEntry(message, eventId, LoggingSeverity.Error)
 
             ' Assert
             Assert.False(testWriter.CreateEventSourceCalled)
@@ -861,6 +1240,41 @@ Namespace net90
 
         End Sub
 
+        ''' <summary>
+        ''' Fluents the log message category.
+        ''' </summary>
+        <Fact>
+        Public Sub Fluent_Log_Message_Category_EntrySeverity()
+
+            ' Arrange
+            Dim testWriter As TestEventLogWriter
+#If NET35 Then
+            testWriter = New TestEventLogWriter()
+#Else
+            testWriter = New TestEventLogWriter(OutputHelper)
+#End If
+            SetWriter(testWriter)
+
+            Dim logName As String = ""
+            Dim sourceName As New String("s"c, 300) ' 300 characters long
+            Dim message As New String("X"c, 40000) ' 40,000 characters long
+            Dim category As Short = 3
+            logName = "TestLog"
+
+            ' Act
+            GetLog(logName, sourceName).LogEntry(message, category, LoggingSeverity.Error)
+
+            ' Assert
+            Assert.False(testWriter.CreateEventSourceCalled)
+            Assert.True(testWriter.WriteEntryCalled)
+            Assert.Equal(32766, testWriter.MessageLength) ' Maximum length for event log message
+            Assert.Equal(211, testWriter.SourceLength) ' Source is truncated to 254 max characters
+
+        End Sub
+
+        ''' <summary>
+        ''' Fluents the log message category.
+        ''' </summary>
         <Fact>
         Public Sub Fluent_Log_Message_Category()
 
@@ -890,6 +1304,41 @@ Namespace net90
 
         End Sub
 
+        ''' <summary>
+        ''' Fluents the log message raw data entry severity.
+        ''' </summary>
+        <Fact>
+        Public Sub Fluent_Log_Message_RawData_EntrySeverity()
+
+            ' Arrange
+            Dim testWriter As TestEventLogWriter
+#If NET35 Then
+            testWriter = New TestEventLogWriter()
+#Else
+            testWriter = New TestEventLogWriter(OutputHelper)
+#End If
+            SetWriter(testWriter)
+
+            Dim logName As String = ""
+            Dim sourceName As New String("s"c, 300) ' 300 characters long
+            Dim message As New String("X"c, 40000) ' 40,000 characters long
+            Dim rawData As Byte() = Nothing
+            logName = "TestLog"
+
+            ' Act
+            GetLog(logName, sourceName).LogEntry(message, rawData, LoggingSeverity.Error)
+
+            ' Assert
+            Assert.False(testWriter.CreateEventSourceCalled)
+            Assert.True(testWriter.WriteEntryCalled)
+            Assert.Equal(32766, testWriter.MessageLength) ' Maximum length for event log message
+            Assert.Equal(211, testWriter.SourceLength) ' Source is truncated to 254 max characters
+
+        End Sub
+
+        ''' <summary>
+        ''' Fluents the log message raw data.
+        ''' </summary>
         <Fact>
         Public Sub Fluent_Log_Message_RawData()
 
@@ -1155,6 +1604,80 @@ Namespace net90
             Assert.NotNull(result)
 
         End Sub
+
+        ''' <summary>
+        ''' Gets the application setting fails with type not enum.
+        ''' </summary>
+        <Fact>
+        Public Sub GetAppSetting_FailsWithTypeNotEnum()
+
+            ' Arrange
+            Dim value As Integer = 42
+
+            ' Act & Assert
+            Dim ex As ArgumentException =
+                Assert.Throws(Of ArgumentException)(
+                    Sub()
+                        Dim result As Integer = GetAppSetting("TestSetting", value)
+                    End Sub)
+
+            Assert.Contains("must be an Enum type", ex.Message)
+
+        End Sub
+
+        ''' <summary>
+        ''' Gets the application setting fails with type not enum.
+        ''' </summary>
+        <Fact>
+        Public Sub GetAppSetting_ReturnsDefaultWhenInvaid()
+
+            ' Arrange
+            Dim value As LoggingSeverity = LoggingSeverity.Critical
+
+            ' Act 
+            Dim result As LoggingSeverity = GetAppSetting("Test.InvalidItem", value)
+
+            ' Assert
+            Assert.Equal(value, result)
+
+        End Sub
+
+#If NET5_0_OR_GREATER Then
+        ''' <summary>
+        ''' Gets the application setting fails with type not enum.
+        ''' </summary>
+        <Fact>
+        Public Sub GetAppSetting_ReturnsRightValueWhenValid()
+
+            ' Arrange
+            Dim value As LoggingSeverity = LoggingSeverity.Critical
+
+            ' Act 
+            Dim result As LoggingSeverity = GetAppSetting("Test.Error", value)
+
+            ' Assert
+            Assert.Equal(LoggingSeverity.Error, result)
+
+        End Sub
+#End If
+
+#If NET5_0_OR_GREATER Then
+        ''' <summary>
+        ''' Gets the application setting fails with type not enum.
+        ''' </summary>
+        <Fact>
+        Public Sub GetAppSetting_triggersAnOverFlowException()
+
+            ' Arrange
+            Dim value As LoggingSeverity = LoggingSeverity.Critical
+
+            ' Act & Assert
+            Dim result As LoggingSeverity = GetAppSetting("Test.Overflow", value)
+
+            Assert.Equal(value, result)
+
+        End Sub
+#End If
 
 #If NET5_0_OR_GREATER Then
         <Fact>

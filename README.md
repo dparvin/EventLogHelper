@@ -16,7 +16,7 @@
 - ✅ Works in non-elevated environments
 - ✅ Configurable defaults via App.config, Web.config, or appsettings.json (automatically loaded at first use)
 - ✅ Gracefully handles permission issues and registry conflicts
-- ✅ Custom log levels
+- ✅ Configurable logging severity (filter logs by importance)
 
 ---
 
@@ -36,13 +36,17 @@ The built-in `.NET` `System.Diagnostics.EventLog` API requires:
 Install the NuGet package:
 
 ```bash
+
 dotnet add package EventLogHelper
+
 ```
 
 Or via the NuGet Package Manager Console:
 
 ```powershell
+
 Install-Package EventLogHelper
+
 ```
 
 See the NuGet Gallery page for more details.
@@ -54,9 +58,11 @@ See the NuGet Gallery page for more details.
 Basic logging with default source and log name:
 
 ```vbnet
+
 SmartEventLogger.Log("Application started.")
 SmartEventLogger.Log("A warning occurred.", EventLogEntryType.Warning)
 SmartEventLogger.Log("An error occurred.", EventLogEntryType.Error)
+
 ```
 
 Custom source and log name:
@@ -69,6 +75,7 @@ SmartEventLogger.SourceName = "MyServiceSource"
 
 SmartEventLogger.Log("Service initialized.",
                      EventLogEntryType.Information)
+
 ```
 
 Or with a fluent interface using `GetLog`:
@@ -82,6 +89,7 @@ SmartEventLogger.GetLog("MyCompanyLog", "MyServiceSource").
 Advanced usage with full customization:
 
 ```vbnet
+
 SmartEventLogger.Log(
     _machineName: ".",
     _logName: "CustomLog",
@@ -93,7 +101,55 @@ SmartEventLogger.Log(
     rawData: Nothing,
     maxKilobytes: 1024 * 1024,    ' 1 MB
     retentionDays: 7,
-    writeInitEntry: True)
+    writeInitEntry: True, 
+    EntrySeverity: LoggingSeverity.Info)
+
+```
+
+## 🔑 How the Levels Work
+
+LoggingLevel (global threshold) – sets how strict the logger is.
+
+None → no logs are written
+
+Verbose → everything is written
+
+Critical → only critical logs are written
+
+LoggingSeverity (per-entry importance) – sets how important a log entry is considered.
+
+Verbose (least important) through Critical (most important)
+
+A log entry is written only if:
+
+```vbnet
+
+    EntrySeverity >= CurrentLoggingLevel
+
+```
+
+---
+
+```vbnet
+
+' Configure defaults
+SmartEventLogger.CurrentLoggingLevel = LoggingLevel.Normal   ' write Info, Warning, Error, Critical
+SmartEventLogger.LoggingSeverity = LoggingSeverity.Info      ' default for entries without explicit severity
+
+' Explicit severity: written (Warning >= Normal)
+SmartEventLogger.Log("Low disk space.",
+                     EventLogEntryType.Warning,
+                     EntrySeverity:=LoggingSeverity.Warning)
+
+' Explicit severity: skipped (Verbose < Normal)
+SmartEventLogger.Log("Debug trace here...",
+                     EventLogEntryType.Information,
+                     EntrySeverity:=LoggingSeverity.Verbose)
+
+' Implicit severity: uses default (Info >= Normal, so written)
+SmartEventLogger.Log("Application started.",
+                     EventLogEntryType.Information)
+
 ```
 
 You can also configure default values and plug in a custom writer for unit testing or specialized behavior.
@@ -121,6 +177,8 @@ Recognized keys:
 | `EventLogHelper.TruncationMarker`        | String marker for truncated messages                      |
 | `EventLogHelper.ContinuationMarker`      | String marker for continued messages                      |
 | `EventLogHelper.AllowMultiEntryMessages` | Whether to split long messages into multiple entries      |
+| `EventLogHelper.LoggingSeverity`         | The default logging severity level for logging where the severity is not specified. |
+| `EventLogHelper.CurrentLoggingLevel`     | Current logging level (defaults to `Normal`). This can be set to control the verbosity of logs written. Log Entries with a severity below this level are not written. |
 
 Example – App.config
 
@@ -154,9 +212,6 @@ If you don’t call InitializeConfiguration() explicitly, these settings will be
 ## 📦 Roadmap
 
 - Optional fallback to file or ETW
-- Log large messages by paging the message
-- configure with `App.config` or `Web.config`
-- Setup logging levels so that you can skip logging by severity
 
 ---
 
