@@ -951,16 +951,18 @@ Namespace net90
         <InlineData(False, True)>
         <InlineData(True, False)>
         <InlineData(True, True)>
-        Public Sub Log_Exists_And_SourceExist(logExists As Boolean, sourceExists As Boolean)
+        Public Sub Log_Exists_And_Source_Exist(logExists As Boolean, sourceExists As Boolean)
 
             ' Arrange
-            Dim testWriter As TestEventLogWriter
 #If NET35 Then
-            testWriter = New TestEventLogWriter(logExists:=logExists, sourceExists:=sourceExists)
+            Dim testWriter As New TestEventLogWriter(logExists:=logExists, sourceExists:=sourceExists)
+            Dim mockReader As New TestRegistryReader()
 #Else
-            testWriter = New TestEventLogWriter(OutputHelper, logExists:=logExists, sourceExists:=sourceExists)
+            Dim testWriter As New TestEventLogWriter(OutputHelper, logExists:=logExists, sourceExists:=sourceExists)
+            Dim mockReader As New TestRegistryReader(OutputHelper)
 #End If
             SetWriter(testWriter)
+            SetRegistryReader(mockReader)
 
             Dim logName As String = ""
             Dim sourceName As String = ""
@@ -969,6 +971,11 @@ Namespace net90
             Dim eventId As Integer = 27
             Dim category As Short = 3
             Dim rawData As Byte() = Nothing
+            Dim currentSource As String = Source(sourceName)
+
+            Dim registryPath As String = $"LocalMachine\SYSTEM\CurrentControlSet\Services\EventLog\{SmartEventLogger.LogName}\{currentSource}"
+
+            mockReader.SetValue(registryPath, currentSource)
 
             ' Act
             Log(logName, sourceName, message, eventType, eventId, category, rawData)
@@ -990,21 +997,15 @@ Namespace net90
         Public Sub Log_Message_Length_Is_Shortened_WhenToLong()
 
             ' Arrange
-            Dim testWriter As TestEventLogWriter
 #If NET35 Then
-            testWriter = New TestEventLogWriter()
+            Dim testReader As New TestRegistryReader()
+            Dim testWriter As New TestEventLogWriter()
 #Else
-            testWriter = New TestEventLogWriter(OutputHelper)
-#End If
-            SetWriter(testWriter)
-
-            Dim testReader As TestRegistryReader
-#If NET35 Then
-            testReader = New TestRegistryReader()
-#Else
-            testReader = New TestRegistryReader(OutputHelper)
+            Dim testReader As New TestRegistryReader(OutputHelper)
+            Dim testWriter As New TestEventLogWriter(OutputHelper)
 #End If
             SetRegistryReader(testReader)
+            SetWriter(testWriter)
 
             Dim logName As String = ""
             Dim sourceName As New String("s"c, 300) ' 300 characters long
@@ -1013,6 +1014,11 @@ Namespace net90
             Dim eventId As Integer = 27
             Dim category As Short = 3
             Dim rawData As Byte() = Nothing
+            Dim currentSource As String = Source(sourceName)
+
+            Dim registryPath As String = $"LocalMachine\SYSTEM\CurrentControlSet\Services\EventLog\{SmartEventLogger.LogName}\{currentSource}"
+
+            testReader.SetValue(registryPath, currentSource)
 
             ' Act
             Log(logName, sourceName, message, eventType, eventId, category, rawData)
@@ -1032,20 +1038,14 @@ Namespace net90
         Public Sub Log_Message_Multiple_Entries_WhenToLong()
 
             ' Arrange
-            Dim testWriter As TestEventLogWriter
 #If NET35 Then
-            testWriter = New TestEventLogWriter()
+            Dim testWriter As New TestEventLogWriter()
+            Dim testReader As New TestRegistryReader()
 #Else
-            testWriter = New TestEventLogWriter(OutputHelper)
+            Dim testWriter As New TestEventLogWriter(OutputHelper)
+            Dim testReader As New TestRegistryReader(OutputHelper)
 #End If
             SetWriter(testWriter)
-
-            Dim testReader As TestRegistryReader
-#If NET35 Then
-            testReader = New TestRegistryReader()
-#Else
-            testReader = New TestRegistryReader(OutputHelper)
-#End If
             SetRegistryReader(testReader)
 
             Dim logName As String = ""
@@ -1057,6 +1057,11 @@ Namespace net90
             Dim rawData As Byte() = Nothing
             AllowMultiEntryMessages = True
             ContinuationMarker = String.Empty
+            Dim currentSource As String = Source(sourceName)
+
+            Dim registryPath As String = $"LocalMachine\SYSTEM\CurrentControlSet\Services\EventLog\{SmartEventLogger.LogName}\{currentSource}"
+
+            testReader.SetValue(registryPath, currentSource)
 
             ' Act
             Log(logName, sourceName, message, eventType, eventId, category, rawData)
@@ -1092,6 +1097,7 @@ Namespace net90
             Dim eventId As Integer = 27
             Dim category As Short = 3
             Dim rawData As Byte() = Nothing
+            AllowMultiEntryMessages = False
 
             ' Act
             GetLog(logName, sourceName).LogEntry(message, eventType, eventId, category, rawData)
@@ -1132,6 +1138,7 @@ Namespace net90
             Dim sourceName As New String("s"c, 300) ' 300 characters long
             Dim message As New String("X"c, 40000) ' 40,000 characters long
             logName = "TestLog"
+            AllowMultiEntryMessages = False
 
             ' Act
             GetLog(logName, sourceName).LogEntry(message, Severity)
@@ -1164,6 +1171,7 @@ Namespace net90
             Dim sourceName As New String("s"c, 300) ' 300 characters long
             Dim message As New String("X"c, 40000) ' 40,000 characters long
             logName = "TestLog"
+            AllowMultiEntryMessages = False
 
             ' Act
             GetLog(logName, sourceName).LogEntry(message)
@@ -1196,6 +1204,7 @@ Namespace net90
             Dim message As New String("X"c, 40000) ' 40,000 characters long
             Dim eventId As Integer = 42
             logName = "TestLog"
+            AllowMultiEntryMessages = False
 
             ' Act
             GetLog(logName, sourceName).LogEntry(message, eventId, LoggingSeverity.Error)
@@ -1228,6 +1237,7 @@ Namespace net90
             Dim message As New String("X"c, 40000) ' 40,000 characters long
             Dim eventId As Integer = 42
             logName = "TestLog"
+            AllowMultiEntryMessages = False
 
             ' Act
             GetLog(logName, sourceName).LogEntry(message, eventId)
@@ -1260,6 +1270,7 @@ Namespace net90
             Dim message As New String("X"c, 40000) ' 40,000 characters long
             Dim category As Short = 3
             logName = "TestLog"
+            AllowMultiEntryMessages = False
 
             ' Act
             GetLog(logName, sourceName).LogEntry(message, category, LoggingSeverity.Error)
@@ -1279,11 +1290,10 @@ Namespace net90
         Public Sub Fluent_Log_Message_Category()
 
             ' Arrange
-            Dim testWriter As TestEventLogWriter
 #If NET35 Then
-            testWriter = New TestEventLogWriter()
+            Dim testWriter as New TestEventLogWriter()
 #Else
-            testWriter = New TestEventLogWriter(OutputHelper)
+            Dim testWriter As New TestEventLogWriter(OutputHelper)
 #End If
             SetWriter(testWriter)
 
@@ -1324,6 +1334,7 @@ Namespace net90
             Dim message As New String("X"c, 40000) ' 40,000 characters long
             Dim rawData As Byte() = Nothing
             logName = "TestLog"
+            AllowMultiEntryMessages = False
 
             ' Act
             GetLog(logName, sourceName).LogEntry(message, rawData, LoggingSeverity.Error)
@@ -1356,6 +1367,7 @@ Namespace net90
             Dim message As New String("X"c, 40000) ' 40,000 characters long
             Dim rawData As Byte() = Nothing
             logName = "TestLog"
+            AllowMultiEntryMessages = False
 
             ' Act
             GetLog(logName, sourceName).LogEntry(message, rawData)
@@ -1492,7 +1504,7 @@ Namespace net90
 #Else
             Dim mockReader As New TestRegistryReader(OutputHelper)
 #End If
-            SmartEventLogger.SetRegistryReader(mockReader)
+            SetRegistryReader(mockReader)
 
             Dim CurrentSource As String = "CustomSource"
             Dim CurrentLog As String = "CustomLog"
@@ -1707,6 +1719,153 @@ Namespace net90
 
             field = GetType(SmartEventLogger).GetField("_isInitializing", BindingFlags.NonPublic Or BindingFlags.Static)
             field.SetValue(Nothing, False)
+
+        End Sub
+
+        ''' <summary>
+        ''' Logs the exists and source exist.
+        ''' </summary>
+        <Fact>
+        Public Sub LogExists_And_SourceExist_ButNotTogether_Strict_ReturnsException()
+
+            ' Arrange
+#If NET35 Then
+            Dim testWriter As New TestEventLogWriter(logExists:=true, sourceExists:=true)
+            Dim mockReader As New TestRegistryReader()
+#Else
+            Dim testWriter As New TestEventLogWriter(OutputHelper, logExists:=True, sourceExists:=True)
+            Dim mockReader As New TestRegistryReader(OutputHelper)
+#End If
+            SetWriter(testWriter)
+            SetRegistryReader(mockReader)
+
+            Dim logName As String = ""
+            Dim sourceName As String = ""
+            Dim message As String = ""
+            Dim eventType As EventLogEntryType = EventLogEntryType.FailureAudit
+            Dim eventId As Integer = 27
+            Dim category As Short = 3
+            Dim rawData As Byte() = Nothing
+
+            SmartEventLogger.SourceResolutionBehavior = SourceResolutionBehavior.Strict
+
+            ' Act & Assert
+            Dim ex As InvalidOperationException = Assert.Throws(Of InvalidOperationException)(
+                    Sub() Log(logName, sourceName, message, eventType, eventId, category, rawData)
+                )
+
+            Assert.Contains("is registered under a different log", ex.Message)
+
+        End Sub
+
+        ''' <summary>
+        ''' Logs the exists and source exist.
+        ''' </summary>
+        <Fact>
+        Public Sub LogExists_And_SourceExist_ButNotTogether_UseSourceLog()
+
+            ' Arrange
+#If NET35 Then
+            Dim testWriter As New TestEventLogWriter(logExists:=true, sourceExists:=true)
+            Dim mockReader As New TestRegistryReader()
+#Else
+            Dim testWriter As New TestEventLogWriter(OutputHelper, logExists:=True, sourceExists:=True)
+            Dim mockReader As New TestRegistryReader(OutputHelper)
+#End If
+            SetWriter(testWriter)
+            SetRegistryReader(mockReader)
+
+            Dim logName As String = ""
+            Dim sourceName As String = ""
+            Dim message As String = ""
+            Dim eventType As EventLogEntryType = EventLogEntryType.FailureAudit
+            Dim eventId As Integer = 27
+            Dim category As Short = 3
+            Dim rawData As Byte() = Nothing
+
+            SmartEventLogger.SourceResolutionBehavior = SourceResolutionBehavior.UseSourceLog
+
+            ' Act
+            Log(logName, sourceName, message, eventType, eventId, category, rawData)
+
+            ' Assert
+            Assert.False(testWriter.CreateEventSourceCalled)
+            Assert.True(testWriter.WriteEntryCalled)
+
+        End Sub
+
+        ''' <summary>
+        ''' Logs the exists and source exist.
+        ''' </summary>
+        <Fact>
+        Public Sub LogExists_And_SourceExist_ButNotTogether_UseLogDefaultSource()
+
+            ' Arrange
+#If NET35 Then
+            Dim testWriter As New TestEventLogWriter(logExists:=true, sourceExists:=true)
+            Dim mockReader As New TestRegistryReader()
+#Else
+            Dim testWriter As New TestEventLogWriter(OutputHelper, logExists:=True, sourceExists:=True)
+            Dim mockReader As New TestRegistryReader(OutputHelper)
+#End If
+            SetWriter(testWriter)
+            SetRegistryReader(mockReader)
+
+            Dim logName As String = ""
+            Dim sourceName As String = ""
+            Dim message As String = ""
+            Dim eventType As EventLogEntryType = EventLogEntryType.FailureAudit
+            Dim eventId As Integer = 27
+            Dim category As Short = 3
+            Dim rawData As Byte() = Nothing
+
+            SmartEventLogger.SourceResolutionBehavior = SourceResolutionBehavior.UseLogsDefaultSource
+            mockReader.DefaultEventLogSourceResult = "DefaultSource"
+
+            ' Act
+            Log(logName, sourceName, message, eventType, eventId, category, rawData)
+
+            ' Assert
+            Assert.False(testWriter.CreateEventSourceCalled)
+            Assert.True(testWriter.WriteEntryCalled)
+
+        End Sub
+
+        ''' <summary>
+        ''' Logs the exists and source exist.
+        ''' </summary>
+        <Fact>
+        Public Sub LogExists_And_SourceExist_ButNotTogether_UseLogDefaultSource_ReturnsException()
+
+            ' Arrange
+#If NET35 Then
+            Dim testWriter As New TestEventLogWriter(logExists:=true, sourceExists:=true)
+            Dim mockReader As New TestRegistryReader()
+#Else
+            Dim testWriter As New TestEventLogWriter(OutputHelper, logExists:=True, sourceExists:=True)
+            Dim mockReader As New TestRegistryReader(OutputHelper)
+#End If
+            SetWriter(testWriter)
+            SetRegistryReader(mockReader)
+
+            Dim logName As String = ""
+            Dim sourceName As String = ""
+            Dim message As String = ""
+            Dim eventType As EventLogEntryType = EventLogEntryType.FailureAudit
+            Dim eventId As Integer = 27
+            Dim category As Short = 3
+            Dim rawData As Byte() = Nothing
+
+            SmartEventLogger.SourceResolutionBehavior = SourceResolutionBehavior.UseLogsDefaultSource
+            mockReader.DefaultEventLogSourceResult = ""
+
+
+            ' Act & Assert
+            Dim ex As InvalidOperationException = Assert.Throws(Of InvalidOperationException)(
+                    Sub() Log(logName, sourceName, message, eventType, eventId, category, rawData)
+                )
+
+            Assert.Contains("No default source could be determined for log", ex.Message)
 
         End Sub
 

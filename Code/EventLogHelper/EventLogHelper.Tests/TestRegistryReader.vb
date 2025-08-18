@@ -81,7 +81,7 @@ Public Class TestRegistryReader
     ''' <returns></returns>
     Private Function KeyExists(key As String) As Boolean
 
-        Output($"Checking if key exists: {key}")
+        Output($"Checking if key exists: {key} and it returned {_registryData.ContainsKey(key)}")
 
         Return _registryData.ContainsKey(key)
 
@@ -111,6 +111,8 @@ Public Class TestRegistryReader
 
         ' Simulate checking for a subkey in the test registry data
         Dim fullPath As String = $"{hive}\{path}"
+        Output($"Checking if subkey exists at hive: {hive}, machineName: '{machineName}', path: '{path}' returning {_registryData.ContainsKey(fullPath)}")
+
         Return _registryData.ContainsKey(fullPath)
 
     End Function
@@ -133,15 +135,16 @@ Public Class TestRegistryReader
 
         ' Simulate checking for a subkey in the test registry data
         Dim fullPath As String = $"{hive}\{registryPath}"
-        Return _registryData.ContainsKey(fullPath)
+        Output($"Checking that the user has Registry Access at hive: {hive}, machineName: '{machineName}', registryPath: '{registryPath}', writeAccess: {writeAccess} returning {_registryData.ContainsKey(fullPath)}")
 
+        Return _registryData.ContainsKey(fullPath)
 
     End Function
     Public Function GetDefaultEventLogSource(
             ByVal logName As String,
             ByVal machineName As String) As String Implements IRegistryReader.GetDefaultEventLogSource
 
-        Output($"Getting default event log source for log: {logName} on machine: {machineName}")
+        Output($"Getting default source for event log: log name: '{logName}' on machine: '{machineName}' and returns '{DefaultEventLogSourceResult}'")
 
         Return DefaultEventLogSourceResult
 

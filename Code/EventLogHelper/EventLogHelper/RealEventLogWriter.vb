@@ -127,32 +127,109 @@ Friend Class RealEventLogWriter
 
     End Function
 
+    ''' <summary>
+    ''' Retrieves the event log name that the specified source is registered under 
+    ''' on the given machine.
+    ''' </summary>
+    ''' <param name="sourceName">
+    ''' The event source to check. Must not be <c>null</c> or empty.
+    ''' </param>
+    ''' <param name="machineName">
+    ''' The target machine name, or <c>"."</c> for the local machine.
+    ''' </param>
+    ''' <returns>
+    ''' The log name (e.g., "Application", "System") associated with the source.
+    ''' </returns>
+    ''' <exception cref="ArgumentNullException">
+    ''' Thrown if <paramref name="sourceName"/> is null or empty.
+    ''' </exception>
+    ''' <exception cref="ApplicationException">
+    ''' Thrown if the log name cannot be retrieved for the specified source 
+    ''' on the machine, wrapping the original exception for context.
+    ''' </exception>
+    ''' <remarks>
+    ''' This implementation calls <see cref="EventLog.LogNameFromSourceName"/> 
+    ''' internally and wraps any unexpected failures in an <see cref="ApplicationException"/>.
+    ''' </remarks>
+    Friend Function GetLogForSource(
+            ByVal sourceName As String,
+            ByVal machineName As String) As String Implements IEventLogWriter.GetLogForSource
+
+        If String.IsNullOrEmpty(sourceName) Then Throw New ArgumentNullException(NameOf(sourceName))
+        Try
+            Dim logName As String = EventLog.LogNameFromSourceName(sourceName, machineName)
+            Return logName
+        Catch ex As Exception
+            Throw New ApplicationException($"Failed to retrieve log name for source '{sourceName}' on machine '{machineName}'.", ex)
+        End Try
+
+    End Function
+
+    ''' <summary>
+    ''' Retrieves or initializes an <see cref="EventLog" /> instance with the specified configuration.
+    ''' </summary>
+    ''' <param name="machineName">The name of the machine (use "." for the local machine).</param>
+    ''' <param name="logName">The name of the log (e.g., "Application" or a custom log).</param>
+    ''' <param name="sourceName">The name of the event source to use or create.</param>
+    ''' <param name="maxKilobytes">Maximum size of the log in kilobytes.</param>
+    ''' <param name="retentionDays">Number of days to retain log entries before overwriting.</param>
+    ''' <param name="writeInitEntry">If <c>True</c>, an initialization entry is written upon setup.</param>
+    ''' <returns>
+    ''' An <see cref="EventLog" /> instance configured with the specified parameters.
+    ''' </returns>
+    ''' <exception cref="ArgumentNullException">
+    ''' logName
+    ''' or
+    ''' sourceName
+    ''' </exception>
+    ''' <exception cref="InvalidOperationException">
+    ''' The source '{sourceToUse}' is registered under a different log than '{logName}' on machine '{machineName}'.
+    ''' or
+    ''' No default source could be determined for log '{logName}' on machine '{machineName}'. " &amp;
+    '''                             "Please ensure the log is properly initialized with a valid source.
+    ''' </exception>
+    ''' <exception cref="ApplicationException">Failed to initialize event log '{logName}' with source '{sourceToUse}' on machine '{machineName}'.</exception>
     Friend Function GetLog(
-            machineName As String,
-            logName As String,
-            sourceName As String,
-            maxKilobytes As Integer,
-            retentionDays As Integer,
-            writeInitEntry As Boolean) As EventLog Implements IEventLogWriter.GetLog
+            ByVal machineName As String,
+            ByVal logName As String,
+            ByVal sourceName As String,
+            ByVal maxKilobytes As Integer,
+            ByVal retentionDays As Integer,
+            ByVal writeInitEntry As Boolean) As EventLog Implements IEventLogWriter.GetLog
 
         If String.IsNullOrEmpty(logName) Then Throw New ArgumentNullException(NameOf(logName))
         If String.IsNullOrEmpty(sourceName) Then Throw New ArgumentNullException(NameOf(sourceName))
         If String.IsNullOrEmpty(machineName) Then machineName = "."
+        Dim sourceToUse As String = sourceName ' this is used to tell the process which source to actually use if we can't use the one we want to use.
 
         Try
-            ' Source registration can only be done on the local machine
-            If machineName = "." OrElse String.Equals(machineName, Environment.MachineName, StringComparison.OrdinalIgnoreCase) Then
-                If Not EventLog.SourceExists(sourceName) Then
-                    Dim sourceData As New EventSourceCreationData(sourceName, logName)
-                    EventLog.CreateEventSource(sourceData)
-                    ' Optionally wait here or notify user that restart might be needed
-                End If
+            If Not Exists(logName, machineName) OrElse Not SourceExists(sourceToUse, machineName) Then
+                CreateEventSource(sourceName, logName, machineName)
+            ElseIf Not IsSourceRegisteredToLog(sourceToUse, logName, machineName) Then
+                Select Case SmartEventLogger.SourceResolutionBehavior
+                    Case SourceResolutionBehavior.Strict
+                        ' Fail immediately with a clear exception message.
+                        Throw New InvalidOperationException(
+                        $"The source '{sourceToUse}' is registered under a different log than '{logName}' on machine '{machineName}'.")
+
+                    Case SourceResolutionBehavior.UseSourceLog
+                        ' Adjust the log name to match the one the source is already tied to.
+                        logName = GetLogForSource(sourceToUse, machineName)
+
+                    Case SourceResolutionBehavior.UseLogsDefaultSource
+                        sourceToUse = DefaultSource(logName, machineName)
+                        If String.IsNullOrEmpty(sourceToUse) Then
+                            Throw New InvalidOperationException(
+                            $"No default source could be determined for log '{logName}' on machine '{machineName}'. " &
+                            "Please ensure the log is properly initialized with a valid source.")
+                        End If
+                End Select
             End If
 
-            Dim el As New EventLog(logName, machineName, sourceName)
+            Dim el As New EventLog(logName, machineName, sourceToUse)
 
             If writeInitEntry Then
-                el.WriteEntry($"Initialized log '{logName}' with source '{sourceName}' on machine '{machineName}'.", EventLogEntryType.Information)
+                el.WriteEntry($"Initialized log '{logName}' with source '{sourceToUse}' on machine '{machineName}'.", EventLogEntryType.Information)
             End If
 
             ' Only applies to local machine logs
@@ -162,7 +239,7 @@ Friend Class RealEventLogWriter
             Return el
 
         Catch ex As Exception
-            Throw New ApplicationException($"Failed to initialize event log '{logName}' with source '{sourceName}' on machine '{machineName}'.", ex)
+            Throw New ApplicationException($"Failed to initialize event log '{logName}' with source '{sourceToUse}' on machine '{machineName}'.", ex)
         End Try
 
     End Function

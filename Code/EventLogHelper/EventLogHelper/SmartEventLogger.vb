@@ -124,6 +124,7 @@ Public Module SmartEventLogger
                     AllowMultiEntryMessages = GetAppSetting("EventLogHelper.AllowMultiEntryMessages", AllowMultiEntryMessages)
                     CurrentLoggingLevel = GetAppSetting("EventLogHelper.CurrentLoggingLevel", CurrentLoggingLevel)
                     LoggingSeverity = GetAppSetting("EventLogHelper.LoggingSeverity", LoggingSeverity)
+                    SourceResolutionBehavior = GetAppSetting("EventLogHelper.SourceResolutionBehavior", SourceResolutionBehavior)
 
                     _isInitialized = True
                 End If
@@ -296,6 +297,10 @@ Public Module SmartEventLogger
     ''' The logging severity
     ''' </summary>
     Private _LoggingSeverity As LoggingSeverity = LoggingSeverity.Info
+    ''' <summary>
+    ''' the source resolution behavior.
+    ''' </summary>
+    Private _sourceResolutionBehavior As SourceResolutionBehavior = SourceResolutionBehavior.Strict
 
 #End Region
 
@@ -551,11 +556,20 @@ Public Module SmartEventLogger
     End Property
 
     ''' <summary>
-    ''' Gets or sets the current logging level.
+    ''' Gets or sets the minimum <see cref="LoggingLevel"/> that must be met 
+    ''' for log entries to be written. 
     ''' </summary>
     ''' <value>
-    ''' The current logging level.
+    ''' The currently active logging level. Entries with a severity below this level 
+    ''' will be ignored. Defaults to <see cref="LoggingLevel.Normal"/>.
     ''' </value>
+    ''' <remarks>
+    ''' This property acts as a global filter to increase or decrease the verbosity 
+    ''' of logging at runtime. For example, setting this to 
+    ''' <see cref="LoggingLevel.Verbose"/> allows all entries to be logged, while 
+    ''' <see cref="LoggingLevel.Minimal"/> ensures only warnings, errors, and critical 
+    ''' entries are written.
+    ''' </remarks>
     Public Property CurrentLoggingLevel As LoggingLevel
 
         Get
@@ -574,11 +588,20 @@ Public Module SmartEventLogger
     End Property
 
     ''' <summary>
-    ''' Gets or sets the logging severity.
+    ''' Gets or sets the default <see cref="LoggingSeverity"/> applied to log entries
+    ''' when no explicit severity is specified.
     ''' </summary>
     ''' <value>
-    ''' The logging severity.
+    ''' The default severity level for new log entries. Defaults to 
+    ''' <see cref="LoggingSeverity.Info"/>.
     ''' </value>
+    ''' <remarks>
+    ''' This property determines the baseline importance assigned to entries that do 
+    ''' not specify a severity. For example, a call such as 
+    ''' <c>SmartEventLogger.Log("Started service.")</c> will use this value. 
+    ''' Combined with <see cref="CurrentLoggingLevel"/>, it controls whether the 
+    ''' entry is written or ignored.
+    ''' </remarks>
     Public Property LoggingSeverity As LoggingSeverity
 
         Get
@@ -591,6 +614,38 @@ Public Module SmartEventLogger
 
             Initialize()
             _LoggingSeverity = Value
+
+        End Set
+
+    End Property
+
+    ''' <summary>
+    ''' Gets or sets the strategy used when resolving event sources that are
+    ''' registered under a different log than the one requested.
+    ''' </summary>
+    ''' <value>
+    ''' A <see cref="SourceResolutionBehavior"/> value that determines whether logging
+    ''' requires an exact source-to-log match (<c>Strict</c>), automatically switches
+    ''' to the log where the source is registered (<c>UseSourceLog</c>), or creates a
+    ''' new source under the requested log (<c>CreateNewSource</c>).
+    ''' </value>
+    ''' <remarks>
+    ''' This setting controls how <see cref="SmartEventLogger"/> handles cases where
+    ''' the requested source and log are not aligned, which can occur on
+    ''' misconfigured systems or when reusing existing event sources.
+    ''' </remarks>
+    Public Property SourceResolutionBehavior As SourceResolutionBehavior
+
+        Get
+
+            Initialize()
+            Return _sourceResolutionBehavior
+
+        End Get
+        Set
+
+            Initialize()
+            _sourceResolutionBehavior = Value
 
         End Set
 
@@ -4771,10 +4826,31 @@ Public Module SmartEventLogger
 
         Dim defaultLog As String = If(String.IsNullOrEmpty(_logName), LogName, _logName.Trim())
         Dim defaultSource As String = Source(sourceName)
+        Dim sourceToUse As String = defaultSource ' this is used to tell the process which source to actually use if we can't use the one we want to use.
         Dim defaultMachine As String = NormalizeMachineName(_machineName)
 
+        ' If the log or source do not exist on the machine, then create them,
         If Not _writer.Exists(defaultLog, defaultMachine) OrElse Not _writer.SourceExists(defaultSource, defaultMachine) Then
             _writer.CreateEventSource(defaultSource, defaultLog, _machineName)
+        ElseIf Not IsSourceRegisteredToLog(sourceToUse, defaultLog, defaultMachine) Then
+            Select Case SourceResolutionBehavior
+                Case SourceResolutionBehavior.Strict
+                    ' Fail immediately with a clear exception message.
+                    Throw New InvalidOperationException(
+                        $"The source '{sourceToUse}' is registered under a different log than '{defaultLog}' on machine '{defaultMachine}'.")
+
+                Case SourceResolutionBehavior.UseSourceLog
+                    ' Adjust the log name to match the one the source is already tied to.
+                    defaultLog = _writer.GetLogForSource(sourceToUse, defaultMachine)
+
+                Case SourceResolutionBehavior.UseLogsDefaultSource
+                    sourceToUse = SmartEventLogger.DefaultSource(defaultLog, defaultMachine)
+                    If String.IsNullOrEmpty(sourceToUse) Then
+                        Throw New InvalidOperationException(
+                            $"No default source could be determined for log '{defaultLog}' on machine '{defaultMachine}'. " &
+                            "Please ensure the log is properly initialized with a valid source.")
+                    End If
+            End Select
         End If
 
         Dim finalEventType As EventLogEntryType = NormalizeEventType(eventType)
@@ -4783,7 +4859,7 @@ Public Module SmartEventLogger
             For Each chunk As String In SplitMessageIntoPages(defaultSource, message)
                 _writer.WriteEntry(defaultMachine,
                            defaultLog,
-                           defaultSource,
+                           sourceToUse,
                            chunk,
                            finalEventType,
                            eventID,
@@ -4796,7 +4872,7 @@ Public Module SmartEventLogger
         Else
             _writer.WriteEntry(defaultMachine,
                                defaultLog,
-                               defaultSource,
+                               sourceToUse,
                                NormalizeMessage(defaultSource, message),
                                finalEventType,
                                eventID,

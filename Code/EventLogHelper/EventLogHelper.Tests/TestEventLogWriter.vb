@@ -129,7 +129,7 @@ Public Class TestEventLogWriter
             ByVal MachineName As String) Implements IEventLogWriter.CreateEventSource
 
         ' Simulate creating an event source
-        Output($"Creating event source: {source} for log: {logName}")
+        Output($"Creating event source: '{source}' for log: '{logName}' on machine: '{MachineName}'")
         ' In a real implementation, you would create the event source here
         ' For example:
         ' If Not EventLog.SourceExists(source, logName) Then
@@ -176,11 +176,11 @@ Public Class TestEventLogWriter
 
         ' Simulate writing an entry to the event log
         Output(String.Join(Environment.NewLine, {
-            $"Machine Name: {machineName}",
-            $"Log Name: {logName}",
-            $"Source Name: {sourceName}",
-            $"Message: {message}",
-            $"EventType: {eventType}",
+            $"Machine Name: '{machineName}'",
+            $"Log Name: '{logName}'",
+            $"Source Name: '{sourceName}'",
+            $"Message: '{message}'",
+            $"EventType: '{eventType}'",
             $"EventID: {eventId}",
             $"Category: {category}",
             $"RawData Length: {If(rawData IsNot Nothing, rawData.Length, 0)}",
@@ -212,7 +212,7 @@ Public Class TestEventLogWriter
             ByVal logName As String,
             ByVal machineName As String) As Boolean Implements IEventLogWriter.Exists
 
-        Output($"Checking if log exists: {logName} on machine {machineName}, Returning {ReturnLogExists}")
+        Output($"Checking if log exists: '{logName}' on machine '{machineName}', Returning {ReturnLogExists}")
         Return ReturnLogExists
 
     End Function
@@ -232,7 +232,7 @@ Public Class TestEventLogWriter
             source As String,
             machineName As String) As Boolean Implements IEventLogWriter.SourceExists
 
-        Output($"Checking if source exists: {source} on machine: {machineName}, Returning {ReturnSourceExists}")
+        Output($"Checking if source exists: '{source}' on machine: '{machineName}', Returning {ReturnSourceExists}")
         Return ReturnSourceExists
 
     End Function
@@ -248,9 +248,9 @@ Public Class TestEventLogWriter
         Dim ln As String = If(String.IsNullOrEmpty(eventLogName), If(String.IsNullOrEmpty(LogName), "Application", LogName), eventLogName)
 
         Output(String.Join(Environment.NewLine, {
-            $"Machine Name: {machineName}",
-            $"Log Name: {ln}",
-            $"Source Name: {sourceName}",
+            $"Machine Name: '{machineName}'",
+            $"Log Name: '{ln}'",
+            $"Source Name: '{sourceName}'",
             $"MaxKilobytes: {maxKilobytes}",
             $"RetentionDays: {retentionDays}",
             $"WriteInitEntry: {writeInitEntry}"
@@ -285,7 +285,7 @@ Public Class TestEventLogWriter
             ByRef rawData() As Byte) Implements IEventLogWriter.WriteEntry
 
         Output(String.Join(Environment.NewLine, {
-            $"Message: {message}",
+            $"Message: '{message}'",
             $"EventType: {eventType}",
             $"EventID: {eventID}",
             $"Category: {category}",
@@ -297,6 +297,21 @@ Public Class TestEventLogWriter
         WriteEntryCalled = True
 
     End Sub
+
+    ''' <summary>
+    ''' Gets the log for source.
+    ''' </summary>
+    ''' <param name="sourceName">Name of the source.</param>
+    ''' <param name="machineName">Name of the machine.</param>
+    ''' <returns></returns>
+    Public Function GetLogForSource(
+            ByVal sourceName As String,
+            ByVal machineName As String) As String Implements IEventLogWriter.GetLogForSource
+
+        Output($"Getting log for source: '{sourceName}' on machine: '{machineName}', returning '{sourceName}'")
+        Return sourceName
+
+    End Function
 
     ''' <summary>
     ''' Outputs the specified message.

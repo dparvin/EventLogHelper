@@ -27,8 +27,8 @@ Public Interface IEventLogWriter
     ''' Wraps <see cref="EventLog.Exists(String)"/> to enable testable checks for log existence.
     ''' </remarks>
     Function Exists(
-            logName As String,
-            machineName As String) As Boolean
+            ByVal logName As String,
+            ByVal machineName As String) As Boolean
 
     ''' <summary>
     ''' Determines whether the specified event source is registered on the given machine.
@@ -40,11 +40,11 @@ Public Interface IEventLogWriter
     ''' Wraps <see cref="EventLog.SourceExists(String, String)"/> to allow testable verification of event sources.
     ''' </remarks>
     Function SourceExists(
-            sourceName As String,
-            machineName As String) As Boolean
+            ByVal sourceName As String,
+            ByVal machineName As String) As Boolean
 
     ''' <summary>
-    ''' Retrieves or initializes an <see cref="EventLog"/> instance with the specified configuration.
+    ''' Retrieves or initializes an <see cref="EventLog" /> instance with the specified configuration.
     ''' </summary>
     ''' <param name="machineName">The name of the machine (use "." for the local machine).</param>
     ''' <param name="logName">The name of the log (e.g., "Application" or a custom log).</param>
@@ -52,15 +52,16 @@ Public Interface IEventLogWriter
     ''' <param name="maxKilobytes">Maximum size of the log in kilobytes.</param>
     ''' <param name="retentionDays">Number of days to retain log entries before overwriting.</param>
     ''' <param name="writeInitEntry">If <c>True</c>, an initialization entry is written upon setup.</param>
-    ''' <returns>An <see cref="EventLog"/> instance configured with the specified parameters.</returns>
+    ''' <returns>
+    ''' An <see cref="EventLog" /> instance configured with the specified parameters.
+    ''' </returns>
     Function GetLog(
-            machineName As String,
-            logName As String,
-            sourceName As String,
-            maxKilobytes As Integer,
-            retentionDays As Integer,
-            writeInitEntry As Boolean) As EventLog
-
+            ByVal machineName As String,
+            ByVal logName As String,
+            ByVal sourceName As String,
+            ByVal maxKilobytes As Integer,
+            ByVal retentionDays As Integer,
+            ByVal writeInitEntry As Boolean) As EventLog
 
     ''' <summary>
     ''' Creates a new event source for the specified log on the given machine, if it does not already exist.
@@ -73,9 +74,9 @@ Public Interface IEventLogWriter
     ''' If the source already exists, no action is taken.
     ''' </remarks>
     Sub CreateEventSource(
-            sourceName As String,
-            logName As String,
-            machineName As String)
+            ByVal sourceName As String,
+            ByVal logName As String,
+            ByVal machineName As String)
 
     ''' <summary>
     ''' Writes an entry to the specified event log using explicit log and source details.
@@ -92,17 +93,17 @@ Public Interface IEventLogWriter
     ''' <param name="retentionDays">Retention policy in days.</param>
     ''' <param name="writeInitEntry">If <c>True</c>, an initialization entry is written if the log is first created.</param>
     Sub WriteEntry(
-            machineName As String,
-            logName As String,
-            sourceName As String,
-            message As String,
-            eventType As EventLogEntryType,
-            eventId As Integer,
-            category As Short,
-            rawData As Byte(),
-            maxKilobytes As Integer,
-            retentionDays As Integer,
-            writeInitEntry As Boolean)
+            ByVal machineName As String,
+            ByVal logName As String,
+            ByVal sourceName As String,
+            ByVal message As String,
+            ByVal eventType As EventLogEntryType,
+            ByVal eventId As Integer,
+            ByVal category As Short,
+            ByVal rawData As Byte(),
+            ByVal maxKilobytes As Integer,
+            ByVal retentionDays As Integer,
+            ByVal writeInitEntry As Boolean)
 
     ''' <summary>
     ''' Writes an entry directly to an existing <see cref="EventLog"/> instance.
@@ -120,5 +121,35 @@ Public Interface IEventLogWriter
         ByVal eventID As Integer,
         ByVal category As Short,
         ByRef rawData As Byte())
+
+    ''' <summary>
+    ''' Retrieves the name of the event log that a given source is registered under 
+    ''' on the specified machine.
+    ''' </summary>
+    ''' <param name="sourceName">
+    ''' The name of the event source (e.g., "MyAppSource"). This must already exist 
+    ''' on the target machine.
+    ''' </param>
+    ''' <param name="machineName">
+    ''' The name of the machine to query. Use <c>"."</c> to indicate the local machine.
+    ''' </param>
+    ''' <returns>
+    ''' The name of the event log (e.g., "Application", "System", or a custom log) 
+    ''' that the specified source is registered to.
+    ''' </returns>
+    ''' <exception cref="ArgumentNullException">
+    ''' Thrown when <paramref name="sourceName"/> is <c>null</c> or empty.
+    ''' </exception>
+    ''' <exception cref="ApplicationException">
+    ''' Thrown when the log name could not be retrieved for the specified source 
+    ''' on the given machine (e.g., due to registry corruption or insufficient access).
+    ''' </exception>
+    ''' <remarks>
+    ''' This method wraps <see cref="EventLog.LogNameFromSourceName(String, String)"/> 
+    ''' to provide testability and consistent error handling.
+    ''' </remarks>
+    Function GetLogForSource(
+        ByVal sourceName As String,
+        ByVal machineName As String) As String
 
 End Interface
