@@ -1,6 +1,7 @@
 ﻿# ![EventLogHelper Icon](https://raw.githubusercontent.com/dparvin/EventLogHelper/main/Code/EventLogHelper/NuGet.Pack/Images/EventLogHelper-icon-64x64.png) EventLogHelper
 
-**EventLogHelper** is a lightweight .NET library designed to make logging to the Windows Event Log simple, safe, and flexible — without requiring repetitive boilerplate or administrative headaches.
+**EventLogHelper** is a lightweight .NET library designed to make logging to the Windows Event Log 
+simple, safe, and flexible — without requiring repetitive boilerplate or administrative headaches.
 
 ---
 
@@ -9,7 +10,8 @@
 - ✅ One-line logging to the Windows Event Log
 - ✅ Automatically creates event sources (with safe fallbacks)
 - ✅ Works in non-elevated environments
-- ✅ Configurable defaults via App.config, Web.config, or appsettings.json (automatically loaded at first use)
+- ✅ Configurable defaults via App.config, Web.config, or appsettings.json (automatically loaded at 
+first use)
 - ✅ Gracefully handles permission issues and registry conflicts
 - ✅ Configurable logging severity (filter logs by importance)
 
@@ -22,7 +24,8 @@ The built-in `.NET` `System.Diagnostics.EventLog` API requires:
 - Manually checking for source/log conflicts
 - Verbose, repeated code everywhere you want to log
 
-**EventLogHelper** abstracts all that into a single method call, with smart defaults and self-healing behavior.
+**EventLogHelper** abstracts all that into a single method call, with smart defaults and self-healing 
+behavior.
 
 ---
 
@@ -49,6 +52,7 @@ SmartEventLogger.Log("Service initialized.",
 ```
 
 Or with a fluent interface using `GetLog`:
+
 ```vbnet
 
 SmartEventLogger.GetLog("MyCompanyLog", "MyServiceSource").
@@ -59,6 +63,7 @@ SmartEventLogger.GetLog("MyCompanyLog", "MyServiceSource").
 Advanced usage with full customization:
 
 ```vbnet
+
 SmartEventLogger.Log(
     _machineName: ".",
     _logName: "CustomLog",
@@ -72,9 +77,11 @@ SmartEventLogger.Log(
     retentionDays: 7,
     writeInitEntry: True,
     EntrySeverity: LoggingSeverity.Info)
+
 ```
 
-You can also configure default values and plug in a custom writer for unit testing or specialized behavior.
+You can also configure default values and plug in a custom writer for unit testing or specialized 
+behavior.
 
 ---
 
@@ -82,18 +89,19 @@ You can also configure default values and plug in a custom writer for unit testi
 
 SmartEventLogger can initialize itself automatically using application configuration files:
 
-.NET Framework – settings are read from <appSettings> in App.config or Web.config.
+- .NET Framework – settings are read from <appSettings> in App.config or Web.config.
+- .NET Core / .NET 5+ – settings are read from appsettings.json.
 
-.NET Core / .NET 5+ – settings are read from appsettings.json.
-
-If you don’t call InitializeConfiguration() explicitly, these settings will be loaded automatically the first time you use the logger.
+If you don’t call InitializeConfiguration() explicitly, these settings will be loaded automatically 
+the first time you use the logger.
 
 ---
 
 ## 🔒 Security Notes
 
 - Creating new sources requires admin privileges.
-- In non-elevated environments, EventLogHelper will automatically fall back to an existing source (e.g., the log name or "Application").
+- In non-elevated environments, EventLogHelper will automatically fall back to an existing source 
+(e.g., the log name or "Application").
 
 ---
 

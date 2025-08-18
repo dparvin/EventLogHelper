@@ -1,6 +1,7 @@
 # ![EventLogHelper Icon](https://raw.githubusercontent.com/dparvin/EventLogHelper/main/Code/EventLogHelper/NuGet.Pack/Images/EventLogHelper-icon-64x64.png) EventLogHelper
 
-**EventLogHelper** is a lightweight .NET library designed to make logging to the Windows Event Log simple, safe, and flexible — without requiring repetitive boilerplate or administrative headaches.
+**EventLogHelper** is a lightweight .NET library designed to make logging to the Windows Event Log 
+simple, safe, and flexible — without requiring repetitive boilerplate or administrative headaches.
 
 ## Status
 [![Coverage](https://raw.githubusercontent.com/dparvin/EventLogHelper.CodeCoverage/main/Badges/badge_combined.svg)](https://dparvin.github.io/EventLogHelper/)
@@ -27,7 +28,8 @@ The built-in `.NET` `System.Diagnostics.EventLog` API requires:
 - Manually checking for source/log conflicts
 - Verbose, repeated code everywhere you want to log
 
-**EventLogHelper** abstracts all that into a single method call, with smart defaults and self-healing behavior.
+**EventLogHelper** abstracts all that into a single method call, with smart defaults and self-healing 
+behavior.
 
 ---
 
@@ -152,7 +154,39 @@ SmartEventLogger.Log("Application started.",
 
 ```
 
-You can also configure default values and plug in a custom writer for unit testing or specialized behavior.
+You can also configure default values and plug in a custom writer for unit testing or specialized 
+behavior.
+
+---
+## 🔄 Source Resolution Behavior
+
+Sometimes an event source exists, but it’s registered under a different log than the one you want to 
+write to. By default, this mismatch causes an exception. You can control how EventLogHelper resolves 
+these situations with the SourceResolutionBehavior property:
+
+```vbnet
+Enum SourceResolutionBehavior
+    Strict            ' Fail if the source is tied to a different log
+    UseSourceLog      ' Automatically switch to the log the source is registered under
+    UseLogsDefaultSource ' Use the default source for the requested log instead
+End Enum
+```
+
+### Example
+
+```vbnet
+' Configure global behavior
+SmartEventLogger.SourceResolutionBehavior = SourceResolutionBehavior.UseSourceLog
+
+' Case 1: Source is under the wrong log
+'   Strict → throws InvalidOperationException
+'   UseSourceLog → log is switched automatically
+'   UseLogsDefaultSource → original source is preserved in the message text,
+'                          but the actual log entry uses the log’s default source
+```
+
+This allows you to balance safety (strict checking) against robustness (automatic fallback), depending 
+on your deployment environment.
 
 ---
 
@@ -160,25 +194,25 @@ You can also configure default values and plug in a custom writer for unit testi
 
 SmartEventLogger can initialize itself automatically using application configuration files:
 
-.NET Framework – settings are read from <appSettings> in App.config or Web.config.
-
-.NET Core / .NET 5+ – settings are read from appsettings.json.
+- .NET Framework – settings are read from <appSettings> in App.config or Web.config.
+- .NET Core / .NET 5+ – settings are read from appsettings.json.
 
 Recognized keys:
 
-| Key                                      | Description                                               |
-| ---------------------------------------- | --------------------------------------------------------- |
-| `EventLogHelper.MachineName`             | Target machine name for logging (default: local machine)  |
-| `EventLogHelper.LogName`                 | Event log name (default: Application)                     |
-| `EventLogHelper.SourceName`              | Event source name                                         |
-| `EventLogHelper.MaxKilobytes`            | Maximum log size in KB                                    |
-| `EventLogHelper.RetentionDays`           | Days to retain log entries                                |
-| `EventLogHelper.WriteInitEntry`          | Whether to write an initialization entry (`true`/`false`) |
-| `EventLogHelper.TruncationMarker`        | String marker for truncated messages                      |
-| `EventLogHelper.ContinuationMarker`      | String marker for continued messages                      |
-| `EventLogHelper.AllowMultiEntryMessages` | Whether to split long messages into multiple entries      |
-| `EventLogHelper.LoggingSeverity`         | The default logging severity level for logging where the severity is not specified. |
-| `EventLogHelper.CurrentLoggingLevel`     | Current logging level (defaults to `Normal`). This can be set to control the verbosity of logs written. Log Entries with a severity below this level are not written. |
+| Key                                       | Description                                               |
+| ----------------------------------------  | --------------------------------------------------------- |
+| `EventLogHelper.MachineName`              | Target machine name for logging (default: local machine)  |
+| `EventLogHelper.LogName`                  | Event log name (default: Application)                     |
+| `EventLogHelper.SourceName`               | Event source name                                         |
+| `EventLogHelper.MaxKilobytes`             | Maximum log size in KB                                    |
+| `EventLogHelper.RetentionDays`            | Days to retain log entries                                |
+| `EventLogHelper.WriteInitEntry`           | Whether to write an initialization entry (`true`/`false`) |
+| `EventLogHelper.TruncationMarker`         | String marker for truncated messages                      |
+| `EventLogHelper.ContinuationMarker`       | String marker for continued messages                      |
+| `EventLogHelper.AllowMultiEntryMessages`  | Whether to split long messages into multiple entries      |
+| `EventLogHelper.LoggingSeverity`          | The default logging severity level for logging where the severity is not specified. |
+| `EventLogHelper.CurrentLoggingLevel`      | Current logging level (defaults to `Normal`). This can be set to control the verbosity of logs written. Log Entries with a severity below this level are not written. |
+| `EventLogHelper.SourceResolutionBehavior` | How to handle mismatched source and log names (defaults to `Strict`). |
 
 Example – App.config
 
@@ -198,14 +232,16 @@ Example – appsettings.json
 }
 ```
 
-If you don’t call InitializeConfiguration() explicitly, these settings will be loaded automatically the first time you use the logger.
+If you don’t call InitializeConfiguration() explicitly, these settings will be loaded automatically 
+the first time you use the logger.
 
 ---
 
 ## 🔒 Security Notes
 
 - Creating new sources requires admin privileges.
-- In non-elevated environments, EventLogHelper will automatically fall back to an existing source (e.g., the log name or "Application").
+- In non-elevated environments, EventLogHelper will automatically fall back to an existing source 
+- (e.g., the log name or "Application").
 
 ---
 
@@ -217,7 +253,8 @@ If you don’t call InitializeConfiguration() explicitly, these settings will be
 
 ## 🙌 Contributions
 
-Contributions are welcome! Please file issues or open pull requests to suggest improvements, report bugs, or extend functionality.
+Contributions are welcome! Please file issues or open pull requests to suggest improvements, report 
+bugs, or extend functionality.
 
 ---
 
