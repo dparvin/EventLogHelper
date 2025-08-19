@@ -7,17 +7,9 @@
     <authors>David Parvin</authors>
     <owners>David Parvin</owners>
     <readme>readme.md</readme>
-    <description>
-      EventLogHelper is a lightweight, strongly-named library that simplifies writing to the Windows Event Log.
-      It provides a static, testable interface for logging messages with automatic handling of event sources, message
-      truncation, and category/event ID assignment. Ideal for developers who need a minimal-dependency logging utility
-      that works seamlessly in Windows environments across .NET Framework and .NET Core/5+/6+/8+ projects.
-    </description>
-    <releaseNotes>
-    </releaseNotes>
-    <summary>
-      A helper library for simplified, static, and testable Windows Event Log writing.
-    </summary>
+    <description>EventLogHelper is a lightweight, strongly-named library that simplifies writing to the Windows Event Log. It provides a static, testable interface for logging messages with automatic handling of event sources, message truncation, and category/event ID assignment. Ideal for developers who need a minimal-dependency logging utility that works seamlessly in Windows environments across .NET Framework and .NET Core/5+/6+/8+ projects.</description>
+    <releaseNotes></releaseNotes>
+    <summary>A helper library for simplified, static, and testable Windows Event Log writing.</summary>
     <language>en-US</language>
     <projectUrl>https://github.com/dparvin/EventLogHelper/</projectUrl>
     <icon>EventLogHelper-icon-50x50.png</icon>
