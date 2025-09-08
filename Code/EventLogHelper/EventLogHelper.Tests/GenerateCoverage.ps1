@@ -22,7 +22,7 @@ dotnet test $PSScriptRoot `
   /p:CoverletOutputFormat=cobertura
 
 # Full path to ReportGenerator.exe
-$rgVersion = "5.4.10"
+$rgVersion = "5.4.12"
 $reportGeneratorExe = "$env:USERPROFILE\.nuget\packages\reportgenerator\$rgVersion\tools\net9.0\ReportGenerator.exe"
 
 # Paths

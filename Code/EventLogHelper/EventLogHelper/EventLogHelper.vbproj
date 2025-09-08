@@ -55,7 +55,7 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="Versioning.Common" Version="1.0.15" />
+    <PackageReference Include="Versioning.Common" Version="1.0.17" />
   </ItemGroup>
 
   <ItemGroup Condition="'$(TargetFramework)' == 'net35'">
@@ -78,17 +78,23 @@
   </ItemGroup>
 
   <ItemGroup Condition="'$(TargetFramework)' == 'net8.0-windows10.0.17763.0'">
+    <PackageReference Include="System.Configuration.ConfigurationManager" Version="9.0.8" />
     <PackageReference Include="Microsoft.Extensions.Configuration" Version="9.0.8" />
     <PackageReference Include="Microsoft.Extensions.Configuration.FileExtensions" Version="9.0.8" />
     <PackageReference Include="Microsoft.Extensions.Configuration.Json" Version="9.0.8" />
-    <PackageReference Include="System.Diagnostics.EventLog" Version="9.0.7" />
+    <PackageReference Include="System.Diagnostics.EventLog" Version="9.0.8" />
   </ItemGroup>
 
   <ItemGroup Condition="'$(TargetFramework)' == 'net9.0-windows10.0.17763.0'">
+    <PackageReference Include="System.Configuration.ConfigurationManager" Version="9.0.8" />
     <PackageReference Include="Microsoft.Extensions.Configuration" Version="9.0.8" />
     <PackageReference Include="Microsoft.Extensions.Configuration.FileExtensions" Version="9.0.8" />
     <PackageReference Include="Microsoft.Extensions.Configuration.Json" Version="9.0.8" />
-    <PackageReference Include="System.Diagnostics.EventLog" Version="9.0.7" />
+    <PackageReference Include="System.Diagnostics.EventLog" Version="9.0.8" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\EventLogHelper.Elevator\EventLogHelper.Elevator.vbproj" />
   </ItemGroup>
 
 </Project>

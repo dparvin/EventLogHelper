@@ -92,6 +92,14 @@ Public Class TestEventLogWriter
     Public Property WriteEntryCalled As Boolean
 
     ''' <summary>
+    ''' Gets or sets a value indicating whether GetLog routine was called.
+    ''' </summary>
+    ''' <value>
+    '''   <c>true</c> if the GetLog was called; otherwise, <c>false</c>.
+    ''' </value>
+    Public Property GetLogCalled As Boolean
+
+    ''' <summary>
     ''' Gets or sets a value indicating whether the raw data length is set to 0.
     ''' </summary>
     ''' <value>
@@ -124,12 +132,14 @@ Public Class TestEventLogWriter
     ''' facilitate testable logging behavior. If the source already exists, no action is taken.
     ''' </remarks>
     Public Sub CreateEventSource(
-            ByVal source As String,
-            ByVal logName As String,
-            ByVal MachineName As String) Implements IEventLogWriter.CreateEventSource
+            ByRef source As String,
+            ByRef logName As String,
+            ByRef machineName As String,
+            ByVal maxKilobytes As Integer,
+            ByVal retentionDays As Integer) Implements IEventLogWriter.CreateEventSource
 
         ' Simulate creating an event source
-        Output($"Creating event source: '{source}' for log: '{logName}' on machine: '{MachineName}'")
+        Output($"Creating event source: '{source}' for log: '{logName}' on machine: '{machineName}' with max kilobytes: {maxKilobytes} and retention days: {retentionDays}")
         ' In a real implementation, you would create the event source here
         ' For example:
         ' If Not EventLog.SourceExists(source, logName) Then
@@ -262,6 +272,8 @@ Public Class TestEventLogWriter
             .Source = MaxSource(sourceName)}
 
         SourceLength = result.Source.Length
+
+        GetLogCalled = True
 
         Return result
 

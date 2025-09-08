@@ -5,6 +5,7 @@ Imports System.Runtime.CompilerServices
 #If NETFRAMEWORK Then
 Imports System.Configuration
 #Else
+Imports System.IO
 Imports Microsoft.Extensions.Configuration
 #End If
 
@@ -246,6 +247,34 @@ Public Module SmartEventLogger
     Public Sub InitializeConfiguration()
 
         Initialize()
+
+    End Sub
+
+    ''' <summary>
+    ''' Resets this instance.
+    ''' </summary>
+    Friend Sub Reset()
+
+        ' Reset all configuration settings to their default values
+        _machineName = "."
+        _logName = "Application"
+        _sourceName = ""
+        _maxKilobytes = 1024 * 1024
+        _retentionDays = 7
+        _writeInitEntry = False
+        _truncationMarker = "... [TRUNCATED]"
+        _continuationMarker = " ..."
+        _allowMultiEntryMessages = False
+        _CurrentLoggingLevel = LoggingLevel.Verbose
+        _LoggingSeverity = LoggingSeverity.Info
+        _sourceResolutionBehavior = SourceResolutionBehavior.Strict
+        _writer = New RealEventLogWriter()
+        _registryReader = New RealRegistryReader()
+        FileSystem = New RealFileSystemShim()
+        Config = New RealConfigShim()
+        JsonSettingsFile = "appsettings.json"
+        _isInitialized = False
+        _isInitializing = False
 
     End Sub
 
@@ -650,6 +679,28 @@ Public Module SmartEventLogger
         End Set
 
     End Property
+
+    ''' <summary>
+    ''' Gets or sets the file system.
+    ''' </summary>
+    ''' <value>
+    ''' The file system.
+    ''' </value>
+    Friend Property FileSystem As IFileSystemShim = New RealFileSystemShim()
+
+    ''' <summary>
+    ''' Gets or sets the configuration.
+    ''' </summary>
+    ''' <value>
+    ''' The configuration.
+    ''' </value>
+    Friend Property Config As IConfigShim = New RealConfigShim()
+
+    ''' <summary>
+    ''' Gets or sets the JSON settings file name to check for configuration.
+    ''' Defaults to "appsettings.json".
+    ''' </summary>
+    Friend Property JsonSettingsFile As String = "appsettings.json"
 
 #End Region
 
@@ -4829,30 +4880,6 @@ Public Module SmartEventLogger
         Dim sourceToUse As String = defaultSource ' this is used to tell the process which source to actually use if we can't use the one we want to use.
         Dim defaultMachine As String = NormalizeMachineName(_machineName)
 
-        ' If the log or source do not exist on the machine, then create them,
-        If Not _writer.Exists(defaultLog, defaultMachine) OrElse Not _writer.SourceExists(defaultSource, defaultMachine) Then
-            _writer.CreateEventSource(defaultSource, defaultLog, _machineName)
-        ElseIf Not IsSourceRegisteredToLog(sourceToUse, defaultLog, defaultMachine) Then
-            Select Case SourceResolutionBehavior
-                Case SourceResolutionBehavior.Strict
-                    ' Fail immediately with a clear exception message.
-                    Throw New InvalidOperationException(
-                        $"The source '{sourceToUse}' is registered under a different log than '{defaultLog}' on machine '{defaultMachine}'.")
-
-                Case SourceResolutionBehavior.UseSourceLog
-                    ' Adjust the log name to match the one the source is already tied to.
-                    defaultLog = _writer.GetLogForSource(sourceToUse, defaultMachine)
-
-                Case SourceResolutionBehavior.UseLogsDefaultSource
-                    sourceToUse = SmartEventLogger.DefaultSource(defaultLog, defaultMachine)
-                    If String.IsNullOrEmpty(sourceToUse) Then
-                        Throw New InvalidOperationException(
-                            $"No default source could be determined for log '{defaultLog}' on machine '{defaultMachine}'. " &
-                            "Please ensure the log is properly initialized with a valid source.")
-                    End If
-            End Select
-        End If
-
         Dim finalEventType As EventLogEntryType = NormalizeEventType(eventType)
 
         If AllowMultiEntryMessages AndAlso message.Length > 32766 Then
@@ -6194,52 +6221,99 @@ Public Module SmartEventLogger
 
     End Function
 
+#If NETFRAMEWORK Then
     ''' <summary>
-    ''' Reads an application setting by key and returns defaultValue
+    ''' Reads an application setting by key, returning <paramref name="defaultValue"/>
     ''' when no setting is found or an error occurs.
     ''' </summary>
-    ''' <param name="key">The key.</param>
-    ''' <param name="defaultValue">The default value.</param>
+    ''' <param name="key">The configuration key to retrieve.</param>
+    ''' <param name="defaultValue">The fallback value if the key is missing or empty.</param>
     ''' <remarks>
-    ''' On .NET Core / .NET 5+ this method constructs and builds a <see href="ConfigurationBuilder"/>
-    ''' and reads <c>appsettings.json</c> each time it is invoked. During <c>InitializeConfiguration</c>
-    ''' this leads to the file being parsed once per recognized key. This is intentional to avoid
-    ''' static lifetime configuration state; if you need fewer file reads, enable caching
-    ''' (see caching example).
+    ''' <para>
+    ''' <b>.NET Framework:</b> Reads from <c>App.config</c> / <c>Web.config</c> using 
+    ''' <see cref="ConfigurationManager.AppSettings"/>.
+    ''' </para>
+    ''' <para>
+    ''' If the key is not present or the value is empty, <paramref name="defaultValue"/> is returned.
+    ''' </para>
     ''' </remarks>
-    ''' <returns>The value to be placed in the property associated with the call</returns>
-    Private Function GetAppSetting(
+    ''' <returns>The resolved configuration value or the provided default.</returns>
+    Friend Function GetAppSetting(
             ByVal key As String,
             ByVal defaultValue As String) As String
 
-#If NETFRAMEWORK Then
+        Dim value As String = String.Empty
         Try
             ' .NET Framework: App.config / Web.config
-            Dim value As String = ConfigurationManager.AppSettings(key)
-            If String.IsNullOrEmpty(value) Then
-                Return defaultValue
-            End If
-
-            Return value
-        Catch
-            Return defaultValue
+            value = ConfigurationManager.AppSettings(key)
+        Catch ex As Exception
+            value = defaultValue
         End Try
-#Else
-        ' .NET Core / .NET 5+ : appsettings.json
-        Dim builder As New ConfigurationBuilder()
-        builder.SetBasePath(AppContext.BaseDirectory)
-        builder.AddJsonFile("appsettings.json", optional:=True, reloadOnChange:=True)
-        Dim config As IConfigurationRoot = builder.Build()
 
-        Dim value As String = config(key)
         If String.IsNullOrEmpty(value) Then
-            Return defaultValue
+            value = defaultValue
         End If
 
         Return value
-#End If
 
     End Function
+#Else
+    ''' <summary>
+    ''' Reads an application setting by key, returning <paramref name="defaultValue"/>
+    ''' when no setting is found or an error occurs.
+    ''' </summary>
+    ''' <param name="key">The configuration key to retrieve.</param>
+    ''' <param name="defaultValue">The fallback value if the key is missing or empty.</param>
+    ''' <remarks>
+    ''' <para>
+    ''' <b>.NET Core / .NET 5+:</b> If <c>appsettings.json</c> exists in <c>AppContext.BaseDirectory</c>, 
+    ''' reads exclusively from it via <see cref="ConfigurationBuilder"/>.
+    ''' If the file does not exist, falls back to <c>App.config</c> / <c>Web.config</c> using 
+    ''' <see cref="System.Configuration.ConfigurationManager.AppSettings"/>.
+    ''' </para>
+    ''' <para>
+    ''' If the key is not present or the value is empty, <paramref name="defaultValue"/> is returned.
+    ''' </para>
+    ''' </remarks>
+    ''' <returns>The resolved configuration value or the provided default.</returns>
+    Friend Function GetAppSetting(
+            ByVal key As String,
+            ByVal defaultValue As String) As String
+
+        Dim value As String = String.Empty
+        ' .NET Core / .NET 5+ 
+        '       If appsettings.json exists, ONLY use it (ignore App.config/Web.config completely).
+        '       If appsettings.json does not exist, fall back to App.config/Web.config.
+        '       Missing or empty keys in either case fall back to defaultValue.
+        Dim jsonPath As String = Path.Combine(AppContext.BaseDirectory, JsonSettingsFile)
+        If FileSystem.FileExists(jsonPath) Then
+            Try
+                Dim builder As New ConfigurationBuilder()
+                builder.SetBasePath(AppContext.BaseDirectory)
+                builder.AddJsonFile(JsonSettingsFile, optional:=True, reloadOnChange:=True)
+                Dim cr As IConfigurationRoot = builder.Build()
+
+                value = cr(key)
+            Catch ex As Exception
+                value = defaultValue
+            End Try
+        Else
+            Try
+                ' App.config / Web.config
+                value = Config.GetAppSetting(key)
+            Catch ex As Exception
+                value = defaultValue
+            End Try
+        End If
+
+        If String.IsNullOrEmpty(value) Then
+            value = defaultValue
+        End If
+
+        Return value
+
+    End Function
+#End If
 
     ''' <summary>
     ''' Gets the application setting.

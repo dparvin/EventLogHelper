@@ -69,14 +69,18 @@ Public Interface IEventLogWriter
     ''' <param name="sourceName">The name of the event source.</param>
     ''' <param name="logName">The log with which to associate the source (e.g., "Application").</param>
     ''' <param name="machineName">The name of the machine (use "." for the local machine).</param>
+    ''' <param name="maxKilobytes">The maximum kilobytes.</param>
+    ''' <param name="retentionDays">The retention days.</param>
     ''' <remarks>
-    ''' Wraps <see cref="EventLog.CreateEventSource(String, String, String)"/>. 
+    ''' Wraps <see cref="EventLog.CreateEventSource(String, String, String)" />.
     ''' If the source already exists, no action is taken.
     ''' </remarks>
     Sub CreateEventSource(
-            ByVal sourceName As String,
-            ByVal logName As String,
-            ByVal machineName As String)
+            ByRef sourceName As String,
+            ByRef logName As String,
+            ByRef machineName As String,
+            ByVal maxKilobytes As Integer,
+            ByVal retentionDays As Integer)
 
     ''' <summary>
     ''' Writes an entry to the specified event log using explicit log and source details.

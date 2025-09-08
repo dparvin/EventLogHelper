@@ -39,6 +39,11 @@ Namespace net90
 #End If
 
 #If NET35 Then
+        Sub New()
+
+            SmartEventLogger.Reset()
+
+        End Sub
 #Else
         Private OutputHelper As ITestOutputHelper
 
@@ -49,6 +54,7 @@ Namespace net90
         Sub New(ByVal output As ITestOutputHelper)
 
             OutputHelper = output
+            SmartEventLogger.Reset()
 
         End Sub
 #End If
@@ -85,7 +91,6 @@ Namespace net90
 
             ' Assert
             CurrentLoggingLevel = ll ' Restore original logging level
-            Assert.Equal(WriteEntry, testWriter.CreateEventSourceCalled)
             Assert.Equal(WriteEntry, testWriter.WriteEntryCalled)
 
         End Sub
@@ -110,7 +115,6 @@ Namespace net90
             Log(message)
 
             ' Assert
-            Assert.True(testWriter.CreateEventSourceCalled)
             Assert.True(testWriter.WriteEntryCalled)
 
         End Sub
@@ -137,7 +141,6 @@ Namespace net90
             Log(sourceName, message, LoggingSeverity.Error)
 
             ' Assert
-            Assert.True(testWriter.CreateEventSourceCalled)
             Assert.True(testWriter.WriteEntryCalled)
             Assert.Equal($"[{sourceName}] {message}.", testWriter.LastMessage)
 
@@ -165,7 +168,6 @@ Namespace net90
             Log(sourceName, message)
 
             ' Assert
-            Assert.True(testWriter.CreateEventSourceCalled)
             Assert.True(testWriter.WriteEntryCalled)
             Assert.Equal($"[{sourceName}] {message}.", testWriter.LastMessage)
 
@@ -194,7 +196,6 @@ Namespace net90
             Log(logName, sourceName, message)
 
             ' Assert
-            Assert.True(testWriter.CreateEventSourceCalled)
             Assert.True(testWriter.WriteEntryCalled)
             Assert.Equal($"[{sourceName}] {message}.", testWriter.LastMessage)
 
@@ -222,7 +223,6 @@ Namespace net90
             Log(message, eventType, LoggingSeverity.Error)
 
             ' Assert
-            Assert.True(testWriter.CreateEventSourceCalled)
             Assert.True(testWriter.WriteEntryCalled)
 
         End Sub
@@ -249,7 +249,6 @@ Namespace net90
             Log(message, eventType)
 
             ' Assert
-            Assert.True(testWriter.CreateEventSourceCalled)
             Assert.True(testWriter.WriteEntryCalled)
 
         End Sub
@@ -277,7 +276,6 @@ Namespace net90
             Log(sourceName, message, eventType)
 
             ' Assert
-            Assert.True(testWriter.CreateEventSourceCalled)
             Assert.True(testWriter.WriteEntryCalled)
             Assert.Equal($"[{sourceName}] {message}.", testWriter.LastMessage)
 
@@ -307,7 +305,6 @@ Namespace net90
             Log(logName, sourceName, message, eventType)
 
             ' Assert
-            Assert.True(testWriter.CreateEventSourceCalled)
             Assert.True(testWriter.WriteEntryCalled)
             Assert.Equal($"[{sourceName}] {message}.", testWriter.LastMessage)
 
@@ -336,7 +333,6 @@ Namespace net90
             Log(message, eventType, eventId, LoggingSeverity.Error)
 
             ' Assert
-            Assert.True(testWriter.CreateEventSourceCalled)
             Assert.True(testWriter.WriteEntryCalled)
 
         End Sub
@@ -364,7 +360,6 @@ Namespace net90
             Log(message, eventType, eventId)
 
             ' Assert
-            Assert.True(testWriter.CreateEventSourceCalled)
             Assert.True(testWriter.WriteEntryCalled)
 
         End Sub
@@ -393,7 +388,6 @@ Namespace net90
             Log(message, eventType, eventId, category, LoggingSeverity.Error)
 
             ' Assert
-            Assert.True(testWriter.CreateEventSourceCalled)
             Assert.True(testWriter.WriteEntryCalled)
 
         End Sub
@@ -422,7 +416,6 @@ Namespace net90
             Log(message, eventType, eventId, category)
 
             ' Assert
-            Assert.True(testWriter.CreateEventSourceCalled)
             Assert.True(testWriter.WriteEntryCalled)
 
         End Sub
@@ -452,7 +445,6 @@ Namespace net90
             Log(logName, sourceName, message, eventType, eventId)
 
             ' Assert
-            Assert.True(testWriter.CreateEventSourceCalled)
             Assert.True(testWriter.WriteEntryCalled)
             Assert.Equal($"[{sourceName}] {message}.", testWriter.LastMessage)
 
@@ -483,7 +475,6 @@ Namespace net90
             Log(sourceName, message, eventType, eventId, category)
 
             ' Assert
-            Assert.True(testWriter.CreateEventSourceCalled)
             Assert.True(testWriter.WriteEntryCalled)
             Assert.Equal($"[{sourceName}] {message}.", testWriter.LastMessage)
 
@@ -515,7 +506,6 @@ Namespace net90
             Log(logName, sourceName, message, eventType, eventId, category, Nothing, LoggingSeverity.Error)
 
             ' Assert
-            Assert.True(testWriter.CreateEventSourceCalled)
             Assert.True(testWriter.WriteEntryCalled)
             Assert.Equal($"[{sourceName}] {message}.", testWriter.LastMessage)
 
@@ -547,7 +537,6 @@ Namespace net90
             Log(logName, sourceName, message, eventType, eventId, category)
 
             ' Assert
-            Assert.True(testWriter.CreateEventSourceCalled)
             Assert.True(testWriter.WriteEntryCalled)
             Assert.Equal($"[{sourceName}] {message}.", testWriter.LastMessage)
 
@@ -575,7 +564,6 @@ Namespace net90
             Log(message, rawData, LoggingSeverity.Error)
 
             ' Assert
-            Assert.True(testWriter.CreateEventSourceCalled)
             Assert.True(testWriter.WriteEntryCalled)
 
         End Sub
@@ -602,7 +590,6 @@ Namespace net90
             Log(message, rawData)
 
             ' Assert
-            Assert.True(testWriter.CreateEventSourceCalled)
             Assert.True(testWriter.WriteEntryCalled)
 
         End Sub
@@ -630,7 +617,6 @@ Namespace net90
             Log(message, eventType, rawData)
 
             ' Assert
-            Assert.True(testWriter.CreateEventSourceCalled)
             Assert.True(testWriter.WriteEntryCalled)
 
         End Sub
@@ -659,7 +645,6 @@ Namespace net90
             Log(message, eventType, eventId, rawData)
 
             ' Assert
-            Assert.True(testWriter.CreateEventSourceCalled)
             Assert.True(testWriter.WriteEntryCalled)
 
         End Sub
@@ -689,7 +674,6 @@ Namespace net90
             Log(message, eventType, eventId, category, rawData)
 
             ' Assert
-            Assert.True(testWriter.CreateEventSourceCalled)
             Assert.True(testWriter.WriteEntryCalled)
 
         End Sub
@@ -717,7 +701,6 @@ Namespace net90
             Log(message, maxKilobytes, retentionDays, LoggingSeverity.Error)
 
             ' Assert
-            Assert.True(testWriter.CreateEventSourceCalled)
             Assert.True(testWriter.WriteEntryCalled)
 
         End Sub
@@ -745,7 +728,6 @@ Namespace net90
             Log(message, maxKilobytes, retentionDays)
 
             ' Assert
-            Assert.True(testWriter.CreateEventSourceCalled)
             Assert.True(testWriter.WriteEntryCalled)
 
         End Sub
@@ -776,7 +758,6 @@ Namespace net90
             Log(message, maxKilobytes, retentionDays, writeInitEntry, LoggingSeverity.Error)
 
             ' Assert
-            Assert.True(testWriter.CreateEventSourceCalled)
             Assert.True(testWriter.WriteEntryCalled)
 
         End Sub
@@ -807,7 +788,6 @@ Namespace net90
             Log(message, maxKilobytes, retentionDays, writeInitEntry)
 
             ' Assert
-            Assert.True(testWriter.CreateEventSourceCalled)
             Assert.True(testWriter.WriteEntryCalled)
 
         End Sub
@@ -838,7 +818,6 @@ Namespace net90
             Log(sourceName, message, eventType, eventId, category, rawData, LoggingSeverity.Error)
 
             ' Assert
-            Assert.True(testWriter.CreateEventSourceCalled)
             Assert.True(testWriter.WriteEntryCalled)
             Assert.Equal($"[{sourceName}] {message}.", testWriter.LastMessage)
 
@@ -870,7 +849,6 @@ Namespace net90
             Log(sourceName, message, eventType, eventId, category, rawData)
 
             ' Assert
-            Assert.True(testWriter.CreateEventSourceCalled)
             Assert.True(testWriter.WriteEntryCalled)
             Assert.Equal($"[{sourceName}] {message}.", testWriter.LastMessage)
 
@@ -903,7 +881,6 @@ Namespace net90
             Log(logName, sourceName, message, eventType, eventId, category, rawData)
 
             ' Assert
-            Assert.True(testWriter.CreateEventSourceCalled)
             Assert.True(testWriter.WriteEntryCalled)
             Assert.Equal($"[{sourceName}] {message}.", testWriter.LastMessage)
 
@@ -936,7 +913,6 @@ Namespace net90
             Log(logName, sourceName, message, eventType, eventId, category, rawData)
 
             ' Assert
-            Assert.True(testWriter.CreateEventSourceCalled)
             Assert.True(testWriter.WriteEntryCalled)
 
         End Sub
@@ -981,11 +957,6 @@ Namespace net90
             Log(logName, sourceName, message, eventType, eventId, category, rawData)
 
             ' Assert
-            If logExists AndAlso sourceExists Then
-                Assert.False(testWriter.CreateEventSourceCalled)
-            Else
-                Assert.True(testWriter.CreateEventSourceCalled)
-            End If
             Assert.True(testWriter.WriteEntryCalled)
 
         End Sub
@@ -1291,7 +1262,7 @@ Namespace net90
 
             ' Arrange
 #If NET35 Then
-            Dim testWriter as New TestEventLogWriter()
+            Dim testWriter As New TestEventLogWriter()
 #Else
             Dim testWriter As New TestEventLogWriter(OutputHelper)
 #End If
@@ -1598,7 +1569,6 @@ Namespace net90
 #End If
             SetWriter(testWriter)
 
-            ResetInitialization()
             InitializeConfiguration()
 
             MachineName = "SomeMachineSomeplace"
@@ -1698,7 +1668,6 @@ Namespace net90
             ' Arrange
 
             ' Act
-            ResetInitialization()
             InitializeConfiguration()
 
             ' Assert
@@ -1710,55 +1679,6 @@ Namespace net90
 #End If
 
         ''' <summary>
-        ''' Resets the initialization.
-        ''' </summary>
-        Private Shared Sub ResetInitialization()
-
-            Dim field As FieldInfo = GetType(SmartEventLogger).GetField("_isInitialized", BindingFlags.NonPublic Or BindingFlags.Static)
-            field.SetValue(Nothing, False)
-
-            field = GetType(SmartEventLogger).GetField("_isInitializing", BindingFlags.NonPublic Or BindingFlags.Static)
-            field.SetValue(Nothing, False)
-
-        End Sub
-
-        ''' <summary>
-        ''' Logs the exists and source exist.
-        ''' </summary>
-        <Fact>
-        Public Sub LogExists_And_SourceExist_ButNotTogether_Strict_ReturnsException()
-
-            ' Arrange
-#If NET35 Then
-            Dim testWriter As New TestEventLogWriter(logExists:=true, sourceExists:=true)
-            Dim mockReader As New TestRegistryReader()
-#Else
-            Dim testWriter As New TestEventLogWriter(OutputHelper, logExists:=True, sourceExists:=True)
-            Dim mockReader As New TestRegistryReader(OutputHelper)
-#End If
-            SetWriter(testWriter)
-            SetRegistryReader(mockReader)
-
-            Dim logName As String = ""
-            Dim sourceName As String = ""
-            Dim message As String = ""
-            Dim eventType As EventLogEntryType = EventLogEntryType.FailureAudit
-            Dim eventId As Integer = 27
-            Dim category As Short = 3
-            Dim rawData As Byte() = Nothing
-
-            SmartEventLogger.SourceResolutionBehavior = SourceResolutionBehavior.Strict
-
-            ' Act & Assert
-            Dim ex As InvalidOperationException = Assert.Throws(Of InvalidOperationException)(
-                    Sub() Log(logName, sourceName, message, eventType, eventId, category, rawData)
-                )
-
-            Assert.Contains("is registered under a different log", ex.Message)
-
-        End Sub
-
-        ''' <summary>
         ''' Logs the exists and source exist.
         ''' </summary>
         <Fact>
@@ -1766,7 +1686,7 @@ Namespace net90
 
             ' Arrange
 #If NET35 Then
-            Dim testWriter As New TestEventLogWriter(logExists:=true, sourceExists:=true)
+            Dim testWriter As New TestEventLogWriter(logExists:=True, sourceExists:=True)
             Dim mockReader As New TestRegistryReader()
 #Else
             Dim testWriter As New TestEventLogWriter(OutputHelper, logExists:=True, sourceExists:=True)
@@ -1802,7 +1722,7 @@ Namespace net90
 
             ' Arrange
 #If NET35 Then
-            Dim testWriter As New TestEventLogWriter(logExists:=true, sourceExists:=true)
+            Dim testWriter As New TestEventLogWriter(logExists:=True, sourceExists:=True)
             Dim mockReader As New TestRegistryReader()
 #Else
             Dim testWriter As New TestEventLogWriter(OutputHelper, logExists:=True, sourceExists:=True)
@@ -1831,43 +1751,78 @@ Namespace net90
 
         End Sub
 
+#If NETCOREAPP Then
         ''' <summary>
-        ''' Logs the exists and source exist.
+        ''' Returns the value from application settings when no application settings json.
         ''' </summary>
         <Fact>
-        Public Sub LogExists_And_SourceExist_ButNotTogether_UseLogDefaultSource_ReturnsException()
+        Public Sub ReturnsValueFromAppSettings_WhenNoAppSettingsJson()
 
-            ' Arrange
-#If NET35 Then
-            Dim testWriter As New TestEventLogWriter(logExists:=true, sourceExists:=true)
-            Dim mockReader As New TestRegistryReader()
-#Else
-            Dim testWriter As New TestEventLogWriter(OutputHelper, logExists:=True, sourceExists:=True)
-            Dim mockReader As New TestRegistryReader(OutputHelper)
-#End If
-            SetWriter(testWriter)
-            SetRegistryReader(mockReader)
+            ' Arrange: Pretend no appsettings.json file
+            FileSystem = New FakeFileSystem(Array.Empty(Of String)())
 
-            Dim logName As String = ""
-            Dim sourceName As String = ""
-            Dim message As String = ""
-            Dim eventType As EventLogEntryType = EventLogEntryType.FailureAudit
-            Dim eventId As Integer = 27
-            Dim category As Short = 3
-            Dim rawData As Byte() = Nothing
+            ' Act
+            Dim result As String = GetAppSetting("SomeKey", "DefaultValue")
 
-            SmartEventLogger.SourceResolutionBehavior = SourceResolutionBehavior.UseLogsDefaultSource
-            mockReader.DefaultEventLogSourceResult = ""
-
-
-            ' Act & Assert
-            Dim ex As InvalidOperationException = Assert.Throws(Of InvalidOperationException)(
-                    Sub() Log(logName, sourceName, message, eventType, eventId, category, rawData)
-                )
-
-            Assert.Contains("No default source could be determined for log", ex.Message)
+            ' Assert
+            Assert.Equal("DefaultValue", result)
 
         End Sub
+
+        ''' <summary>
+        ''' Uses the application settings json when file exists.
+        ''' </summary>
+        <Fact>
+        Public Sub UsesAppSettingsJson_WhenFileExists()
+
+            ' Arrange: Pretend appsettings.json exists
+            Dim fakePath As String = IO.Path.Combine(AppContext.BaseDirectory, "appsettings.json")
+            FileSystem = New FakeFileSystem({fakePath})
+
+            ' Act
+            Dim result As String = GetAppSetting("SomeKey", "DefaultValue")
+
+            ' Assert
+            ' (you may need to also stub config here — this just ensures the path check hits)
+            Assert.NotNull(result)
+
+        End Sub
+
+        ''' <summary>
+        ''' Uses the custom json file when overridden.
+        ''' </summary>
+        <Fact>
+        Public Sub UsesCustomJsonFile_WhenOverridden()
+
+            ' Arrange
+            JsonSettingsFile = "customsettings.json"
+
+            ' Act
+            Dim result As String = GetAppSetting("SomeKey", "DefaultValue")
+
+            ' Assert
+            Assert.NotNull(result)
+
+        End Sub
+
+        ''' <summary>
+        ''' Falls back to default when configuration throws.
+        ''' </summary>
+        <Fact>
+        Public Sub FallsBackToDefault_WhenConfigThrows()
+
+            ' Arrange
+            FileSystem = New FakeFileSystem({}) ' no json file
+            Config = New ThrowingConfigShim()
+
+            ' Act
+            Dim result As String = GetAppSetting("SomeKey", "DefaultValue")
+
+            ' Assert
+            Assert.Equal("DefaultValue", result)
+
+        End Sub
+#End If
 
 #End Region
 

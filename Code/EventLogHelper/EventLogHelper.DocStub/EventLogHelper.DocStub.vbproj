@@ -24,7 +24,7 @@
 -->
 
   <ItemGroup>
-    <PackageReference Include="Versioning.Common" Version="1.0.15" />
+    <PackageReference Include="Versioning.Common" Version="1.0.17" />
     <PackageReference Include="XmlDocMarkdown" Version="2.9.0" />
   </ItemGroup>
 

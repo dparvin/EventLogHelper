@@ -1,4 +1,7 @@
-﻿''' <summary>
+﻿Imports System.IO
+Imports System.Security
+
+''' <summary>
 ''' Provides a real implementation of the <see cref="IEventLogWriter"/> interface 
 ''' that logs events directly to the Windows Event Log using the <see cref="System.Diagnostics.EventLog"/> class.
 ''' </summary>
@@ -57,7 +60,7 @@ Friend Class RealEventLogWriter
                 maxKilobytes,
                 retentionDays,
                 writeInitEntry)
-            logInstance.WriteEntry(
+            logInstance?.WriteEntry(
                 message,
                 eventType,
                 eventId,
@@ -76,16 +79,62 @@ Friend Class RealEventLogWriter
     ''' If the source already exists, no action is taken.
     ''' </remarks>
     Friend Sub CreateEventSource(
-            ByVal sourceName As String,
-            ByVal logName As String,
-            ByVal machineName As String) Implements IEventLogWriter.CreateEventSource
+            ByRef sourceName As String,
+            ByRef logName As String,
+            ByRef machineName As String,
+            ByVal maxKilobytes As Integer,
+            ByVal retentionDays As Integer) Implements IEventLogWriter.CreateEventSource
 
-        If Not SourceExists(sourceName, machineName) Then
-            Dim obj As New EventSourceCreationData(sourceName, logName) With {
-                .MachineName = machineName
-            }
-            EventLog.CreateEventSource(obj)
+        ' Path to the helper exe — assumes it’s deployed alongside your main assembly
+        Dim exePath As String = Path.Combine(
+                                    AppDomain.CurrentDomain.BaseDirectory,
+                                    "EventLogHelper.Elevator.exe")
+
+        If Not File.Exists(exePath) Then
+            Throw New FileNotFoundException(
+                        "The EventLogHelper.Elevator helper application was not found.",
+                        exePath)
         End If
+
+        ' Build the arguments, quoting each one in case of spaces
+        Dim arguments As String = $"""{logName}"" ""{sourceName}"" ""{machineName}"" {maxKilobytes} {retentionDays}"
+
+        ' Prepare process info
+        Dim psi As New ProcessStartInfo() With {
+            .FileName = exePath,
+            .Arguments = arguments,
+            .UseShellExecute = True,   ' needed for elevation
+            .Verb = "runas"            ' triggers UAC prompt
+        }
+
+        Try
+            Using proc As Process = Process.Start(psi)
+                proc.WaitForExit()
+
+                Select Case CType(proc.ExitCode, ElevatorExitCode)
+                    Case ElevatorExitCode.Success
+                    ' Success – log and source created/verified
+                    Case ElevatorExitCode.NoArguments
+                        Throw New InvalidOperationException("Helper was run directly with no arguments.")
+                    Case ElevatorExitCode.NotElevated
+                        ' Because the user can cancel the UAC prompt, we are going to change the log and source names to "Application"
+                        logName = "Application"
+                        sourceName = "Application"
+                        machineName = "."
+                    Case ElevatorExitCode.BadArguments
+                        Throw New ArgumentException("Incorrect arguments passed to EventLogHelper.Elevator.")
+                    Case ElevatorExitCode.ErrorCreating
+                        Throw New InvalidOperationException("An error occurred while creating the event log or source. See helper message box for details.")
+                    Case Else
+                        Throw New InvalidOperationException($"Unexpected exit code from EventLogHelper.Elevator: {proc.ExitCode}")
+                End Select
+            End Using
+        Catch ex As ComponentModel.Win32Exception
+            ' user cancelled UAC
+            logName = "Application"
+            sourceName = "Application"
+            machineName = "."
+        End Try
 
     End Sub
 
@@ -123,7 +172,15 @@ Friend Class RealEventLogWriter
             ByVal source As String,
             ByVal machineName As String) As Boolean Implements IEventLogWriter.SourceExists
 
-        Return EventLog.SourceExists(source, machineName)
+        Try
+            Return EventLog.SourceExists(source, machineName)
+        Catch ex As SecurityException
+            ' Couldn’t check Security log; assume it doesn’t exist
+            Return False
+        Catch ex As InvalidOperationException
+            ' "Inaccessible logs" case
+            Return False
+        End Try
 
     End Function
 
@@ -203,14 +260,17 @@ Friend Class RealEventLogWriter
         Dim sourceToUse As String = sourceName ' this is used to tell the process which source to actually use if we can't use the one we want to use.
 
         Try
-            If Not Exists(logName, machineName) OrElse Not SourceExists(sourceToUse, machineName) Then
-                CreateEventSource(sourceName, logName, machineName)
-            ElseIf Not IsSourceRegisteredToLog(sourceToUse, logName, machineName) Then
+            Dim logExists As Boolean = Exists(logName, machineName)
+            If Not logExists OrElse Not SourceExists(sourceToUse, machineName) Then
+                ' maxKilobytes / retentionDays only apply if the log is created fresh
+                CreateEventSource(sourceToUse, logName, machineName, maxKilobytes, retentionDays)
+            End If
+            If Not IsSourceRegisteredToLog(sourceToUse, logName, machineName) Then
                 Select Case SmartEventLogger.SourceResolutionBehavior
                     Case SourceResolutionBehavior.Strict
                         ' Fail immediately with a clear exception message.
                         Throw New InvalidOperationException(
-                        $"The source '{sourceToUse}' is registered under a different log than '{logName}' on machine '{machineName}'.")
+                                    $"The source '{sourceToUse}' is registered under a different log than '{logName}' on machine '{machineName}'.")
 
                     Case SourceResolutionBehavior.UseSourceLog
                         ' Adjust the log name to match the one the source is already tied to.
@@ -220,21 +280,17 @@ Friend Class RealEventLogWriter
                         sourceToUse = DefaultSource(logName, machineName)
                         If String.IsNullOrEmpty(sourceToUse) Then
                             Throw New InvalidOperationException(
-                            $"No default source could be determined for log '{logName}' on machine '{machineName}'. " &
-                            "Please ensure the log is properly initialized with a valid source.")
+                                    $"No default source could be determined for log '{logName}' on machine '{machineName}'. " &
+                                    "Please ensure the log is properly initialized with a valid source.")
                         End If
                 End Select
             End If
 
             Dim el As New EventLog(logName, machineName, sourceToUse)
 
-            If writeInitEntry Then
+            If Not logExists AndAlso writeInitEntry Then
                 el.WriteEntry($"Initialized log '{logName}' with source '{sourceToUse}' on machine '{machineName}'.", EventLogEntryType.Information)
             End If
-
-            ' Only applies to local machine logs
-            el.MaximumKilobytes = maxKilobytes
-            el.ModifyOverflowPolicy(OverflowAction.OverwriteOlder, retentionDays)
 
             Return el
 

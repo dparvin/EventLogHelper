@@ -1,0 +1,150 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+  <Import Project="..\SharedFrameworks.props" Condition="Exists('..\SharedFrameworks.props')" />
+
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
+    <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
+    <ProjectGuid>{D9928EFE-15F7-47B2-900C-60FB17265B2F}</ProjectGuid>
+    <StartupObject>EventLogHelper.Elevator.Program</StartupObject>
+    <RootNamespace>EventLogHelper.Elevator</RootNamespace>
+    <AssemblyName>EventLogHelper.Elevator</AssemblyName>
+    <FileAlignment>512</FileAlignment>
+    <MyType>WindowsFormsWithCustomSubMain</MyType>
+    <AutoGenerateBindingRedirects>true</AutoGenerateBindingRedirects>
+    <Deterministic>true</Deterministic>
+    <OptionExplicit>On</OptionExplicit>
+    <OptionCompare>Binary</OptionCompare>
+    <OptionStrict>Off</OptionStrict>
+    <OptionInfer>On</OptionInfer>
+    <SignAssembly>true</SignAssembly>
+    <AssemblyOriginatorKeyFile>EventLogHelper.Elevator.snk</AssemblyOriginatorKeyFile>
+    <EnableDefaultCompileItems>false</EnableDefaultCompileItems>
+    <GenerateAssemblyInfo>false</GenerateAssemblyInfo>
+    <UseWindowsForms>True</UseWindowsForms>
+    <ApplicationIcon>EventLogHelper-icon-32x32.ico</ApplicationIcon>
+    <EnforceCodeStyleInBuild>True</EnforceCodeStyleInBuild>
+    <EnableNETAnalyzers>True</EnableNETAnalyzers>
+    <AnalysisLevel>latest-recommended</AnalysisLevel>
+    <RepositoryType>git</RepositoryType>
+  </PropertyGroup>
+
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
+    <PlatformTarget>AnyCPU</PlatformTarget>
+    <DebugSymbols>true</DebugSymbols>
+    <DebugType>full</DebugType>
+    <DefineDebug>true</DefineDebug>
+    <DefineTrace>true</DefineTrace>
+    <OutputPath>bin\Debug\</OutputPath>
+    <DocumentationFile>EventLogHelper.Elevator.xml</DocumentationFile>
+    <NoWarn>42016,41999,42017,42018,42019,42032,42036,42020,42021,42022</NoWarn>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
+    <PlatformTarget>AnyCPU</PlatformTarget>
+    <DebugType>pdbonly</DebugType>
+    <DefineDebug>false</DefineDebug>
+    <DefineTrace>true</DefineTrace>
+    <Optimize>true</Optimize>
+    <OutputPath>bin\Release\</OutputPath>
+    <DocumentationFile>EventLogHelper.Elevator.xml</DocumentationFile>
+    <NoWarn>42016,41999,42017,42018,42019,42032,42036,42020,42021,42022</NoWarn>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(TargetFramework)|$(Platform)'=='Debug|net35|AnyCPU'">
+    <WarningsAsErrors>41999,42016,42017,42018,42019,42020,42021,42022,42024,42029,42030,42031,42032,42036,42099,42104,42108,42109</WarningsAsErrors>
+    <NoWarn></NoWarn>
+    <DebugType>portable</DebugType>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(TargetFramework)|$(Platform)'=='Debug|net462|AnyCPU'">
+    <WarningsAsErrors>41999,42016,42017,42018,42019,42020,42021,42022,42024,42029,42030,42031,42032,42036,42099,42104,42108,42109</WarningsAsErrors>
+    <NoWarn></NoWarn>
+    <DebugType>portable</DebugType>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(TargetFramework)|$(Platform)'=='Debug|net472|AnyCPU'">
+    <WarningsAsErrors>41999,42016,42017,42018,42019,42020,42021,42022,42024,42029,42030,42031,42032,42036,42099,42104,42108,42109</WarningsAsErrors>
+    <NoWarn></NoWarn>
+    <DebugType>portable</DebugType>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(TargetFramework)|$(Platform)'=='Debug|net481|AnyCPU'">
+    <WarningsAsErrors>41999,42016,42017,42018,42019,42020,42021,42022,42024,42029,42030,42031,42032,42036,42099,42104,42108,42109</WarningsAsErrors>
+    <NoWarn></NoWarn>
+    <DebugType>portable</DebugType>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(TargetFramework)|$(Platform)'=='Debug|net8.0-windows10.0.17763.0|AnyCPU'">
+    <WarningsAsErrors>41999,42017,42018,42019,42020,42021,42022,42024,42029,42030,42031,42099,42104</WarningsAsErrors>
+    <NoWarn></NoWarn>
+    <DebugType>portable</DebugType>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(TargetFramework)|$(Platform)'=='Debug|net9.0-windows10.0.17763.0|AnyCPU'">
+    <WarningsAsErrors>41999,42017,42018,42019,42020,42021,42022,42024,42029,42030,42031,42099,42104</WarningsAsErrors>
+    <NoWarn></NoWarn>
+    <DebugType>portable</DebugType>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(TargetFramework)|$(Platform)'=='Release|net35|AnyCPU'">
+    <WarningsAsErrors>41999,42016,42017,42018,42019,42020,42021,42022,42024,42029,42030,42031,42032,42036,42099,42104,42108,42109</WarningsAsErrors>
+    <NoWarn></NoWarn>
+    <DebugType>portable</DebugType>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(TargetFramework)|$(Platform)'=='Release|net462|AnyCPU'">
+    <WarningsAsErrors>41999,42016,42017,42018,42019,42020,42021,42022,42024,42029,42030,42031,42032,42036,42099,42104,42108,42109</WarningsAsErrors>
+    <NoWarn></NoWarn>
+    <DebugType>portable</DebugType>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(TargetFramework)|$(Platform)'=='Release|net472|AnyCPU'">
+    <WarningsAsErrors>41999,42016,42017,42018,42019,42020,42021,42022,42024,42029,42030,42031,42032,42036,42099,42104,42108,42109</WarningsAsErrors>
+    <NoWarn></NoWarn>
+    <DebugType>portable</DebugType>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(TargetFramework)|$(Platform)'=='Release|net481|AnyCPU'">
+    <WarningsAsErrors>41999,42016,42017,42018,42019,42020,42021,42022,42024,42029,42030,42031,42032,42036,42099,42104,42108,42109</WarningsAsErrors>
+    <NoWarn></NoWarn>
+    <DebugType>portable</DebugType>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(TargetFramework)|$(Platform)'=='Release|net8.0-windows10.0.17763.0|AnyCPU'">
+    <WarningsAsErrors>41999,42017,42018,42019,42020,42021,42022,42024,42029,42030,42031,42099,42104</WarningsAsErrors>
+    <NoWarn></NoWarn>
+    <DebugType>portable</DebugType>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(TargetFramework)|$(Platform)'=='Release|net9.0-windows10.0.17763.0|AnyCPU'">
+    <WarningsAsErrors>41999,42017,42018,42019,42020,42021,42022,42024,42029,42030,42031,42099,42104</WarningsAsErrors>
+    <NoWarn></NoWarn>
+    <DebugType>portable</DebugType>
+  </PropertyGroup>
+
+  <ItemGroup Condition="'$(IsNetCore)' == 'false' ">
+    <Reference Include="Microsoft.VisualBasic" />
+    <Reference Include="System" />
+    <Reference Include="System.Windows.Forms" />
+    <Reference Include="System.Core" />
+    <Reference Include="System.Configuration" />
+  </ItemGroup>
+  <ItemGroup Condition="'$(IsNetCore)' == 'false' ">
+    <Import Include="Microsoft.VisualBasic" />
+    <Import Include="System" />
+    <Import Include="System.Windows.Forms" />
+    <Import Include="System.Diagnostics" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Compile Include="Attributes\ExcludeFromCodeCoverageAttribute.vb" />
+    <Compile Include="My Project\Application.Designer.vb" />
+    <Compile Include="My Project\AssemblyInfo.vb" />
+    <Compile Include="Program.vb" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Content Include="EventLogHelper-icon-32x32.ico" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="EventLogHelper.Elevator.snk" />
+    <None Include="My Project\Application.myapp">
+      <Generator>MyApplicationCodeGenerator</Generator>
+      <LastGenOutput>Application.Designer.vb</LastGenOutput>
+    </None>
+    <None Include="App.config" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Versioning.Common" Version="1.0.17" />
+  </ItemGroup>
+</Project>

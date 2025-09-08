@@ -237,6 +237,32 @@ the first time you use the logger.
 
 ---
 
+## ⚡ EventLogHelper.Elevator
+
+Some operations in Windows Event Log require administrator rights, specifically 
+when creating new event logs or registering new sources.
+
+Normal logging (writing entries to an existing log/source) works without elevation.
+
+To handle this securely and transparently, EventLogHelper ships with a small helper 
+application:
+
+```EventLogHelper.Elevator.exe```
+
+- Runs only when needed (creating a new log or source).
+- Automatically triggers a UAC prompt asking for elevated permissions.
+- Configures the log size and retention policy only at creation time.
+- If the user declines elevation, EventLogHelper will safely fall back to writing entries under the default Application log and source.
+
+### 🔑 Important Notes
+
+- You don’t run this helper directly — it’s invoked automatically by EventLogHelper.
+- If you open Event Viewer while creating a new log, you may need to close and reopen it to see the new log appear.
+- Log names must not contain reserved characters (\ / * ?) or spaces at the beginning or end.
+- Custom sources can be added later without reconfiguring the log.
+
+---
+
 ## 🔒 Security Notes
 
 - Creating new sources requires admin privileges.
