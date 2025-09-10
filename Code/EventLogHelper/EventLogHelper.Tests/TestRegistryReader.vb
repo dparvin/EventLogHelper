@@ -1,6 +1,7 @@
 ﻿Imports System.IO
 Imports Microsoft.Win32
 Imports Xunit.Abstractions
+Imports EventLogHelper.Interfaces
 
 #If NET35 Then
 <Diagnostics.ExcludeFromCodeCoverage>

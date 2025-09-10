@@ -1,6 +1,8 @@
 ﻿Imports Microsoft.Win32
 Imports System.Reflection
 Imports System.Runtime.CompilerServices
+Imports EventLogHelper.Enums
+Imports EventLogHelper.Interfaces
 
 #If NETFRAMEWORK Then
 Imports System.Configuration
@@ -123,6 +125,7 @@ Public Module SmartEventLogger
                     TruncationMarker = GetAppSetting("EventLogHelper.TruncationMarker", TruncationMarker)
                     ContinuationMarker = GetAppSetting("EventLogHelper.ContinuationMarker", ContinuationMarker)
                     AllowMultiEntryMessages = GetAppSetting("EventLogHelper.AllowMultiEntryMessages", AllowMultiEntryMessages)
+                    IncludeSourceInMessage = GetAppSetting("EventLogHelper.IncludeSourceInMessage", IncludeSourceInMessage)
                     CurrentLoggingLevel = GetAppSetting("EventLogHelper.CurrentLoggingLevel", CurrentLoggingLevel)
                     LoggingSeverity = GetAppSetting("EventLogHelper.LoggingSeverity", LoggingSeverity)
                     SourceResolutionBehavior = GetAppSetting("EventLogHelper.SourceResolutionBehavior", SourceResolutionBehavior)
@@ -262,6 +265,7 @@ Public Module SmartEventLogger
         _maxKilobytes = 1024 * 1024
         _retentionDays = 7
         _writeInitEntry = False
+        _IncludeSourceInMessage = True
         _truncationMarker = "... [TRUNCATED]"
         _continuationMarker = " ..."
         _allowMultiEntryMessages = False
@@ -318,6 +322,10 @@ Public Module SmartEventLogger
     ''' The allow multi entry messages
     ''' </summary>
     Private _allowMultiEntryMessages As Boolean = False
+    ''' <summary>
+    ''' include the source in message
+    ''' </summary>
+    Private _IncludeSourceInMessage As Boolean = True
     ''' <summary>
     ''' The current logging level
     ''' </summary>
@@ -582,6 +590,23 @@ Public Module SmartEventLogger
 
         End Get
 
+    End Property
+
+    ''' <summary>
+    ''' Gets or sets a value indicating whether to include the source in the message.
+    ''' </summary>
+    ''' <value>
+    '''   <c>true</c> if the source should be included in the message; otherwise, <c>false</c>.
+    ''' </value>
+    Public Property IncludeSourceInMessage As Boolean
+        Get
+            Initialize()
+            Return _IncludeSourceInMessage
+        End Get
+        Set
+            Initialize()
+            _IncludeSourceInMessage = Value
+        End Set
     End Property
 
     ''' <summary>
@@ -6125,7 +6150,7 @@ Public Module SmartEventLogger
         Dim defaultSource As String = Source(sourceName)
         Dim finalMessage As String = If(String.IsNullOrEmpty(message), "No message provided.", message.Trim())
         If Not finalMessage.EndsWith("."c) Then finalMessage &= "."
-        If Not finalMessage.StartsWith("["c) Then finalMessage = $"[{defaultSource}] {finalMessage}"
+        If _IncludeSourceInMessage AndAlso Not finalMessage.StartsWith("["c) Then finalMessage = $"[{defaultSource}] {finalMessage}"
 
         Const maxLength As Integer = 32766
         Const _truncationMarker As String = "... [TRUNCATED]"
@@ -6167,7 +6192,12 @@ Public Module SmartEventLogger
 
         ' Build conservative prefix sample with max digit placeholders
         Dim maxPartsPlaceholder As New String("9"c, digitCount)
-        Dim prefixSample As String = $"[{defaultSource}] [Part {maxPartsPlaceholder}/{maxPartsPlaceholder}] "
+        Dim prefixSample As String
+        If _IncludeSourceInMessage Then
+            prefixSample = $"[{defaultSource}] [Part {maxPartsPlaceholder}/{maxPartsPlaceholder}] "
+        Else
+            prefixSample = $"[Part {maxPartsPlaceholder}/{maxPartsPlaceholder}] "
+        End If
         ' Calculate the chunk size by subtracting the prefix length and the space for " ..." at the end of a chunk
         Dim chunkSize As Integer = maxLength - prefixSample.Length - cm.Length
 
@@ -6184,9 +6214,17 @@ Public Module SmartEventLogger
         Dim total As Integer = parts.Count
         Dim result As New List(Of String)
         For i As Integer = 0 To total - 2
-            result.Add($"[{defaultSource}] [Part {i + 1}/{total}] {parts(i)}{cm}")
+            If IncludeSourceInMessage Then
+                result.Add($"[{defaultSource}] [Part {i + 1}/{total}] {parts(i)}{cm}")
+            Else
+                result.Add($"[Part {i + 1}/{total}] {parts(i)}{cm}")
+            End If
         Next
-        result.Add($"[{defaultSource}] [Part {total}/{total}] {parts(total - 1)}")
+        If IncludeSourceInMessage Then
+            result.Add($"[{defaultSource}] [Part {total}/{total}] {parts(total - 1)}")
+        Else
+            result.Add($"[Part {total}/{total}] {parts(total - 1)}")
+        End If
 
         Return result
 

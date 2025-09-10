@@ -1,4 +1,10 @@
-﻿Friend Class FakeFileSystem
+﻿Imports EventLogHelper.Interfaces
+
+''' <summary>
+''' A fake implementation of <see cref="IFileSystemShim"/> for testing purposes.
+''' </summary>
+''' <seealso cref="IFileSystemShim" />
+Friend Class FakeFileSystem
 
     Implements IFileSystemShim
 

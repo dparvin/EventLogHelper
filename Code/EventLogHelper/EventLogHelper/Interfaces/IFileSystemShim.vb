@@ -1,13 +1,17 @@
-﻿''' <summary>
-''' Defines a contract for file system operations, allowing for abstraction and easier testing.
-''' </summary>
-Friend Interface IFileSystemShim
+﻿Namespace Interfaces
 
     ''' <summary>
-    ''' Files the exists.
+    ''' Defines a contract for file system operations, allowing for abstraction and easier testing.
     ''' </summary>
-    ''' <param name="path">The path.</param>
-    ''' <returns></returns>
-    Function FileExists(path As String) As Boolean
+    Public Interface IFileSystemShim
 
-End Interface
+        ''' <summary>
+        ''' Files the exists.
+        ''' </summary>
+        ''' <param name="path">The path.</param>
+        ''' <returns></returns>
+        Function FileExists(path As String) As Boolean
+
+    End Interface
+
+End Namespace

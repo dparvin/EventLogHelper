@@ -1,4 +1,6 @@
-﻿''' <summary>
+﻿Imports EventLogHelper.Interfaces
+
+''' <summary>
 ''' A test implementation of <see cref="IConfigShim"/> that simulates a failure by throwing an exception.
 ''' </summary>
 ''' <seealso cref="IConfigShim" />

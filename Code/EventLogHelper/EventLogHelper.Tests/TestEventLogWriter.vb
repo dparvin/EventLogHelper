@@ -1,4 +1,6 @@
-﻿#If NET35 Then
+﻿Imports EventLogHelper.Interfaces
+
+#If NET35 Then
 #Else
 Imports Xunit.Abstractions
 #End If

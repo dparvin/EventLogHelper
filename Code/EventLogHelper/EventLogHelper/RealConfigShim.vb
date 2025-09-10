@@ -1,4 +1,6 @@
-﻿''' <summary>
+﻿Imports EventLogHelper.Interfaces
+
+''' <summary>
 ''' A real implementation of <see cref="IConfigShim"/> that uses the actual configuration manager.
 ''' </summary>
 ''' <seealso cref="IConfigShim" />

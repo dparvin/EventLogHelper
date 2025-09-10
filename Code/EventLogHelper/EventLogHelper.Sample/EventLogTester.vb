@@ -1,4 +1,6 @@
-﻿Public Class EventLogTester
+﻿Imports EventLogHelper.Enums
+
+Public Class EventLogTester
 
     Public Sub New()
 

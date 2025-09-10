@@ -1,7 +1,9 @@
-﻿''' <summary>
-''' A real implementation of <see cref="EventLogHelper.IFileSystemShim"/> that uses the actual file system.
+﻿Imports EventLogHelper.Interfaces
+
+''' <summary>
+''' A real implementation of <see cref="IFileSystemShim"/> that uses the actual file system.
 ''' </summary>
-''' <seealso cref="EventLogHelper.IFileSystemShim" />
+''' <seealso cref="IFileSystemShim" />
 #If NET35 Then
 <Diagnostics.ExcludeFromCodeCoverage>
 Friend Class RealFileSystemShim

@@ -1,6 +1,7 @@
 ﻿Imports System.IO
 Imports System.Security
 Imports Microsoft.Win32
+Imports EventLogHelper.Interfaces
 
 ''' <summary>
 ''' Provides a way to read and validate access to the Windows Registry.

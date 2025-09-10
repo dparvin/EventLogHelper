@@ -1,5 +1,7 @@
 ﻿Imports System.IO
 Imports System.Security
+Imports EventLogHelper.Enums
+Imports EventLogHelper.Interfaces
 
 ''' <summary>
 ''' Provides a real implementation of the <see cref="IEventLogWriter"/> interface 

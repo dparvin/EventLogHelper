@@ -1,13 +1,17 @@
-﻿''' <summary>
-''' Defines a contract for configuration operations, allowing for abstraction and easier testing.
-''' </summary>
-Friend Interface IConfigShim
+﻿Namespace Interfaces
 
     ''' <summary>
-    ''' Gets the application setting.
+    ''' Defines a contract for configuration operations, allowing for abstraction and easier testing.
     ''' </summary>
-    ''' <param name="key">The key.</param>
-    ''' <returns></returns>
-    Function GetAppSetting(key As String) As String
+    Public Interface IConfigShim
 
-End Interface
+        ''' <summary>
+        ''' Gets the application setting.
+        ''' </summary>
+        ''' <param name="key">The key.</param>
+        ''' <returns></returns>
+        Function GetAppSetting(key As String) As String
+
+    End Interface
+
+End Namespace

@@ -1,7 +1,8 @@
 ﻿Imports Xunit
 Imports System.ComponentModel
 Imports System.Reflection
-
+Imports EventLogHelper.Enums
+Imports EventLogHelper.Interfaces
 
 #If NET35 Then
 Imports System.Diagnostics
@@ -92,6 +93,32 @@ Namespace net90
             ' Assert
             CurrentLoggingLevel = ll ' Restore original logging level
             Assert.Equal(WriteEntry, testWriter.WriteEntryCalled)
+
+        End Sub
+
+        ''' <summary>
+        ''' Logs the message.
+        ''' </summary>
+        <Fact>
+        Public Sub Log_Message_ExcludeSource()
+
+            ' Arrange
+#If NET35 Then
+            Dim testWriter As New TestEventLogWriter(logExists:=False, sourceExists:=False)
+#Else
+            Dim testWriter As New TestEventLogWriter(OutputHelper, logExists:=False, sourceExists:=False)
+#End If
+            SetWriter(testWriter)
+
+            IncludeSourceInMessage = False
+            Dim message As String = "Test message"
+
+            ' Act
+            Log(message)
+
+            ' Assert
+            Assert.True(testWriter.WriteEntryCalled)
+            Assert.Equal("Test message.", testWriter.LastMessage)
 
         End Sub
 
@@ -1082,7 +1109,7 @@ Namespace net90
         End Sub
 
         ''' <summary>
-        ''' Fluents the log message.
+        ''' Fluent the log message.
         ''' </summary>
         <Theory>
         <InlineData(LoggingSeverity.Critical, True)>
@@ -1124,7 +1151,7 @@ Namespace net90
         End Sub
 
         ''' <summary>
-        ''' Fluents the log message.
+        ''' Fluent the log message.
         ''' </summary>
         <Fact>
         Public Sub Fluent_Log_Message()
@@ -1352,7 +1379,7 @@ Namespace net90
         End Sub
 
         ''' <summary>
-        ''' Fluents the log long message.
+        ''' Fluent log long message.
         ''' </summary>
         <Fact>
         Public Sub Fluent_Log_LongMessage()
@@ -1382,6 +1409,42 @@ Namespace net90
             Assert.False(testWriter.CreateEventSourceCalled)
             Assert.True(testWriter.WriteEntryCalled)
             Assert.Equal(7703, testWriter.MessageLength) ' Maximum length for event log message
+            Assert.Equal(211, testWriter.SourceLength) ' Source is truncated to 254 max characters
+
+        End Sub
+
+        ''' <summary>
+        ''' Fluent log long message.
+        ''' </summary>
+        <Fact>
+        Public Sub Fluent_Log_LongMessage_ExcludeSource()
+
+            ' Arrange
+            Dim testWriter As TestEventLogWriter
+#If NET35 Then
+            testWriter = New TestEventLogWriter()
+#Else
+            testWriter = New TestEventLogWriter(OutputHelper)
+#End If
+            SetWriter(testWriter)
+
+            Dim logName As String = ""
+            Dim sourceName As New String("s"c, 300) ' 300 characters long
+            Dim message As New String("X"c, 40000) ' 40,000 characters long
+            Dim rawData As Byte() = Nothing
+            logName = "TestLog"
+            AllowMultiEntryMessages = True
+            ContinuationMarker = " ... <Continued>"
+            IncludeSourceInMessage = False
+
+            ' Act
+            GetLog(logName, sourceName).LogEntry(message, rawData)
+
+            AllowMultiEntryMessages = False
+            ' Assert
+            Assert.False(testWriter.CreateEventSourceCalled)
+            Assert.True(testWriter.WriteEntryCalled)
+            Assert.Equal(7275, testWriter.MessageLength) ' Maximum length for event log message
             Assert.Equal(211, testWriter.SourceLength) ' Source is truncated to 254 max characters
 
         End Sub
@@ -1812,7 +1875,7 @@ Namespace net90
         Public Sub FallsBackToDefault_WhenConfigThrows()
 
             ' Arrange
-            FileSystem = New FakeFileSystem({}) ' no json file
+            FileSystem = New FakeFileSystem(Array.Empty(Of String)) ' no json file
             Config = New ThrowingConfigShim()
 
             ' Act
