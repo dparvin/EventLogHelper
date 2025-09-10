@@ -213,6 +213,7 @@ Recognized keys:
 | `EventLogHelper.LoggingSeverity`          | The default logging severity level for logging where the severity is not specified. |
 | `EventLogHelper.CurrentLoggingLevel`      | Current logging level (defaults to `Normal`). This can be set to control the verbosity of logs written. Log Entries with a severity below this level are not written. |
 | `EventLogHelper.SourceResolutionBehavior` | How to handle mismatched source and log names (defaults to `Strict`). |
+| `EventLogHelper.IncludeSourceInMessage`   | Whether to include the source name in the log message. (defaults to `true`) |
 
 Example – App.config
 
