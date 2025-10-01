@@ -3,6 +3,8 @@ Imports System.Reflection
 Imports System.Runtime.CompilerServices
 Imports EventLogHelper.Enums
 Imports EventLogHelper.Interfaces
+Imports System.Globalization
+
 
 #If NETFRAMEWORK Then
 Imports System.Configuration
@@ -94,12 +96,12 @@ Public Module SmartEventLogger
     ''' Has the Initialization process happened?
     ''' This is used to prevent multiple initializations.
     ''' </summary>
-    Private _isInitialized As Boolean = False
+    Private _isInitialized As Boolean
 
     ''' <summary>
     ''' is initializing
     ''' </summary>
-    Private _isInitializing As Boolean = False
+    Private _isInitializing As Boolean
 
     ''' <summary>
     ''' The initialization lock
@@ -309,7 +311,7 @@ Public Module SmartEventLogger
     ''' <summary>
     ''' The write initialize entry
     ''' </summary>
-    Private _writeInitEntry As Boolean = False
+    Private _writeInitEntry As Boolean
     ''' <summary>
     ''' The truncation marker
     ''' </summary>
@@ -321,7 +323,7 @@ Public Module SmartEventLogger
     ''' <summary>
     ''' The allow multi entry messages
     ''' </summary>
-    Private _allowMultiEntryMessages As Boolean = False
+    Private _allowMultiEntryMessages As Boolean
     ''' <summary>
     ''' include the source in message
     ''' </summary>
@@ -4738,11 +4740,11 @@ Public Module SmartEventLogger
     ''' <summary>
     ''' Writes an entry (or entries) to the Windows Event Log using the specified parameters.
     ''' </summary>
-    ''' <param name="_machineName">
+    ''' <param name="targetMachineName">
     ''' The name of the machine where the event log resides. Use <c>"."</c> for the local machine.
     ''' If <c>null</c> or empty, the local machine is used by default, or the value of the <see cref="MachineName"/> property if set.
     ''' </param>
-    ''' <param name="_logName">
+    ''' <param name="targetLogName">
     ''' The name of the event log (e.g., <c>"Application"</c>, <c>"System"</c>, or a custom log name).
     ''' If <c>null</c> or empty, the value of the <see cref="LogName"/> property is used.
     ''' </param>
@@ -4792,8 +4794,8 @@ Public Module SmartEventLogger
     ''' </para>
     ''' </remarks>
     Public Sub Log(
-            ByVal _machineName As String,
-            ByVal _logName As String,
+            ByVal targetMachineName As String,
+            ByVal targetLogName As String,
             ByVal sourceName As String,
             ByVal message As String,
             ByVal eventType As EventLogEntryType,
@@ -4806,8 +4808,8 @@ Public Module SmartEventLogger
 
         Initialize()
         Log(
-            _machineName,
-            _logName,
+            targetMachineName,
+            targetLogName,
             sourceName,
             message,
             eventType,
@@ -4824,11 +4826,11 @@ Public Module SmartEventLogger
     ''' <summary>
     ''' Writes an entry (or entries) to the Windows Event Log using the specified parameters.
     ''' </summary>
-    ''' <param name="_machineName">
+    ''' <param name="targetMachineName">
     ''' The name of the machine where the event log resides. Use <c>"."</c> for the local machine.
     ''' If <c>null</c> or empty, the local machine is used by default, or the value of the <see cref="MachineName"/> property if set.
     ''' </param>
-    ''' <param name="_logName">
+    ''' <param name="targetLogName">
     ''' The name of the event log (e.g., <c>"Application"</c>, <c>"System"</c>, or a custom log name).
     ''' If <c>null</c> or empty, the value of the <see cref="LogName"/> property is used.
     ''' </param>
@@ -4883,8 +4885,8 @@ Public Module SmartEventLogger
     ''' </para>
     ''' </remarks>
     Public Sub Log(
-            ByVal _machineName As String,
-            ByVal _logName As String,
+            ByVal targetMachineName As String,
+            ByVal targetLogName As String,
             ByVal sourceName As String,
             ByVal message As String,
             ByVal eventType As EventLogEntryType,
@@ -4900,10 +4902,10 @@ Public Module SmartEventLogger
 
         If EntrySeverity < CurrentLoggingLevel Then Exit Sub
 
-        Dim defaultLog As String = If(String.IsNullOrEmpty(_logName), LogName, _logName.Trim())
+        Dim defaultLog As String = If(String.IsNullOrEmpty(targetLogName), LogName, targetLogName.Trim())
         Dim defaultSource As String = Source(sourceName)
         Dim sourceToUse As String = defaultSource ' this is used to tell the process which source to actually use if we can't use the one we want to use.
-        Dim defaultMachine As String = NormalizeMachineName(_machineName)
+        Dim defaultMachine As String = NormalizeMachineName(targetMachineName)
 
         Dim finalEventType As EventLogEntryType = NormalizeEventType(eventType)
 
@@ -6001,15 +6003,15 @@ Public Module SmartEventLogger
     ''' Returns a default event source name. If none is provided, this attempts to determine the calling
     ''' method's fully qualified name as the source.
     ''' </summary>
-    ''' <param name="_sourceName">Optional. A specific source name to use. If null or empty, the calling method will be used.</param>
+    ''' <param name="eventSourceName">Optional. A specific source name to use. If null or empty, the calling method will be used.</param>
     ''' <returns>A valid event source name derived from the input or calling method.</returns>
     Public Function Source(
-            Optional ByVal _sourceName As String = Nothing) As String
+            Optional ByVal eventSourceName As String = Nothing) As String
 
         ' Final fallback if nothing else is available
         Dim strReturn As String = "SmartEventLogger"
 
-        If String.IsNullOrEmpty(_sourceName) Then
+        If String.IsNullOrEmpty(eventSourceName) Then
             If Not String.IsNullOrEmpty(SourceName) Then
                 strReturn = SourceName
             Else
@@ -6028,7 +6030,7 @@ Public Module SmartEventLogger
                 Next
             End If
         Else
-            strReturn = _sourceName.Trim()
+            strReturn = eventSourceName.Trim()
         End If
 
         ' Ensure the source name does not exceed the maximum length allowed by the Windows Event Log system
@@ -6149,8 +6151,8 @@ Public Module SmartEventLogger
 
         Dim defaultSource As String = Source(sourceName)
         Dim finalMessage As String = If(String.IsNullOrEmpty(message), "No message provided.", message.Trim())
-        If Not finalMessage.EndsWith("."c) Then finalMessage &= "."
-        If _IncludeSourceInMessage AndAlso Not finalMessage.StartsWith("["c) Then finalMessage = $"[{defaultSource}] {finalMessage}"
+        If Not finalMessage.EndsWith("."c, StringComparison.CurrentCultureIgnoreCase) Then finalMessage &= "."
+        If _IncludeSourceInMessage AndAlso Not finalMessage.StartsWith("["c, StringComparison.CurrentCultureIgnoreCase) Then finalMessage = $"[{defaultSource}] {finalMessage}"
 
         Const maxLength As Integer = 32766
         Const _truncationMarker As String = "... [TRUNCATED]"
@@ -6179,7 +6181,7 @@ Public Module SmartEventLogger
         Const maxLength As Integer = 32766
         Dim defaultSource As String = Source(sourceName)
         Dim baseMessage As String = message.Trim()
-        If Not baseMessage.EndsWith("."c) Then baseMessage &= "."
+        If Not baseMessage.EndsWith("."c, StringComparison.CurrentCultureIgnoreCase) Then baseMessage &= "."
 
         Dim cm As String = ContinuationMarker
 
@@ -6188,7 +6190,7 @@ Public Module SmartEventLogger
         ' Initial prefix length calculation
         ' Format: "[Source] [Part 999/999] "
         Dim maxPartsEstimate As Integer = CInt(Math.Ceiling(baseMessage.Length / (maxLength - 50)))
-        Dim digitCount As Integer = maxPartsEstimate.ToString().Length + 1 ' pad by 1 digit for safety
+        Dim digitCount As Integer = maxPartsEstimate.ToString(CultureInfo.InvariantCulture).Length + 1 ' pad by 1 digit for safety
 
         ' Build conservative prefix sample with max digit placeholders
         Dim maxPartsPlaceholder As New String("9"c, digitCount)
@@ -6363,7 +6365,7 @@ Public Module SmartEventLogger
             ByVal key As String,
             ByVal defaultValue As Integer) As Integer
 
-        Dim raw As String = GetAppSetting(key, defaultValue.ToString())
+        Dim raw As String = GetAppSetting(key, defaultValue.ToString(CultureInfo.InvariantCulture))
 
         Dim result As Integer
         Return If(Integer.TryParse(raw, result), result, defaultValue)

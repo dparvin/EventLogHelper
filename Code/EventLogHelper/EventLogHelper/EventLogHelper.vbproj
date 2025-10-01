@@ -15,6 +15,14 @@
     <GenerateAssemblyInfo>false</GenerateAssemblyInfo>
   </PropertyGroup>
 
+  <!-- setup SourceLink for this project -->
+  <PropertyGroup>
+    <DebugType>portable</DebugType>
+    <DebugSymbols>true</DebugSymbols>
+    <ContinuousIntegrationBuild>true</ContinuousIntegrationBuild>
+    <EmbedUntrackedSources>true</EmbedUntrackedSources>
+  </PropertyGroup>
+
   <PropertyGroup>
     <BaseVersion>1.0.1</BaseVersion>
   </PropertyGroup>
@@ -56,6 +64,7 @@
 
   <ItemGroup>
     <PackageReference Include="Versioning.Common" Version="1.0.17" />
+    <PackageReference Include="Microsoft.SourceLink.GitHub" Version="8.0.0" PrivateAssets="All" />
   </ItemGroup>
 
   <ItemGroup Condition="'$(TargetFramework)' == 'net35'">

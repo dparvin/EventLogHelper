@@ -419,3 +419,6 @@ FodyWeavers.xsd
 
 # ReportGenerator report files
 CoverageReport/
+/Code/EventLogHelper/EventLogHelper/EventLogHelper.vbproj.bak
+/Code/EventLogHelper/EventLogHelper.Elevator/EventLogHelper.Elevator.vbproj.bak
+/Code/EventLogHelper/EventLogHelper.Tests/EventLogHelper.Tests.vbproj.bak

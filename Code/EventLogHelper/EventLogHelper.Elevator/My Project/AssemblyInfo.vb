@@ -1,10 +1,10 @@
 ﻿Imports System
 Imports System.Reflection
+Imports System.Resources
 Imports System.Runtime.InteropServices
-
-#If NETFRAMEWORK Then
-#Else
 Imports System.Runtime.Versioning
+
+#If NETCOREAPP Then
 <Assembly: SupportedOSPlatform("windows")>
 #End If
 
@@ -13,13 +13,48 @@ Imports System.Runtime.Versioning
 ' associated with an assembly.
 
 ' Review the values of the assembly attributes
+<Assembly: AssemblyCompany("David Parvin")>
 
-<Assembly: AssemblyTitle("EventLogHelper.Elevator")>
-<Assembly: AssemblyDescription("")>
-<Assembly: AssemblyCompany("HP")>
+#If DEBUG Then
+<Assembly: AssemblyConfiguration("Debug")>
+#Else
+<Assembly: AssemblyConfiguration("Release")>
+#End If
+
+<Assembly: AssemblyCopyright("Copyright © 2025")>
+<Assembly: AssemblyDescription("EventLogHelper.Elevator")>
 <Assembly: AssemblyProduct("EventLogHelper.Elevator")>
-<Assembly: AssemblyCopyright("Copyright © HP 2025")>
 <Assembly: AssemblyTrademark("")>
+
+<Assembly: NeutralResourcesLanguage("en-US", UltimateResourceFallbackLocation.MainAssembly)>
+
+#If NET8_0_OR_GREATER Then
+<Assembly: System.Runtime.Versioning.SupportedOSPlatform("windows")>
+#End If
+
+#If NET35 Then
+<Assembly: AssemblyTitle("Event Log Helper Elevator (.NET Framework 3.5)")>
+#End If
+
+#If NET462 Then
+<Assembly: AssemblyTitle("Event Log Helper Elevator (.NET Framework 4.6.2)")>
+#End If
+
+#If NET472 Then
+<Assembly: AssemblyTitle("Event Log Helper Elevator (.NET Framework 4.7.2)")>
+#End If
+
+#If NET481 Then
+<Assembly: AssemblyTitle("Event Log Helper Elevator (.NET Framework 4.8.1)")>
+#End If
+
+#If NET8_0 Then
+<Assembly: AssemblyTitle("Event Log Helper Elevator (.NET 8.0)")>
+#End If
+
+#If NET9_0 Then
+<Assembly: AssemblyTitle("Event Log Helper Elevator (.NET 9.0)")>
+#End If
 
 <Assembly: ComVisible(False)>
 

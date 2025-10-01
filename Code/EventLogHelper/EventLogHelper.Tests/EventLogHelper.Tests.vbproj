@@ -41,7 +41,7 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="ReportGenerator" Version="5.4.12" />
+    <PackageReference Include="ReportGenerator" Version="5.4.16" />
     <PackageReference Include="Versioning.Common" Version="1.0.17" />
     <PackageReference Include="xunit.analyzers" Version="1.24.0">
       <PrivateAssets>all</PrivateAssets>

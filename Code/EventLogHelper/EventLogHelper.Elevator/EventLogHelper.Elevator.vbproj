@@ -29,19 +29,25 @@
     <RepositoryType>git</RepositoryType>
   </PropertyGroup>
 
+  <!-- setup SourceLink for this project -->
+  <PropertyGroup>
+    <DebugType>portable</DebugType>
+    <DebugSymbols>true</DebugSymbols>
+    <ContinuousIntegrationBuild>true</ContinuousIntegrationBuild>
+    <EmbedUntrackedSources>true</EmbedUntrackedSources>
+  </PropertyGroup>
+
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
     <PlatformTarget>AnyCPU</PlatformTarget>
-    <DebugSymbols>true</DebugSymbols>
-    <DebugType>full</DebugType>
     <DefineDebug>true</DefineDebug>
     <DefineTrace>true</DefineTrace>
     <OutputPath>bin\Debug\</OutputPath>
     <DocumentationFile>EventLogHelper.Elevator.xml</DocumentationFile>
     <NoWarn>42016,41999,42017,42018,42019,42032,42036,42020,42021,42022</NoWarn>
   </PropertyGroup>
+
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
     <PlatformTarget>AnyCPU</PlatformTarget>
-    <DebugType>pdbonly</DebugType>
     <DefineDebug>false</DefineDebug>
     <DefineTrace>true</DefineTrace>
     <Optimize>true</Optimize>
@@ -49,65 +55,65 @@
     <DocumentationFile>EventLogHelper.Elevator.xml</DocumentationFile>
     <NoWarn>42016,41999,42017,42018,42019,42032,42036,42020,42021,42022</NoWarn>
   </PropertyGroup>
+
   <PropertyGroup Condition="'$(Configuration)|$(TargetFramework)|$(Platform)'=='Debug|net35|AnyCPU'">
     <WarningsAsErrors>41999,42016,42017,42018,42019,42020,42021,42022,42024,42029,42030,42031,42032,42036,42099,42104,42108,42109</WarningsAsErrors>
     <NoWarn></NoWarn>
-    <DebugType>portable</DebugType>
   </PropertyGroup>
+
   <PropertyGroup Condition="'$(Configuration)|$(TargetFramework)|$(Platform)'=='Debug|net462|AnyCPU'">
     <WarningsAsErrors>41999,42016,42017,42018,42019,42020,42021,42022,42024,42029,42030,42031,42032,42036,42099,42104,42108,42109</WarningsAsErrors>
     <NoWarn></NoWarn>
-    <DebugType>portable</DebugType>
   </PropertyGroup>
+
   <PropertyGroup Condition="'$(Configuration)|$(TargetFramework)|$(Platform)'=='Debug|net472|AnyCPU'">
     <WarningsAsErrors>41999,42016,42017,42018,42019,42020,42021,42022,42024,42029,42030,42031,42032,42036,42099,42104,42108,42109</WarningsAsErrors>
     <NoWarn></NoWarn>
-    <DebugType>portable</DebugType>
   </PropertyGroup>
+
   <PropertyGroup Condition="'$(Configuration)|$(TargetFramework)|$(Platform)'=='Debug|net481|AnyCPU'">
     <WarningsAsErrors>41999,42016,42017,42018,42019,42020,42021,42022,42024,42029,42030,42031,42032,42036,42099,42104,42108,42109</WarningsAsErrors>
     <NoWarn></NoWarn>
-    <DebugType>portable</DebugType>
   </PropertyGroup>
+
   <PropertyGroup Condition="'$(Configuration)|$(TargetFramework)|$(Platform)'=='Debug|net8.0-windows10.0.17763.0|AnyCPU'">
     <WarningsAsErrors>41999,42017,42018,42019,42020,42021,42022,42024,42029,42030,42031,42099,42104</WarningsAsErrors>
     <NoWarn></NoWarn>
-    <DebugType>portable</DebugType>
   </PropertyGroup>
+
   <PropertyGroup Condition="'$(Configuration)|$(TargetFramework)|$(Platform)'=='Debug|net9.0-windows10.0.17763.0|AnyCPU'">
     <WarningsAsErrors>41999,42017,42018,42019,42020,42021,42022,42024,42029,42030,42031,42099,42104</WarningsAsErrors>
     <NoWarn></NoWarn>
-    <DebugType>portable</DebugType>
   </PropertyGroup>
+
   <PropertyGroup Condition="'$(Configuration)|$(TargetFramework)|$(Platform)'=='Release|net35|AnyCPU'">
     <WarningsAsErrors>41999,42016,42017,42018,42019,42020,42021,42022,42024,42029,42030,42031,42032,42036,42099,42104,42108,42109</WarningsAsErrors>
     <NoWarn></NoWarn>
-    <DebugType>portable</DebugType>
   </PropertyGroup>
+
   <PropertyGroup Condition="'$(Configuration)|$(TargetFramework)|$(Platform)'=='Release|net462|AnyCPU'">
     <WarningsAsErrors>41999,42016,42017,42018,42019,42020,42021,42022,42024,42029,42030,42031,42032,42036,42099,42104,42108,42109</WarningsAsErrors>
     <NoWarn></NoWarn>
-    <DebugType>portable</DebugType>
   </PropertyGroup>
+
   <PropertyGroup Condition="'$(Configuration)|$(TargetFramework)|$(Platform)'=='Release|net472|AnyCPU'">
     <WarningsAsErrors>41999,42016,42017,42018,42019,42020,42021,42022,42024,42029,42030,42031,42032,42036,42099,42104,42108,42109</WarningsAsErrors>
     <NoWarn></NoWarn>
-    <DebugType>portable</DebugType>
   </PropertyGroup>
+
   <PropertyGroup Condition="'$(Configuration)|$(TargetFramework)|$(Platform)'=='Release|net481|AnyCPU'">
     <WarningsAsErrors>41999,42016,42017,42018,42019,42020,42021,42022,42024,42029,42030,42031,42032,42036,42099,42104,42108,42109</WarningsAsErrors>
     <NoWarn></NoWarn>
-    <DebugType>portable</DebugType>
   </PropertyGroup>
+
   <PropertyGroup Condition="'$(Configuration)|$(TargetFramework)|$(Platform)'=='Release|net8.0-windows10.0.17763.0|AnyCPU'">
     <WarningsAsErrors>41999,42017,42018,42019,42020,42021,42022,42024,42029,42030,42031,42099,42104</WarningsAsErrors>
     <NoWarn></NoWarn>
-    <DebugType>portable</DebugType>
   </PropertyGroup>
+
   <PropertyGroup Condition="'$(Configuration)|$(TargetFramework)|$(Platform)'=='Release|net9.0-windows10.0.17763.0|AnyCPU'">
     <WarningsAsErrors>41999,42017,42018,42019,42020,42021,42022,42024,42029,42030,42031,42099,42104</WarningsAsErrors>
     <NoWarn></NoWarn>
-    <DebugType>portable</DebugType>
   </PropertyGroup>
 
   <ItemGroup Condition="'$(IsNetCore)' == 'false' ">
@@ -117,6 +123,7 @@
     <Reference Include="System.Core" />
     <Reference Include="System.Configuration" />
   </ItemGroup>
+
   <ItemGroup Condition="'$(IsNetCore)' == 'false' ">
     <Import Include="Microsoft.VisualBasic" />
     <Import Include="System" />
@@ -146,5 +153,6 @@
 
   <ItemGroup>
     <PackageReference Include="Versioning.Common" Version="1.0.17" />
+    <PackageReference Include="Microsoft.SourceLink.GitHub" Version="8.0.0" PrivateAssets="All" />
   </ItemGroup>
 </Project>

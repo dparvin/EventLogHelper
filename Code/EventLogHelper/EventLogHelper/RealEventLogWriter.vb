@@ -219,7 +219,7 @@ Friend Class RealEventLogWriter
             Dim logName As String = EventLog.LogNameFromSourceName(sourceName, machineName)
             Return logName
         Catch ex As Exception
-            Throw New ApplicationException($"Failed to retrieve log name for source '{sourceName}' on machine '{machineName}'.", ex)
+            Throw New InvalidOperationException($"Failed to retrieve log name for source '{sourceName}' on machine '{machineName}'.", ex)
         End Try
 
     End Function
@@ -297,7 +297,7 @@ Friend Class RealEventLogWriter
             Return el
 
         Catch ex As Exception
-            Throw New ApplicationException($"Failed to initialize event log '{logName}' with source '{sourceToUse}' on machine '{machineName}'.", ex)
+            Throw New InvalidOperationException($"Failed to initialize event log '{logName}' with source '{sourceToUse}' on machine '{machineName}'.", ex)
         End Try
 
     End Function

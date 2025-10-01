@@ -70,9 +70,9 @@ Module Program
     ''' <returns></returns>
     Private Function CheckElevation() As Boolean
 
-        Dim identity = WindowsIdentity.GetCurrent()
-        Dim principal = New WindowsPrincipal(identity)
-        Dim isAdmin = principal.IsInRole(WindowsBuiltInRole.Administrator)
+        Dim identity As WindowsIdentity = WindowsIdentity.GetCurrent()
+        Dim principal As New WindowsPrincipal(identity)
+        Dim isAdmin As Boolean = principal.IsInRole(WindowsBuiltInRole.Administrator)
 
         If Not isAdmin Then
             MessageBox.Show("This action requires administrative rights. " &
