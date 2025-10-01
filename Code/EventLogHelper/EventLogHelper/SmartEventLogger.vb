@@ -5,7 +5,6 @@ Imports EventLogHelper.Enums
 Imports EventLogHelper.Interfaces
 Imports System.Globalization
 
-
 #If NETFRAMEWORK Then
 Imports System.Configuration
 #Else
