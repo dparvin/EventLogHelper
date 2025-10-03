@@ -107,57 +107,91 @@ SmartEventLogger.Log(
     EntrySeverity: LoggingSeverity.Info)
 
 ```
+---
 
-## 🔑 How the Levels Work
+## 🔑 Logging Levels vs. Severities
 
-LoggingLevel (global threshold) – sets how strict the logger is.
+There are two related concepts that control whether a log entry is written:
 
-None → no logs are written
+#### 1. LoggingLevel (global threshold)
 
-Verbose → everything is written
+This sets how strict the logger is — like a global filter.
 
-Critical → only critical logs are written
+Only entries at or above this level are written.
+- Verbose (0): Write everything.
+- Normal (1): Write Info, Warning, Error, Critical.
+- Minimal (2): Write Warning, Error, Critical.
+- Error (3): Write Error, Critical.
+- Critical (4): Write only Critical.
+- None (99): Write nothing.
 
-LoggingSeverity (per-entry importance) – sets how important a log entry is considered.
+Think of this as:
 
-Verbose (least important) through Critical (most important)
+"_Don’t bother me unless the message is at least this important._"
+
+#### 2. LoggingSeverity (per-entry importance)
+
+Each log entry specifies its own severity — how important that message is.
+
+- Verbose (0): Detailed diagnostic.
+- Info (1): Normal status messages.
+- Warning (2): Something might be wrong.
+- Error (3): A failure that requires attention.
+- Critical (4): Severe failure, must act now.
+
+#### 3. How They Work Together
 
 A log entry is written only if:
 
-```vbnet
+``` vbnet
 
-    EntrySeverity >= CurrentLoggingLevel
+EntrySeverity >= CurrentLoggingLevel
 
 ```
 
----
+Example:
 
 ```vbnet
 
-' Configure defaults
-SmartEventLogger.CurrentLoggingLevel = LoggingLevel.Normal   ' write Info, Warning, Error, Critical
-SmartEventLogger.LoggingSeverity = LoggingSeverity.Info      ' default for entries without explicit severity
+' Set the global threshold
+SmartEventLogger.CurrentLoggingLevel = LoggingLevel.Normal   
+' (filters out Verbose messages, writes Info and higher)
 
-' Explicit severity: written (Warning >= Normal)
+' Log a Warning: written (Warning >= Normal)
 SmartEventLogger.Log("Low disk space.",
                      EventLogEntryType.Warning,
                      EntrySeverity:=LoggingSeverity.Warning)
 
-' Explicit severity: skipped (Verbose < Normal)
+' Log a Verbose: skipped (Verbose < Normal)
 SmartEventLogger.Log("Debug trace here...",
                      EventLogEntryType.Information,
                      EntrySeverity:=LoggingSeverity.Verbose)
 
-' Implicit severity: uses default (Info >= Normal, so written)
+' Log an Info without severity specified: uses default (Info >= Normal, so written)
 SmartEventLogger.Log("Application started.",
                      EventLogEntryType.Information)
 
 ```
 
-You can also configure default values and plug in a custom writer for unit testing or specialized 
-behavior.
+#### ✅ In short:
+
+LoggingLevel = the minimum importance you care about globally.
+
+LoggingSeverity = how important this individual log entry is.
+
+### 🔎 Key idea:
+
+You can instrument your code with as much logging as you want, but control how much 
+actually gets written just by changing one configuration setting.
+
+- In production, set the level high (e.g., Minimal or Error) to log only what matters.
+- In troubleshooting, set it low (Verbose) to see everything.
+
+That way it’s both developer-friendly ("log all the things") and ops-friendly 
+("don’t flood the event log unless we need to").
 
 ---
+
 ## 🔄 Source Resolution Behavior
 
 Sometimes an event source exists, but it’s registered under a different log than the one you want to 
