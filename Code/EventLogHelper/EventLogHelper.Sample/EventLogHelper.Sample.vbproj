@@ -36,9 +36,6 @@
 
   <ItemGroup>
     <PackageReference Include="Versioning.Common" Version="1.0.17" />
-  </ItemGroup>
-
-  <ItemGroup>
     <ProjectReference Include="..\EventLogHelper\EventLogHelper.vbproj" />
   </ItemGroup>
 

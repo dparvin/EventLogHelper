@@ -1,9 +1,15 @@
-﻿$ErrorActionPreference = "Stop"
+﻿param(
+    [ValidateSet("Debug", "Release")]
+    [string]$Configuration = "Debug"
+)
 
+$ErrorActionPreference = "Stop"
+
+Write-Host "Running coverage script with configuration: $Configuration"
 # Only run if target framework folder is net9.0*
 $projectRoot = Split-Path -Parent $MyInvocation.MyCommand.Definition
 $targetFramework = "net9.0-windows10.0.17763.0"
-$testDll = Join-Path $projectRoot "bin\Debug\$targetFramework\EventLogHelper.Tests.dll"
+$testDll = Join-Path $projectRoot "bin\$Configuration\$targetFramework\EventLogHelper.Tests.dll"
 
 if (-Not (Test-Path $testDll)) {
     Write-Host "Skipping code coverage for non-net9.0 builds."
@@ -16,13 +22,14 @@ Remove-Item -Recurse -Force coverage, CoverageReport -ErrorAction Ignore
 dotnet test $PSScriptRoot `
   --no-build `
   --framework net9.0-windows10.0.17763.0 `
+  /p:Configuration=$Configuration `
   /p:CollectCoverage=true `
   /p:CoverletOutput=coverage\ `
   /p:UseSourceLink=false `
   /p:CoverletOutputFormat=cobertura
 
 # Full path to ReportGenerator.exe
-$rgVersion = "5.4.16"
+$rgVersion = "5.4.17"
 $reportGeneratorExe = "$env:USERPROFILE\.nuget\packages\reportgenerator\$rgVersion\tools\net9.0\ReportGenerator.exe"
 
 # Paths

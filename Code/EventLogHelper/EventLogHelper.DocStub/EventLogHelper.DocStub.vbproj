@@ -36,6 +36,10 @@
     <PackageReference Include="XmlDocMarkdown.Core" Version="2.9.0" />
   </ItemGroup>
 
+  <ItemGroup Condition="'$(TargetFramework)' == 'net48'">
+    <PackageReference Include="XmlDocMarkdown.Core" Version="2.9.0" />
+  </ItemGroup>
+
   <ItemGroup Condition="'$(TargetFramework)' == 'net481'">
     <PackageReference Include="XmlDocMarkdown.Core" Version="2.9.0" />
   </ItemGroup>

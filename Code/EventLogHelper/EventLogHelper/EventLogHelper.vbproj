@@ -46,6 +46,10 @@
     <WarningsAsErrors>42024,42030,42099,42104,42108,42109</WarningsAsErrors>
   </PropertyGroup>
 
+  <PropertyGroup Condition="'$(TargetFramework)'=='net48'">
+    <WarningsAsErrors>42024,42030,42099,42104,42108,42109</WarningsAsErrors>
+  </PropertyGroup>
+
   <PropertyGroup Condition="'$(TargetFramework)'=='net481'">
     <WarningsAsErrors>42024,42030,42099,42104,42108,42109</WarningsAsErrors>
   </PropertyGroup>
@@ -63,8 +67,8 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="Versioning.Common" Version="1.0.17" />
     <PackageReference Include="Microsoft.SourceLink.GitHub" Version="8.0.0" PrivateAssets="All" />
+    <PackageReference Include="Versioning.Common" Version="1.0.17" />
   </ItemGroup>
 
   <ItemGroup Condition="'$(TargetFramework)' == 'net35'">
@@ -77,6 +81,11 @@
   </ItemGroup>
 
   <ItemGroup Condition="'$(TargetFramework)' == 'net472'">
+    <Reference Include="System.Configuration" />
+    <PackageReference Include="System.Configuration.ConfigurationManager" Version="9.0.9" />
+  </ItemGroup>
+
+  <ItemGroup Condition="'$(TargetFramework)' == 'net48'">
     <Reference Include="System.Configuration" />
     <PackageReference Include="System.Configuration.ConfigurationManager" Version="9.0.9" />
   </ItemGroup>

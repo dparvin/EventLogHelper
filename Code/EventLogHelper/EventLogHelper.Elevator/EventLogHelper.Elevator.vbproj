@@ -1,4 +1,5 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
+
   <Import Project="..\SharedFrameworks.props" Condition="Exists('..\SharedFrameworks.props')" />
 
   <PropertyGroup>
@@ -37,6 +38,18 @@
     <EmbedUntrackedSources>true</EmbedUntrackedSources>
   </PropertyGroup>
 
+  <PropertyGroup>
+    <!-- prevent native host generation -->
+    <UseAppHost>false</UseAppHost>
+
+    <!-- ensure not self-contained -->
+    <SelfContained>false</SelfContained>
+
+    <!-- no trimming or AOT -->
+    <PublishAot>false</PublishAot>
+    <PublishTrimmed>false</PublishTrimmed>
+  </PropertyGroup>
+
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
     <PlatformTarget>AnyCPU</PlatformTarget>
     <DefineDebug>true</DefineDebug>
@@ -71,6 +84,11 @@
     <NoWarn></NoWarn>
   </PropertyGroup>
 
+  <PropertyGroup Condition="'$(Configuration)|$(TargetFramework)|$(Platform)'=='Debug|net48|AnyCPU'">
+    <WarningsAsErrors>41999,42016,42017,42018,42019,42020,42021,42022,42024,42029,42030,42031,42032,42036,42099,42104,42108,42109</WarningsAsErrors>
+    <NoWarn></NoWarn>
+  </PropertyGroup>
+
   <PropertyGroup Condition="'$(Configuration)|$(TargetFramework)|$(Platform)'=='Debug|net481|AnyCPU'">
     <WarningsAsErrors>41999,42016,42017,42018,42019,42020,42021,42022,42024,42029,42030,42031,42032,42036,42099,42104,42108,42109</WarningsAsErrors>
     <NoWarn></NoWarn>
@@ -97,6 +115,11 @@
   </PropertyGroup>
 
   <PropertyGroup Condition="'$(Configuration)|$(TargetFramework)|$(Platform)'=='Release|net472|AnyCPU'">
+    <WarningsAsErrors>41999,42016,42017,42018,42019,42020,42021,42022,42024,42029,42030,42031,42032,42036,42099,42104,42108,42109</WarningsAsErrors>
+    <NoWarn></NoWarn>
+  </PropertyGroup>
+
+  <PropertyGroup Condition="'$(Configuration)|$(TargetFramework)|$(Platform)'=='Release|net48|AnyCPU'">
     <WarningsAsErrors>41999,42016,42017,42018,42019,42020,42021,42022,42024,42029,42030,42031,42032,42036,42099,42104,42108,42109</WarningsAsErrors>
     <NoWarn></NoWarn>
   </PropertyGroup>
@@ -152,7 +175,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <PackageReference Include="Versioning.Common" Version="1.0.17" />
     <PackageReference Include="Microsoft.SourceLink.GitHub" Version="8.0.0" PrivateAssets="All" />
+    <PackageReference Include="Versioning.Common" Version="1.0.17" />
   </ItemGroup>
 </Project>

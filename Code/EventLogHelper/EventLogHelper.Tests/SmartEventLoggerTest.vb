@@ -4,8 +4,8 @@ Imports System.Reflection
 Imports EventLogHelper.Enums
 Imports EventLogHelper.Interfaces
 
+'Imports System.Diagnostics
 #If NET35 Then
-Imports System.Diagnostics
 Imports Xunit.Extensions
 #Else
 Imports Xunit.Abstractions
@@ -19,6 +19,8 @@ Namespace net452
 Namespace net462
 #ElseIf NET472 Then
 Namespace net472
+#ElseIf NET48 Then
+Namespace net48
 #ElseIf NET481 Then
 Namespace net481
 #ElseIf NET8_0 Then
