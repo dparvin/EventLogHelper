@@ -21,7 +21,7 @@ Remove-Item -Recurse -Force coverage, CoverageReport -ErrorAction Ignore
 # Proceed with coverage
 dotnet test $PSScriptRoot `
   --no-build `
-  --framework net9.0-windows10.0.17763.0 `
+  --framework net10.0-windows10.0.17763.0 `
   /p:Configuration=$Configuration `
   /p:CollectCoverage=true `
   /p:CoverletOutput=coverage\ `

@@ -12,21 +12,23 @@ Imports Xunit.Abstractions
 #End If
 
 #If NET35 Then
-Namespace net35
+Namespace net_35
 #ElseIf NET452 Then
-Namespace net452
+Namespace net_452
 #ElseIf NET462 Then
-Namespace net462
+Namespace net_462
 #ElseIf NET472 Then
-Namespace net472
+Namespace net_472
 #ElseIf NET48 Then
-Namespace net48
+Namespace net_48
 #ElseIf NET481 Then
-Namespace net481
+Namespace net_481
 #ElseIf NET8_0 Then
-Namespace net80
+Namespace net_80
 #ElseIf NET9_0 Then
-Namespace net90
+Namespace net_90
+#ElseIf NET10_0 Then
+Namespace net100
 #End If
 
     ''' <summary>
